@@ -1,0 +1,164 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="700"
+        x:Class="RetroX25.Desktop.Views.TADServerWindow"
+        x:DataType="vm:TADServerWindowViewModel"
+        Icon="/Assets/icon.ico"
+        Title="Local TAD Server - Built-in Address 200"
+        Width="1200" Height="700"
+        MinWidth="1000" MinHeight="600">
+
+    <Design.DataContext>
+        <vm:TADServerWindowViewModel/>
+    </Design.DataContext>
+
+    <!-- Main layout with DockPanel -->
+    <DockPanel LastChildFill="True">
+
+        <!-- Status Bar (docked to bottom) -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,4">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusText}"
+                           FontSize="11"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding ConnectionStatsText}"
+                           FontSize="11"
+                           VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Button Bar (docked to bottom, above status) -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,8">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Command="{Binding RefreshCommand}"
+                        Content="Refresh"
+                        Width="80"/>
+                <Button Command="{Binding DisconnectSessionCommand}"
+                        Content="Disconnect Selected"
+                        Width="150"
+                        IsEnabled="{Binding CanDisconnect}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Help Text (docked to bottom, above buttons) -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                Padding="12,4">
+            <StackPanel Spacing="2">
+                <TextBlock Text="LocalTAD Protocol handles PAD connections to address 200"
+                           FontSize="11"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                <TextBlock Text="Select a session from the list to view detailed information"
+                           FontSize="11"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Header (docked to top) -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="12,8">
+            <TextBlock Text="Built-in LocalTAD Protocol Server (Address: 200)"
+                       FontSize="14"
+                       FontWeight="SemiBold"/>
+        </Border>
+
+        <!-- Main Content Area - Three columns -->
+        <Grid ColumnDefinitions="*,4,*,4,*" Margin="12">
+            <!-- Sessions List (left) -->
+            <Border Grid.Column="0"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                <DockPanel LastChildFill="True">
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Active PAD Sessions:"
+                               FontWeight="SemiBold"
+                               Margin="8,8,8,4"/>
+                    <ListBox ItemsSource="{Binding Sessions}"
+                             SelectedItem="{Binding SelectedSession}"
+                             Background="{DynamicResource SystemControlBackgroundAltMediumLowBrush}"
+                             FontFamily="Consolas,Courier New"
+                             FontSize="11">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <Run Text="[LCN "/><Run Text="{Binding LCN, StringFormat='{}{0:D2}'}"/><Run Text="] "/><Run Text="{Binding CalledAddress}"/><Run Text=" - "/><Run Text="{Binding Duration, StringFormat='{}{0:hh\\:mm\\:ss}'}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- Splitter 1 -->
+            <GridSplitter Grid.Column="1"
+                          Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                          Width="4"/>
+
+            <!-- Session Details (middle) -->
+            <Border Grid.Column="2"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                <DockPanel LastChildFill="True">
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Session Details:"
+                               FontWeight="SemiBold"
+                               Margin="8,8,8,4"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  Background="{DynamicResource SystemControlBackgroundAltMediumLowBrush}"
+                                  Padding="8">
+                        <TextBlock Text="{Binding SessionDetails}"
+                                   FontFamily="Consolas,Courier New"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"/>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- Splitter 2 -->
+            <GridSplitter Grid.Column="3"
+                          Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                          Width="4"/>
+
+            <!-- X.3 Parameters (right) -->
+            <Border Grid.Column="4"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                <DockPanel LastChildFill="True">
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="X.3 Parameters:"
+                               FontWeight="SemiBold"
+                               Margin="8,8,8,4"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  Background="{DynamicResource SystemControlBackgroundAltMediumLowBrush}"
+                                  Padding="8">
+                        <TextBlock Text="{Binding X3Parameters}"
+                                   FontFamily="Consolas,Courier New"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"/>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+    </DockPanel>
+
+</Window>

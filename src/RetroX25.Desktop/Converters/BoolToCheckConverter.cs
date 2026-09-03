@@ -1,0 +1,26 @@
+using System;
+using System.Globalization;
+using Avalonia.Data.Converters;
+
+namespace RetroX25.Desktop.Converters;
+
+/// <summary>
+/// Converts bool to checkmark (✓) or empty space
+/// </summary>
+public class BoolToCheckConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool boolValue)
+        {
+            return boolValue ? "✓" : " ";
+        }
+
+        return " ";
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException("BoolToCheckConverter does not support ConvertBack");
+    }
+}

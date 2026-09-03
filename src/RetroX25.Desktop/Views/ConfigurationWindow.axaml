@@ -1,0 +1,418 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        xmlns:views="using:RetroX25.Desktop.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+        x:Class="RetroX25.Desktop.Views.ConfigurationWindow"
+        x:DataType="vm:ConfigurationWindowViewModel"
+        Icon="/Assets/icon.ico"
+        Title="Configuration"
+        Width="800" Height="600"
+        MinWidth="700" MinHeight="500">
+
+    <Design.DataContext>
+        <vm:ConfigurationWindowViewModel/>
+    </Design.DataContext>
+
+    <!-- Main layout with DockPanel -->
+    <DockPanel LastChildFill="True">
+
+        <!-- Status Bar (docked to bottom) -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,4">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusText}"
+                           FontSize="11"
+                           VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Button Bar (docked to bottom, above status) -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Command="{Binding ApplySettingsCommand}"
+                        Content="Apply"
+                        Width="80"
+                        ToolTip.Tip="Apply current settings (restart required for changes to take effect)"/>
+                <Button Command="{Binding ResetToDefaultsCommand}"
+                        Content="Reset to Defaults"
+                        Width="120"
+                        ToolTip.Tip="Reset all settings to ITU-T X.25 defaults"/>
+                <Button Command="{Binding SaveToFileCommand}"
+                        Content="Save..."
+                        Width="80"
+                        ToolTip.Tip="Save current configuration to JSON file"/>
+                <Button Command="{Binding LoadFromFileCommand}"
+                        Content="Load..."
+                        Width="80"
+                        ToolTip.Tip="Load configuration from JSON file"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content - Tabbed Interface -->
+        <TabControl Margin="12">
+            <!-- General Settings Tab -->
+            <TabItem Header="General">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16" Spacing="16">
+                        <!-- History Section -->
+                        <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="History Settings"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"/>
+
+                                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto">
+                                    <TextBlock Grid.Column="0" Text="History Capacity:" VerticalAlignment="Center"/>
+                                    <NumericUpDown Grid.Column="1"
+                                                   Value="{Binding HistoryCapacity}"
+                                                   Minimum="10"
+                                                   Maximum="100000"
+                                                   Increment="100"
+                                                   FormatString="N0"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+                                </Grid>
+
+                                <TextBlock Text="Maximum number of history items to keep in memory."
+                                           FontSize="11"
+                                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- LAPB Settings Tab -->
+            <TabItem Header="LAPB">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16" Spacing="16">
+                        <!-- Timer Section -->
+                        <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="LAPB Timers"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"/>
+
+                                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                                    <!-- T1 -->
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="T1 Timeout (ms):" VerticalAlignment="Center"/>
+                                    <NumericUpDown Grid.Row="0" Grid.Column="1"
+                                                   Value="{Binding LapbT1Timeout}"
+                                                   Minimum="100"
+                                                   Maximum="60000"
+                                                   Increment="100"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+
+                                    <!-- T2 -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="T2 Timeout (ms):" VerticalAlignment="Center"/>
+                                    <NumericUpDown Grid.Row="1" Grid.Column="1"
+                                                   Value="{Binding LapbT2Timeout}"
+                                                   Minimum="10"
+                                                   Maximum="10000"
+                                                   Increment="10"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+
+                                    <!-- T3 -->
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="T3 Timeout (ms):" VerticalAlignment="Center"/>
+                                    <NumericUpDown Grid.Row="2" Grid.Column="1"
+                                                   Value="{Binding LapbT3Timeout}"
+                                                   Minimum="0"
+                                                   Maximum="600000"
+                                                   Increment="1000"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+                                </Grid>
+
+                                <TextBlock TextWrapping="Wrap"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}">
+                                    <Run>T1: Response timeout (ITU-T X.25: 3000ms recommended)</Run><LineBreak/>
+                                    <Run>T2: Acknowledgment delay (Must be ≤ T1/2)</Run><LineBreak/>
+                                    <Run>T3: Idle supervision (0 = disabled, DCE mode only)</Run>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Parameters Section -->
+                        <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="LAPB Parameters"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"/>
+
+                                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+                                    <!-- Max Retries -->
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Max Retries (N2):" VerticalAlignment="Center"/>
+                                    <NumericUpDown Grid.Row="0" Grid.Column="1"
+                                                   Value="{Binding LapbMaxRetries}"
+                                                   Minimum="1"
+                                                   Maximum="20"
+                                                   Increment="1"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+
+                                    <!-- Window Size -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Window Size (k):" VerticalAlignment="Center"/>
+                                    <NumericUpDown Grid.Row="1" Grid.Column="1"
+                                                   Value="{Binding LapbWindowSize}"
+                                                   Minimum="1"
+                                                   Maximum="127"
+                                                   Increment="1"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+
+                                    <!-- Modulo -->
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Modulo:" VerticalAlignment="Center"/>
+                                    <ComboBox Grid.Row="2" Grid.Column="1"
+                                              SelectedItem="{Binding LapbModulo}"
+                                              Width="150"
+                                              HorizontalAlignment="Left">
+                                        <ComboBoxItem Content="8"/>
+                                        <ComboBoxItem Content="128"/>
+                                    </ComboBox>
+
+                                    <!-- Max Info Field Size -->
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Max Info Field Size (N1):" VerticalAlignment="Center"/>
+                                    <NumericUpDown Grid.Row="3" Grid.Column="1"
+                                                   Value="{Binding LapbMaxInfoFieldSize}"
+                                                   Minimum="64"
+                                                   Maximum="4096"
+                                                   Increment="64"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+
+                                    <!-- IsDCE -->
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Station Type:" VerticalAlignment="Center"/>
+                                    <CheckBox Grid.Row="4" Grid.Column="1"
+                                              IsChecked="{Binding LapbIsDCE}"
+                                              Content="DCE Mode (Network-side equipment)"
+                                              VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <TextBlock TextWrapping="Wrap"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}">
+                                    <Run FontWeight="SemiBold">DTE Mode:</Run><Run> User equipment (terminals, hosts)</Run><LineBreak/>
+                                    <Run FontWeight="SemiBold">DCE Mode:</Run><Run> Network equipment (switches, PADs)</Run><LineBreak/>
+                                    <Run>For peer-to-peer connections, both sides should use DTE mode.</Run>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- X.25 Settings Tab -->
+            <TabItem Header="X.25">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16" Spacing="16">
+                        <!-- Identity Section -->
+                        <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="X.25 Identity"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"/>
+
+                                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto" RowSpacing="8">
+                                    <!-- Local Machine ID -->
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Local Machine ID:" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="0" Grid.Column="1"
+                                             Text="{Binding X25LocalMachineId}"
+                                             Width="200"
+                                             HorizontalAlignment="Left"/>
+
+                                    <!-- Local DTE Address -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Local DTE Address:" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="1" Grid.Column="1"
+                                             Text="{Binding X25LocalDteAddress}"
+                                             Width="200"
+                                             HorizontalAlignment="Left"/>
+                                </Grid>
+
+                                <TextBlock Text="Local Machine ID is the X.121 address for this system (e.g., '200' for built-in TAD server)."
+                                           TextWrapping="Wrap"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Packet Parameters Section -->
+                        <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Packet Parameters"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"/>
+
+                                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                                    <!-- Max Packet Size -->
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Max Packet Size:" VerticalAlignment="Center"/>
+                                    <NumericUpDown Grid.Row="0" Grid.Column="1"
+                                                   Value="{Binding X25MaxPacketSize}"
+                                                   Minimum="16"
+                                                   Maximum="4096"
+                                                   Increment="16"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+
+                                    <!-- Default Packet Window Size -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Default Packet Window:" VerticalAlignment="Center"/>
+                                    <NumericUpDown Grid.Row="1" Grid.Column="1"
+                                                   Value="{Binding X25DefaultPacketWindowSize}"
+                                                   Minimum="1"
+                                                   Maximum="127"
+                                                   Increment="1"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+
+                                    <!-- Extended Sequencing -->
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Extended Sequencing:" VerticalAlignment="Center"/>
+                                    <CheckBox Grid.Row="2" Grid.Column="1"
+                                              IsChecked="{Binding X25ExtendedPacketSequencing}"
+                                              Content="Enable extended packet sequencing"
+                                              VerticalAlignment="Center"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Timer Section -->
+                        <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="X.25 Timers"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"/>
+
+                                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                                    <!-- T20 -->
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="T20 Timeout (ms):" VerticalAlignment="Center"/>
+                                    <NumericUpDown Grid.Row="0" Grid.Column="1"
+                                                   Value="{Binding X25T20Timeout}"
+                                                   Minimum="1000"
+                                                   Maximum="600000"
+                                                   Increment="1000"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+
+                                    <!-- T21 -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="T21 Timeout (ms):" VerticalAlignment="Center"/>
+                                    <NumericUpDown Grid.Row="1" Grid.Column="1"
+                                                   Value="{Binding X25T21Timeout}"
+                                                   Minimum="1000"
+                                                   Maximum="600000"
+                                                   Increment="1000"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+
+                                    <!-- T22 -->
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="T22 Timeout (ms):" VerticalAlignment="Center"/>
+                                    <NumericUpDown Grid.Row="2" Grid.Column="1"
+                                                   Value="{Binding X25T22Timeout}"
+                                                   Minimum="1000"
+                                                   Maximum="600000"
+                                                   Increment="1000"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+
+                                    <!-- T23 -->
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="T23 Timeout (ms):" VerticalAlignment="Center"/>
+                                    <NumericUpDown Grid.Row="3" Grid.Column="1"
+                                                   Value="{Binding X25T23Timeout}"
+                                                   Minimum="1000"
+                                                   Maximum="600000"
+                                                   Increment="1000"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+                                </Grid>
+
+                                <TextBlock TextWrapping="Wrap"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}">
+                                    <Run>T20: Restart request timeout (ITU-T: 180s)</Run><LineBreak/>
+                                    <Run>T21: Call request timeout (ITU-T: 200s)</Run><LineBreak/>
+                                    <Run>T22: Reset request timeout (ITU-T: 180s)</Run><LineBreak/>
+                                    <Run>T23: Clear request timeout (ITU-T: 60s)</Run>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Serial Interfaces Tab -->
+            <TabItem Header="Serial Interfaces">
+                <ContentControl Content="{Binding SerialInterfacesTab}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate>
+                            <views:SerialInterfacesTab/>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
+            </TabItem>
+
+            <!-- XOT Interfaces Tab -->
+            <TabItem Header="XOT Interfaces">
+                <ContentControl Content="{Binding XotInterfacesTab}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate>
+                            <views:XotInterfacesTab/>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
+            </TabItem>
+
+            <!-- Known Hosts Tab -->
+            <TabItem Header="Known Hosts">
+                <ContentControl Content="{Binding KnownHostsTab}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate>
+                            <views:KnownHostsTab/>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
+            </TabItem>
+
+            <!-- Routing Table Tab -->
+            <TabItem Header="Routing Table">
+                <ContentControl Content="{Binding RoutingTab}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate>
+                            <views:RoutingTab/>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
+            </TabItem>
+        </TabControl>
+
+    </DockPanel>
+
+</Window>

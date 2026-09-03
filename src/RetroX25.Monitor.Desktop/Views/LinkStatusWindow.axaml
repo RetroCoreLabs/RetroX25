@@ -1,0 +1,55 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Monitor.Desktop.ViewModels"
+        x:Class="RetroX25.Monitor.Desktop.Views.LinkStatusWindow"
+        x:DataType="vm:LinkStatusViewModel"
+        Width="760" Height="440"
+        Title="X.25 Link Status"
+        Background="{DynamicResource AppBackgroundBrush}">
+
+  <DockPanel>
+
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="8">
+      <TextBlock Text="Switch:" VerticalAlignment="Center" />
+      <ComboBox ItemsSource="{Binding Switches}"
+                SelectedItem="{Binding SelectedSwitch}"
+                MinWidth="220">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:SwitchEndpoint">
+            <TextBlock Text="{Binding Display}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+      <Button Content="Connect" Command="{Binding ConnectCommand}" />
+      <Button Content="Disconnect" Command="{Binding DisconnectCommand}" />
+      <TextBlock Text="{Binding Status}" VerticalAlignment="Center" Margin="12,0,0,0" Opacity="0.8" />
+      <TextBlock Text="Active circuits:" VerticalAlignment="Center" Margin="12,0,0,0" />
+      <TextBlock Text="{Binding ActiveCircuits}" VerticalAlignment="Center" FontWeight="Bold" />
+    </StackPanel>
+
+    <DataGrid x:CompileBindings="False"
+              Margin="8,0,8,8"
+              ItemsSource="{Binding Ports}"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              GridLinesVisibility="Horizontal">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Port" Binding="{Binding Id}" Width="55" />
+        <DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="60" />
+        <DataGridTextColumn Header="Route" Binding="{Binding Routes}" Width="140" />
+        <DataGridCheckBoxColumn Header="Up" Binding="{Binding Active}" Width="45" />
+        <DataGridCheckBoxColumn Header="Peer" Binding="{Binding PeerConnected}" Width="50" />
+        <DataGridTextColumn Header="Att" Binding="{Binding ConnectAttempts}" Width="45" />
+        <DataGridTextColumn Header="Calls In" Binding="{Binding CallsIn}" Width="*" />
+        <DataGridTextColumn Header="Calls Out" Binding="{Binding CallsOut}" Width="*" />
+        <DataGridTextColumn Header="Cleared" Binding="{Binding CallsCleared}" Width="*" />
+        <DataGridTextColumn Header="Pkts In" Binding="{Binding PacketsIn}" Width="*" />
+        <DataGridTextColumn Header="Pkts Out" Binding="{Binding PacketsOut}" Width="*" />
+        <DataGridTextColumn Header="Bytes In" Binding="{Binding BytesReceived}" Width="*" />
+        <DataGridTextColumn Header="Bytes Out" Binding="{Binding BytesSent}" Width="*" />
+      </DataGrid.Columns>
+    </DataGrid>
+
+  </DockPanel>
+
+</Window>

@@ -1,0 +1,173 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+        x:Class="RetroX25.Desktop.Views.PacketWindow"
+        x:DataType="vm:PacketWindowViewModel"
+        Icon="/Assets/icon.ico"
+        Title="Packet Window"
+        Width="1000" Height="700"
+        MinWidth="800" MinHeight="500">
+
+    <Design.DataContext>
+        <vm:PacketWindowViewModel/>
+    </Design.DataContext>
+
+    <!-- DataGrid StyleInclude - REQUIRED for DataGrid to work properly -->
+    <Window.Styles>
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+    </Window.Styles>
+
+    <!-- KeyBindings -->
+    <Window.KeyBindings>
+        <KeyBinding Gesture="F5" Command="{Binding RefreshCommand}"/>
+        <KeyBinding Gesture="Ctrl+C" Command="{Binding CopySelectedPacketCommand}"/>
+        <KeyBinding Gesture="Ctrl+E" Command="{Binding ExportPacketsCommand}"/>
+    </Window.KeyBindings>
+
+    <!-- Main layout with DockPanel -->
+    <DockPanel LastChildFill="True">
+
+        <!-- Toolbar (docked to top) -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="12,8">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <!-- Filter Controls -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
+                    <!-- Direction Filters -->
+                    <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="8,4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Direction:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <CheckBox IsChecked="{Binding ShowTx}" Content="TX"/>
+                            <CheckBox IsChecked="{Binding ShowRx}" Content="RX"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Layer Filters -->
+                    <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="8,4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Layer:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <CheckBox IsChecked="{Binding ShowHdlc}" Content="HDLC"/>
+                            <CheckBox IsChecked="{Binding ShowLapb}" Content="LAPB"/>
+                            <CheckBox IsChecked="{Binding ShowX25}" Content="X.25"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Action Buttons -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                    <Button Command="{Binding ToggleCollapseCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="{Binding IsCollapsed, Converter={StaticResource BoolToTextConverter}}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding RefreshCommand}" Content="Refresh" ToolTip.Tip="Refresh display (F5)"/>
+                    <Button Command="{Binding CopySelectedPacketCommand}" Content="Copy" ToolTip.Tip="Copy selected packet (Ctrl+C)" IsEnabled="{Binding SelectedPacket, Converter={StaticResource NullToBoolConverter}}"/>
+                    <Button Command="{Binding ExportPacketsCommand}" Content="Export..." ToolTip.Tip="Export all packets to file (Ctrl+E)"/>
+                    <Button Command="{Binding ClearPacketsCommand}" Content="Clear"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Status Bar (docked to bottom) -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,4">
+            <Grid ColumnDefinitions="Auto,16,*">
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusText}"
+                           FontSize="11"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           Text="{Binding StatisticsText}"
+                           FontSize="11"
+                           FontFamily="Consolas,Courier New"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                           VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Content Area - Split View -->
+        <Grid RowDefinitions="2*,4,*">
+            <!-- Packet List (top) -->
+            <Border Grid.Row="0" BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="0,0,0,1">
+                <DataGrid ItemsSource="{Binding Packets}"
+                          SelectedItem="{Binding SelectedPacket}"
+                          IsReadOnly="True"
+                          GridLinesVisibility="Horizontal"
+                          AutoGenerateColumns="False"
+                          CanUserResizeColumns="True"
+                          CanUserSortColumns="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60"/>
+                        <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss.fff}'}" Width="100"/>
+                        <DataGridTextColumn Header="Layer" Binding="{Binding Layer}" Width="70"/>
+                        <DataGridTextColumn Header="Dir" Binding="{Binding Direction}" Width="50"/>
+                        <DataGridTextColumn Header="Length" Binding="{Binding Length}" Width="70"/>
+                        <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <!-- Splitter -->
+            <GridSplitter Grid.Row="1"
+                          Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                          HorizontalAlignment="Stretch"/>
+
+            <!-- Packet Details (bottom) -->
+            <Border Grid.Row="2" Padding="12">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="8" IsVisible="{Binding SelectedPacket, Converter={StaticResource NullToVisibilityConverter}}">
+                        <!-- Summary -->
+                        <TextBlock Text="{Binding SelectedPacketSummary}"
+                                   FontFamily="Consolas,Courier New"
+                                   FontWeight="SemiBold"/>
+
+                        <!-- Hex Dump -->
+                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                CornerRadius="4"
+                                Padding="8">
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Payload (Hex):" FontWeight="SemiBold" FontSize="11"/>
+                                <TextBlock Text="{Binding SelectedPacketHex}"
+                                           FontFamily="Consolas,Courier New"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ASCII Dump (if applicable) -->
+                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                CornerRadius="4"
+                                Padding="8">
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Payload (ASCII):" FontWeight="SemiBold" FontSize="11"/>
+                                <TextBlock Text="{Binding SelectedPacketAscii}"
+                                           FontFamily="Consolas,Courier New"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+    </DockPanel>
+
+</Window>

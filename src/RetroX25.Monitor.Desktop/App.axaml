@@ -1,0 +1,16 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="RetroX25.Monitor.Desktop.App"
+             RequestedThemeVariant="Dark">
+
+  <!-- The active colour palette is installed at runtime by ThemeManager (Styles/Palettes/*.axaml),
+       so it can be swapped live. AppStyles binds every colour via {DynamicResource ...}. -->
+  <Application.Styles>
+    <FluentTheme />
+    <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
+    <!-- NodifyM node-editor control styles (must precede AppStyles so our DynamicResource colours win). -->
+    <StyleInclude Source="avares://NodifyM.Avalonia/Styles/ControlStyles.axaml" />
+    <StyleInclude Source="avares://x25monitor/Styles/AppStyles.axaml" />
+  </Application.Styles>
+
+</Application>

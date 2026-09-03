@@ -1,0 +1,36 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Monitor.Desktop.ViewModels"
+        x:Class="RetroX25.Monitor.Desktop.Views.PreferencesWindow"
+        x:DataType="vm:PreferencesViewModel"
+        Width="420" Height="220"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Title="Preferences">
+
+  <DockPanel Margin="16">
+
+    <!-- Buttons pinned to the bottom. -->
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
+                Spacing="8" Margin="0,16,0,0">
+      <Button Content="Cancel" Width="90" Click="OnCancel" />
+      <Button Content="OK" Width="90" Classes="Accent" Click="OnOk" />
+    </StackPanel>
+
+    <StackPanel Spacing="14">
+      <TextBlock Text="Appearance" FontWeight="Bold" FontSize="16" />
+
+      <StackPanel Spacing="6">
+        <TextBlock Text="Theme" Foreground="{DynamicResource AppTextSecondaryBrush}" />
+        <ComboBox ItemsSource="{Binding Themes}"
+                  SelectedItem="{Binding SelectedTheme}"
+                  HorizontalAlignment="Stretch" />
+        <TextBlock Text="Selecting a theme previews it immediately. OK saves it for next time."
+                   Foreground="{DynamicResource AppTextSecondaryBrush}"
+                   FontSize="12" TextWrapping="Wrap" />
+      </StackPanel>
+    </StackPanel>
+
+  </DockPanel>
+
+</Window>

@@ -1,0 +1,103 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RetroX25.Desktop.ViewModels"
+             x:Class="RetroX25.Desktop.Views.KnownHostsTab"
+             x:DataType="vm:KnownHostsTabViewModel">
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="12">
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0"
+                   Text="Known Hosts - Define X.25 machines and their reachability for multi-hop routing"
+                   FontSize="14"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,12"/>
+
+        <!-- Main content area -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+
+            <!-- List of known hosts -->
+            <Border Grid.Column="0"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="8"
+                    Margin="0,0,12,0">
+                <ListBox ItemsSource="{Binding KnownHosts}"
+                         SelectedItem="{Binding SelectedHost}"
+                         DisplayMemberBinding="{Binding DisplayText}">
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="Padding" Value="8"/>
+                            <Setter Property="FontFamily" Value="Consolas,Courier New"/>
+                            <Setter Property="FontSize" Value="11"/>
+                        </Style>
+                    </ListBox.Styles>
+                </ListBox>
+            </Border>
+
+            <!-- Buttons -->
+            <StackPanel Grid.Column="1" Spacing="8">
+                <Button Command="{Binding AddHostCommand}"
+                        Content="Add"
+                        Width="100"
+                        HorizontalContentAlignment="Center"/>
+
+                <Button Command="{Binding EditHostCommand}"
+                        Content="Edit"
+                        Width="100"
+                        HorizontalContentAlignment="Center"/>
+
+                <Button Command="{Binding DeleteHostCommand}"
+                        Content="Delete"
+                        Width="100"
+                        HorizontalContentAlignment="Center"/>
+
+                <Separator Height="1" Margin="0,8"/>
+
+                <Button Command="{Binding RefreshCommand}"
+                        Content="Refresh"
+                        Width="100"
+                        HorizontalContentAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Status bar -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="8,4"
+                Margin="0,12,0,0">
+            <TextBlock Text="{Binding StatusText}"
+                       FontSize="11"/>
+        </Border>
+
+        <!-- Help text -->
+        <Border Grid.Row="2"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                Padding="12"
+                Margin="0,-80,0,44"
+                IsVisible="{Binding KnownHosts.Count, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+            <StackPanel Spacing="8">
+                <TextBlock Text="No Known Hosts Configured"
+                           FontWeight="SemiBold"
+                           FontSize="13"/>
+                <TextBlock TextWrapping="Wrap"
+                           FontSize="11"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}">
+                    Known hosts define which X.25 machines are reachable and how to reach them.
+                    Direct hosts are reachable through an interface, Gateway hosts are reachable through another machine.
+                </TextBlock>
+                <TextBlock TextWrapping="Wrap"
+                           FontSize="11"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}">
+                    Click "Add" to configure a new known host.
+                </TextBlock>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

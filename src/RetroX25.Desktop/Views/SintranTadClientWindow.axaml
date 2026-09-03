@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        x:Class="RetroX25.Desktop.Views.SintranTadClientWindow"
+        x:DataType="vm:SintranTadClientWindowViewModel"
+        Icon="/Assets/icon.ico"
+        Title="{Binding WindowTitle}"
+        Width="900" Height="600">
+
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <TextBlock Grid.Column="0" Text="Remote Address:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBox Grid.Column="1" Text="{Binding RemoteAddress}" Watermark="e.g., 100, 101, 102" IsEnabled="{Binding CanConnect}"/>
+                <Button Grid.Column="2" Command="{Binding ConnectCommand}" Content="Connect" Width="90" Margin="8,0" IsEnabled="{Binding CanConnect}"/>
+                <Button Grid.Column="3" Command="{Binding DisconnectCommand}" Content="Disconnect" Width="100" IsEnabled="{Binding CanDisconnect}"/>
+            </Grid>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" BorderThickness="0,1,0,0" Padding="12,4">
+            <TextBlock Text="{Binding StatusText}" FontSize="11"/>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" BorderThickness="0,1,0,0" Padding="12,8">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBox x:Name="InputTextBox" Grid.Column="0" Text="{Binding InputText}" Watermark="Type here to send data..."/>
+                <Button Grid.Column="1" Command="{Binding SendInputCommand}" Content="Send" Width="80" Margin="8,0,0,0"/>
+                <Button Grid.Column="2" Command="{Binding ClearConsoleCommand}" Content="Clear" Width="80" Margin="8,0,0,0"/>
+            </Grid>
+        </Border>
+
+        <Border Margin="12" BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" BorderThickness="1" CornerRadius="4">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Console Output:" FontWeight="SemiBold" Margin="8,8,8,4"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{DynamicResource SystemControlBackgroundAltMediumLowBrush}" Padding="8">
+                    <TextBlock Text="{Binding ConsoleText}" FontFamily="Consolas,Courier New" FontSize="11" TextWrapping="Wrap"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </DockPanel>
+</Window>

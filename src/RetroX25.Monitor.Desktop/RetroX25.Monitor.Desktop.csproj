@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>x25monitor</AssemblyName>
+    <RootNamespace>RetroX25.Monitor.Desktop</RootNamespace>
+    <OutputType>WinExe</OutputType>
+    <Nullable>enable</Nullable>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" />
+    <PackageReference Include="Avalonia.Diagnostics">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <!-- 8.2.2 required by NodifyM.Avalonia 1.1.9 (avoids an NU1605 downgrade error). -->
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <!-- Node-graph control for the network map. Pinned to 1.1.9 — the newest release that targets
+         Avalonia 11.x (>= 1.2.0 requires Avalonia 12, which this project does not use). -->
+    <PackageReference Include="NodifyM.Avalonia" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="RetroIO.Protocols.X25.Monitor" />
+    <PackageReference Include="RetroIO.Protocols.X25.Nmc" />
+  </ItemGroup>
+
+</Project>

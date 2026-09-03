@@ -1,0 +1,58 @@
+<!--
+  RetroFS palette (the alternate theme).
+
+  The green-on-dark-navy / orange scheme borrowed from the RetroServeUI app
+  (RetroFS/src/RetroServeUI/Styles/ColorScheme.axaml), provided so the two products share a
+  visual language. This ResourceDictionary defines the SAME semantic brush keys as
+  X25Palette.axaml; ThemeManager swaps the whole dictionary at runtime.
+
+  IMPORTANT: keep the key set here identical to X25Palette.axaml.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Surfaces / chrome -->
+  <SolidColorBrush x:Key="AppBackgroundBrush" Color="#1A1F2E" />
+  <SolidColorBrush x:Key="AppBackgroundAltBrush" Color="#0F1419" />
+  <SolidColorBrush x:Key="AppBackgroundLightBrush" Color="#252A39" />
+
+  <!-- Borders -->
+  <SolidColorBrush x:Key="AppBorderBrush" Color="#404550" />
+  <SolidColorBrush x:Key="AppBorderActiveBrush" Color="#00FF00" />
+
+  <!-- Accent (primary) — RetroFS green -->
+  <SolidColorBrush x:Key="AppAccentBrush" Color="#00FF00" />
+  <SolidColorBrush x:Key="AppAccentHoverBrush" Color="#00CC00" />
+  <SolidColorBrush x:Key="AppAccentPressedBrush" Color="#009900" />
+
+  <!-- Secondary — RetroFS orange -->
+  <SolidColorBrush x:Key="AppSecondaryBrush" Color="#FFA500" />
+
+  <!-- Text -->
+  <SolidColorBrush x:Key="AppTextPrimaryBrush" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="AppTextSecondaryBrush" Color="#E0E0E0" />
+
+  <!-- Status -->
+  <SolidColorBrush x:Key="AppSuccessBrush" Color="#00FF00" />
+  <SolidColorBrush x:Key="AppWarningBrush" Color="#FFA500" />
+  <SolidColorBrush x:Key="AppErrorBrush" Color="#FF4444" />
+  <SolidColorBrush x:Key="AppInfoBrush" Color="#4A9EFF" />
+
+  <!-- Network-map surface -->
+  <SolidColorBrush x:Key="MapCanvasBrush" Color="#0F1419" />
+
+  <!-- Network-map node state colours -->
+  <SolidColorBrush x:Key="NodeReachableBrush" Color="#2E7D32" />
+  <SolidColorBrush x:Key="NodeDegradedBrush" Color="#EF6C00" />
+  <SolidColorBrush x:Key="NodeDownBrush" Color="#C62828" />
+  <SolidColorBrush x:Key="NodeUnknownBrush" Color="#757575" />
+
+  <!-- Network-map link (trunk) colours -->
+  <SolidColorBrush x:Key="LinkUpBrush" Color="#43A047" />
+  <SolidColorBrush x:Key="LinkDownBrush" Color="#B03A2E" />
+
+  <!-- Node decoration -->
+  <SolidColorBrush x:Key="NodeBorderBrush" Color="#20FFFFFF" />
+  <SolidColorBrush x:Key="NodeTextBrush" Color="#FFFFFF" />
+
+</ResourceDictionary>

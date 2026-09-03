@@ -1,0 +1,112 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Monitor.Desktop.ViewModels"
+        x:Class="RetroX25.Monitor.Desktop.Views.PacketMonitorWindow"
+        x:DataType="vm:PacketMonitorViewModel"
+        Width="1000" Height="700"
+        Title="X.25 Packet Analyzer"
+        Background="{DynamicResource AppBackgroundBrush}">
+
+  <DockPanel>
+
+    <!-- Connection + filter toolbar -->
+    <StackPanel DockPanel.Dock="Top" Margin="8" Spacing="6">
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <TextBlock Text="Switch:" VerticalAlignment="Center" />
+        <ComboBox ItemsSource="{Binding Switches}"
+                  SelectedItem="{Binding SelectedSwitch}"
+                  MinWidth="220">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:SwitchEndpoint">
+              <TextBlock Text="{Binding Display}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <Button Content="Connect" Command="{Binding ConnectCommand}" />
+        <Button Content="Disconnect" Command="{Binding DisconnectCommand}" />
+        <TextBlock Text="{Binding Status}" VerticalAlignment="Center" Margin="12,0,0,0" Opacity="0.8" />
+      </StackPanel>
+
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <TextBlock Text="Ports:" VerticalAlignment="Center" />
+        <TextBox Text="{Binding FilterPorts}" Width="70" Watermark="all" />
+        <TextBlock Text="Src:" VerticalAlignment="Center" />
+        <TextBox Text="{Binding FilterSrc}" Width="90" Watermark="any" />
+        <TextBlock Text="Dst:" VerticalAlignment="Center" />
+        <TextBox Text="{Binding FilterDst}" Width="90" Watermark="any" />
+        <TextBlock Text="Types:" VerticalAlignment="Center" />
+        <TextBox Text="{Binding FilterPacketTypes}" Width="160" Watermark="all" />
+        <Button Content="Apply Filter" Command="{Binding ApplyFilterCommand}" />
+        <Button Content="Clear" Command="{Binding ClearPacketsCommand}" />
+      </StackPanel>
+    </StackPanel>
+
+    <!-- Three-pane: packet list (top), detail tree + hex (bottom) -->
+    <Grid RowDefinitions="*,4,2*" Margin="8,0,8,8">
+
+      <DataGrid Grid.Row="0"
+                x:CompileBindings="False"
+                ItemsSource="{Binding Packets}"
+                SelectedItem="{Binding SelectedPacket}"
+                AutoGenerateColumns="False"
+                IsReadOnly="True"
+                CanUserResizeColumns="True"
+                GridLinesVisibility="Horizontal">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Seq" Binding="{Binding Seq}" Width="60" />
+          <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="50" />
+          <DataGridTextColumn Header="Dir" Binding="{Binding Direction}" Width="50" />
+          <DataGridTextColumn Header="Type" Binding="{Binding PacketType}" Width="130" />
+          <DataGridTextColumn Header="Called" Binding="{Binding Called}" Width="110" />
+          <DataGridTextColumn Header="Calling" Binding="{Binding Calling}" Width="110" />
+          <DataGridTextColumn Header="Len" Binding="{Binding Length}" Width="55" />
+          <DataGridTextColumn Header="Summary" Binding="{Binding Summary}" Width="*" />
+        </DataGrid.Columns>
+      </DataGrid>
+
+      <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="{DynamicResource AppBorderBrush}" />
+
+      <Grid Grid.Row="2" ColumnDefinitions="*,4,*">
+
+        <!-- Layered field tree; selecting a field shows its raw bytes below the hex. -->
+        <Border Grid.Column="0" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1">
+          <TreeView x:CompileBindings="False"
+                    ItemsSource="{Binding Layers}"
+                    SelectedItem="{Binding SelectedTreeItem}">
+            <TreeView.DataTemplates>
+              <TreeDataTemplate DataType="vm:LayerNodeViewModel" ItemsSource="{Binding Fields}">
+                <TextBlock Text="{Binding Header}" FontWeight="SemiBold" />
+              </TreeDataTemplate>
+              <DataTemplate DataType="vm:FieldRowViewModel">
+                <TextBlock Text="{Binding Display}" />
+              </DataTemplate>
+            </TreeView.DataTemplates>
+          </TreeView>
+        </Border>
+
+        <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{DynamicResource AppBorderBrush}" />
+
+        <!-- Hex dump, with the selected field's bytes called out beneath it. -->
+        <Grid Grid.Column="2" RowDefinitions="*,Auto">
+          <Border Grid.Row="0" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1">
+            <TextBox Text="{Binding HexDump}"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     TextWrapping="NoWrap"
+                     FontFamily="Cascadia Mono,Consolas,Menlo,monospace"
+                     VerticalContentAlignment="Top"
+                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto" />
+          </Border>
+          <TextBlock Grid.Row="1"
+                     Text="{Binding SelectedFieldBytes}"
+                     Margin="4"
+                     FontFamily="Cascadia Mono,Consolas,Menlo,monospace"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource AppTextSecondaryBrush}" />
+        </Grid>
+      </Grid>
+    </Grid>
+  </DockPanel>
+
+</Window>

@@ -1,0 +1,387 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="700"
+        x:Class="RetroX25.Desktop.Views.StatusWindow"
+        x:DataType="vm:StatusWindowViewModel"
+        Icon="/Assets/icon.ico"
+        Title="Status Information"
+        Width="900" Height="700"
+        MinWidth="700" MinHeight="500">
+
+    <Design.DataContext>
+        <vm:StatusWindowViewModel/>
+    </Design.DataContext>
+
+    <!-- Main layout with DockPanel -->
+    <DockPanel LastChildFill="True">
+
+        <!-- Button Bar (docked to bottom) -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,8">
+            <Button Command="{Binding RefreshCommand}"
+                    Content="Refresh Now"
+                    Width="120"
+                    HorizontalAlignment="Right"/>
+        </Border>
+
+        <!-- Header (docked to top) -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="12,8">
+            <TextBlock Text="Protocol Runtime Statistics (Auto-refreshes every second)"
+                       FontSize="14"
+                       FontWeight="SemiBold"/>
+        </Border>
+
+        <!-- Main Content Area - Three columns for HDLC, LAPB, X.25 -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <Grid ColumnDefinitions="*,*,*" Margin="12" ColumnSpacing="12">
+                <!-- HDLC Statistics (left) -->
+                <Border Grid.Column="0"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="HDLC Layer Statistics"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"/>
+
+                        <StackPanel Spacing="8">
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Frames Received:" FontSize="11"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1"
+                                               Text="{Binding HdlcFramesReceived}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Frames Transmitted:" FontSize="11"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1"
+                                               Text="{Binding HdlcFramesTransmitted}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Invalid FCS:" FontSize="11" Foreground="Red"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1"
+                                               Text="{Binding HdlcFramesInvalidFcs}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"
+                                               Foreground="Red"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Bytes Received:" FontSize="11"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1"
+                                               Text="{Binding HdlcBytesReceived}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Bytes Transmitted:" FontSize="11"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1"
+                                               Text="{Binding HdlcBytesTransmitted}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- LAPB Statistics (middle) -->
+                <Border Grid.Column="1"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="LAPB Layer Statistics"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"/>
+
+                        <StackPanel Spacing="8">
+                            <Border Background="{DynamicResource SystemAccentColor}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid RowDefinitions="Auto" ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="Current State:" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding LapbCurrentState}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="Bold"
+                                               FontSize="11"
+                                               Foreground="White"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="I-Frames Sent:" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding LapbIFramesSent}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="I-Frames Received:" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding LapbIFramesReceived}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="S-Frames Sent:" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding LapbSFramesSent}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="S-Frames Received:" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding LapbSFramesReceived}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="U-Frames Sent:" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding LapbUFramesSent}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="U-Frames Received:" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding LapbUFramesReceived}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="Retransmissions:" FontSize="11" Foreground="Orange"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding LapbRetransmissions}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"
+                                               Foreground="Orange"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="Timeouts:" FontSize="11" Foreground="Orange"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding LapbTimeouts}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"
+                                               Foreground="Orange"/>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- X.25 Statistics (right) -->
+                <Border Grid.Column="2"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="X.25 Layer Statistics"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"/>
+
+                        <StackPanel Spacing="8">
+                            <Border Background="{DynamicResource SystemAccentColor}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="Active VCs:" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding X25ActiveVirtualCircuits}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="Bold"
+                                               FontSize="11"
+                                               Foreground="White"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="Total VCs:" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding X25TotalVirtualCircuits}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="Packets Received:" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding X25PacketsReceived}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="Packets Transmitted:" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding X25PacketsTransmitted}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="Call Requests Received:" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding X25CallRequestsReceived}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="Call Requests Transmitted:" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding X25CallRequestsTransmitted}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="Data Packets Received:" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding X25DataPacketsReceived}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="Data Packets Transmitted:" FontSize="11"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding X25DataPacketsTransmitted}"
+                                               FontFamily="Consolas,Courier New"
+                                               FontWeight="SemiBold"
+                                               FontSize="11"/>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </ScrollViewer>
+
+    </DockPanel>
+
+</Window>

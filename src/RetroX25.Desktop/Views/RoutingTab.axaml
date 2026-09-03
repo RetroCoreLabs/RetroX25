@@ -1,0 +1,108 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RetroX25.Desktop.ViewModels"
+             x:Class="RetroX25.Desktop.Views.RoutingTab"
+             x:DataType="vm:RoutingTabViewModel">
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="12">
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0"
+                   Text="Routing Table - X.121 address pattern matching for X.25 call routing"
+                   FontSize="14"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,12"/>
+
+        <!-- Main content area -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+
+            <!-- List of routes -->
+            <Border Grid.Column="0"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="8"
+                    Margin="0,0,12,0">
+                <ListBox ItemsSource="{Binding Routes}"
+                         SelectedItem="{Binding SelectedRoute}"
+                         DisplayMemberBinding="{Binding DisplayText}">
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="Padding" Value="8"/>
+                            <Setter Property="FontFamily" Value="Consolas,Courier New"/>
+                            <Setter Property="FontSize" Value="11"/>
+                        </Style>
+                    </ListBox.Styles>
+                </ListBox>
+            </Border>
+
+            <!-- Buttons -->
+            <StackPanel Grid.Column="1" Spacing="8">
+                <Button Command="{Binding AddRouteCommand}"
+                        Content="Add"
+                        Width="100"
+                        HorizontalContentAlignment="Center"/>
+
+                <Button Command="{Binding EditRouteCommand}"
+                        Content="Edit"
+                        Width="100"
+                        HorizontalContentAlignment="Center"/>
+
+                <Button Command="{Binding DeleteRouteCommand}"
+                        Content="Delete"
+                        Width="100"
+                        HorizontalContentAlignment="Center"/>
+
+                <Separator Height="1" Margin="0,8"/>
+
+                <Button Command="{Binding RefreshCommand}"
+                        Content="Refresh"
+                        Width="100"
+                        HorizontalContentAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Status bar -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="8,4"
+                Margin="0,12,0,0">
+            <TextBlock Text="{Binding StatusText}"
+                       FontSize="11"/>
+        </Border>
+
+        <!-- Help text -->
+        <Border Grid.Row="2"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                Padding="12"
+                Margin="0,-80,0,44"
+                IsVisible="{Binding Routes.Count, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+            <StackPanel Spacing="8">
+                <TextBlock Text="No Routes Configured"
+                           FontWeight="SemiBold"
+                           FontSize="13"/>
+                <TextBlock TextWrapping="Wrap"
+                           FontSize="11"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}">
+                    The routing table maps X.121 address patterns to destinations (interfaces, gateways, or local services).
+                    Routes use regex patterns for flexible address matching, with priority-based selection when multiple routes match.
+                </TextBlock>
+                <TextBlock TextWrapping="Wrap"
+                           FontSize="11"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}">
+                    Examples: '200' (exact match), '10.*' (prefix match), '.*100$' (suffix match)
+                </TextBlock>
+                <TextBlock TextWrapping="Wrap"
+                           FontSize="11"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}">
+                    Click "Add" to configure a new route.
+                </TextBlock>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

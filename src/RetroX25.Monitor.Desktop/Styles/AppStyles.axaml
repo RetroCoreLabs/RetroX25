@@ -1,0 +1,144 @@
+<!--
+  Application-wide control styles for the X.25 Monitor.
+
+  Every colour here is pulled from the ACTIVE palette via {DynamicResource ...} (not
+  StaticResource) so that swapping the palette dictionary at runtime (ThemeManager.ApplyTheme)
+  restyles the whole UI live. The semantic brush keys are defined in Styles/Palettes/*.axaml.
+
+  Modelled on RetroFS/src/RetroServeUI/Styles/ColorScheme.axaml.
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Windows default to the themed background. -->
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
+  </Style>
+
+  <!-- Plain text defaults to the primary text colour. -->
+  <Style Selector="TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+  </Style>
+
+  <!-- Menu bar -->
+  <Style Selector="Menu">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundAltBrush}" />
+  </Style>
+  <Style Selector="Menu > MenuItem">
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+  </Style>
+  <Style Selector="MenuItem">
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+  </Style>
+
+  <!-- Toolbar card: a horizontal band under the menu. -->
+  <Style Selector="Border.Toolbar">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundAltBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="8,6" />
+  </Style>
+
+  <!-- Card: a bordered content panel. -->
+  <Style Selector="Border.Card">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundLightBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="12" />
+  </Style>
+
+  <!-- Buttons -->
+  <Style Selector="Button">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundLightBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="10,5" />
+  </Style>
+  <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundLightBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppBorderActiveBrush}" />
+  </Style>
+
+  <!-- Accent button: the primary call-to-action (e.g. Discover). -->
+  <Style Selector="Button.Accent">
+    <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AppBackgroundAltBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button.Accent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AppAccentHoverBrush}" />
+  </Style>
+  <Style Selector="Button.Accent:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AppAccentPressedBrush}" />
+  </Style>
+
+  <!-- ComboBox / TextBox -->
+  <Style Selector="ComboBox">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundLightBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+  </Style>
+  <Style Selector="TextBox">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundLightBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+  </Style>
+
+  <!-- GridSplitter -->
+  <Style Selector="GridSplitter">
+    <Setter Property="Background" Value="{DynamicResource AppBorderBrush}" />
+  </Style>
+
+  <!-- DataGrid: dark theme with readable text (mirrors RetroServeUI). -->
+  <Style Selector="DataGrid">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+    <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource AppBorderBrush}" />
+    <Setter Property="RowBackground" Value="{DynamicResource AppBackgroundBrush}" />
+  </Style>
+
+  <Style Selector="DataGridColumnHeader">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundLightBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="DataGridColumnHeader TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+  </Style>
+
+  <Style Selector="DataGridCell">
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="DataGridCell TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+  </Style>
+
+  <Style Selector="DataGridRow">
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
+  </Style>
+  <Style Selector="DataGridRow:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundLightBrush}" />
+  </Style>
+  <Style Selector="DataGridRow:selected">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundAltBrush}" />
+  </Style>
+  <Style Selector="DataGridRow:selected TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+  </Style>
+  <Style Selector="DataGrid TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+  </Style>
+
+  <!-- TreeView (packet field tree) -->
+  <Style Selector="TreeView">
+    <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+  </Style>
+
+</Styles>

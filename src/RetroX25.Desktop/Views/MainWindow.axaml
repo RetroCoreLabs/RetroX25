@@ -1,0 +1,293 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        x:Class="RetroX25.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/icon.ico"
+        Title="{Binding WindowTitle}"
+        Width="1200" Height="800"
+        MinWidth="800" MinHeight="600">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <!-- Main layout with DockPanel -->
+    <DockPanel LastChildFill="True">
+
+        <!-- Menu Bar (docked to top) -->
+        <Menu DockPanel.Dock="Top" Margin="0">
+            <!-- File Menu -->
+            <MenuItem Header="_File">
+                <MenuItem Header="_Exit" Command="{Binding ExitCommand}" />
+            </MenuItem>
+
+            <!-- Tools Menu -->
+            <MenuItem Header="_Tools">
+                <MenuItem Header="_Configuration..." Command="{Binding ShowConfigurationWindowCommand}" />
+                <Separator />
+                <MenuItem Header="_Reset Statistics" Command="{Binding ResetStatisticsCommand}" />
+                <MenuItem Header="_Clear Packet History" Command="{Binding ClearPacketHistoryCommand}" />
+            </MenuItem>
+
+            <!-- Windows Menu -->
+            <MenuItem Header="_Windows">
+                <MenuItem Header="_Status Information" Command="{Binding ShowStatusWindowCommand}" />
+                <MenuItem Header="_Packet Window" Command="{Binding ShowPacketWindowCommand}" />
+                <MenuItem Header="_Log Window" Command="{Binding ShowLogWindowCommand}" />
+                <MenuItem Header="_Routes..." Command="{Binding ShowRoutesWindowCommand}" />
+                <Separator />
+                <MenuItem Header="PAD _Client Test" Command="{Binding ShowPADClientWindowCommand}" />
+                <MenuItem Header="_TAD Server Monitor" Command="{Binding ShowTADServerWindowCommand}" />
+                <MenuItem Header="_XMSG Server Monitor" Command="{Binding ShowXMSGServerWindowCommand}" />
+                <MenuItem Header="_Simulate Receive..." Command="{Binding ShowSimulateReceiveWindowCommand}" />
+                <Separator />
+                <MenuItem Header="SINTRAN TAD _Client" Command="{Binding ShowSintranTadClientWindowCommand}" />
+                <MenuItem Header="SINTRAN TAD _Server" Command="{Binding ShowSintranTadServerWindowCommand}" />
+            </MenuItem>
+
+            <!-- Help Menu -->
+            <MenuItem Header="_Help">
+                <MenuItem Header="_Help" Command="{Binding ShowHelpCommand}" InputGesture="F1" />
+                <Separator />
+                <MenuItem Header="_About" Command="{Binding ShowAboutCommand}" />
+            </MenuItem>
+        </Menu>
+
+        <!-- Status Bar (docked to bottom) - Aggregate Summary -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,6">
+            <TextBlock FontSize="11" VerticalAlignment="Center">
+                <Run Text="All Interfaces:" FontWeight="SemiBold"/>
+                <Run Text=" RX: "/>
+                <Run Text="{Binding AggregateRxBytes}" FontWeight="SemiBold"/>
+                <Run Text=" ("/>
+                <Run Text="{Binding AggregateRxFrames}"/>
+                <Run Text=" frames) | TX: "/>
+                <Run Text="{Binding AggregateTxBytes}" FontWeight="SemiBold"/>
+                <Run Text=" ("/>
+                <Run Text="{Binding AggregateTxFrames}"/>
+                <Run Text=" frames) | Errors: "/>
+                <Run Text="{Binding AggregateFcsErrors}" Foreground="Red"/>
+                <Run Text=" FCS, "/>
+                <Run Text="{Binding AggregateLapbErrors}" Foreground="Orange"/>
+                <Run Text=" LAPB | Uptime: "/>
+                <Run Text="{Binding RuntimeUptime}" FontWeight="SemiBold"/>
+            </TextBlock>
+        </Border>
+
+        <!-- Main Content Area - Compact Status Display -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+            <StackPanel Spacing="12">
+
+                <!-- Host Information Section -->
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Host Information" FontSize="14" FontWeight="SemiBold"/>
+                        <TextBlock FontSize="11">
+                            <Run Text="Machine ID: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="{Binding LocalMachineId}" FontWeight="SemiBold"/>
+                            <Run Text=" | DTE Address: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="{Binding LocalDteAddress}" FontWeight="SemiBold"/>
+                            <Run Text=" | Gateway: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="{Binding DefaultGateway}" FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <!-- Interfaces Section -->
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Interfaces" FontSize="14" FontWeight="SemiBold"/>
+
+                        <ItemsControl ItemsSource="{Binding Interfaces}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                            BorderThickness="0,1,0,0"
+                                            Padding="0,8,0,8"
+                                            Margin="0,4,0,0">
+                                        <StackPanel Spacing="4">
+                                            <!-- Interface Header Line -->
+                                            <TextBlock FontSize="11">
+                                                <Run Text="[" Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                                <Run Text="{Binding Enabled, Converter={StaticResource BoolToCheckConverter}}" FontWeight="Bold"/>
+                                                <Run Text="] " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                                <Run Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                <Run Text=": "/>
+                                                <Run Text="{Binding Details}"/>
+                                                <Run Text=" ["/>
+                                                <Run Text="{Binding Status}" FontWeight="SemiBold"/>
+                                                <Run Text="] â†’ Machine "/>
+                                                <Run Text="{Binding RemoteMachineId}" FontWeight="SemiBold"/>
+                                            </TextBlock>
+
+                                            <!-- Statistics Line -->
+                                            <TextBlock FontSize="11" Margin="20,0,0,0">
+                                                <Run Text="RX: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                                <Run Text="{Binding RxBytesFormatted}" FontWeight="SemiBold"/>
+                                                <Run Text=" ("/>
+                                                <Run Text="{Binding RxFrames}"/>
+                                                <Run Text=" frames) | TX: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                                <Run Text="{Binding TxBytesFormatted}" FontWeight="SemiBold"/>
+                                                <Run Text=" ("/>
+                                                <Run Text="{Binding TxFrames}"/>
+                                                <Run Text=" frames)"/>
+                                            </TextBlock>
+
+                                            <!-- LAPB Line (Serial interfaces only) -->
+                                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="20,0,0,0"
+                                                        IsVisible="{Binding Type, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Serial}">
+                                                <TextBlock FontSize="11" VerticalAlignment="Center">
+                                                    <Run Text="LAPB Auto-Connect: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                                </TextBlock>
+                                                <CheckBox IsChecked="{Binding LapbAutoConnect}"
+                                                          VerticalAlignment="Center"/>
+                                                <TextBlock FontSize="11" VerticalAlignment="Center">
+                                                    <Run Text="State: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                                    <Run Text="{Binding LapbState}" FontWeight="SemiBold"/>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="No interfaces configured"
+                                   FontSize="11"
+                                   FontStyle="Italic"
+                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                   IsVisible="{Binding Interfaces.Count, Converter={StaticResource IntEqualsConverter}, ConverterParameter=0}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Protocol Statistics Section -->
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Protocol Statistics" FontSize="14" FontWeight="SemiBold"/>
+
+                        <!-- HDLC Statistics -->
+                        <TextBlock FontSize="11">
+                            <Run Text="HDLC:  " FontWeight="SemiBold"/>
+                            <Run Text="RX: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="{Binding HdlcTotalRxFrames}"/>
+                            <Run Text=" OK / "/>
+                            <Run Text="{Binding HdlcFramesInvalidFcs}" Foreground="Red"/>
+                            <Run Text=" BAD  |  TX: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="{Binding HdlcTotalTxFrames}"/>
+                            <Run Text=" OK"/>
+                        </TextBlock>
+
+                        <!-- HDLC Breakdown -->
+                        <TextBlock FontSize="11" Margin="20,0,0,0">
+                            <Run Text="â”œâ”€ LAPB: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="RX: "/>
+                            <Run Text="{Binding HdlcLapbRxFrames}"/>
+                            <Run Text=" | TX: "/>
+                            <Run Text="{Binding HdlcLapbTxFrames}"/>
+                        </TextBlock>
+
+                        <TextBlock FontSize="11" Margin="20,0,0,0">
+                            <Run Text="â”œâ”€ X.25: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="RX: "/>
+                            <Run Text="{Binding HdlcX25RxFrames}"/>
+                            <Run Text=" | TX: "/>
+                            <Run Text="{Binding HdlcX25TxFrames}"/>
+                        </TextBlock>
+
+                        <TextBlock FontSize="11" Margin="20,0,0,0">
+                            <Run Text="â””â”€ Other: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="RX: "/>
+                            <Run Text="{Binding HdlcOtherRxFrames}"/>
+                            <Run Text=" | TX: "/>
+                            <Run Text="{Binding HdlcOtherTxFrames}"/>
+                        </TextBlock>
+
+                        <!-- LAPB Statistics -->
+                        <TextBlock FontSize="11" Margin="0,8,0,0">
+                            <Run Text="LAPB:  " FontWeight="SemiBold"/>
+                            <Run Text="State: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="{Binding LapbCurrentState}" FontWeight="SemiBold"/>
+                        </TextBlock>
+
+                        <TextBlock FontSize="11" Margin="20,0,0,0">
+                            <Run Text="I-Frames: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="RX: "/>
+                            <Run Text="{Binding LapbIFramesReceived}"/>
+                            <Run Text=" / TX: "/>
+                            <Run Text="{Binding LapbIFramesSent}"/>
+                            <Run Text="  |  Retx: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="{Binding LapbRetransmissions}" Foreground="Orange"/>
+                            <Run Text="  |  Timeouts: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="{Binding LapbTimeouts}" Foreground="Orange"/>
+                        </TextBlock>
+
+                        <!-- X.25 Statistics -->
+                        <TextBlock FontSize="11" Margin="0,8,0,0">
+                            <Run Text="X.25:  " FontWeight="SemiBold"/>
+                            <Run Text="Active VCs: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="{Binding X25ActiveVirtualCircuits}" FontWeight="SemiBold"/>
+                            <Run Text=" / Total: "/>
+                            <Run Text="{Binding X25TotalVirtualCircuits}"/>
+                        </TextBlock>
+
+                        <TextBlock FontSize="11" Margin="20,0,0,0">
+                            <Run Text="Packets: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="RX: "/>
+                            <Run Text="{Binding X25PacketsReceived}"/>
+                            <Run Text=" / TX: "/>
+                            <Run Text="{Binding X25PacketsTransmitted}"/>
+                            <Run Text="  |  Calls: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="RX: "/>
+                            <Run Text="{Binding X25CallRequestsReceived}"/>
+                            <Run Text=" / TX: "/>
+                            <Run Text="{Binding X25CallRequestsTransmitted}"/>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <!-- Routing Section -->
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12">
+                    <StackPanel Spacing="8">
+                        <TextBlock FontSize="11">
+                            <Run Text="Routing:  " FontWeight="SemiBold"/>
+                            <Run Text="Active Routes: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="{Binding ActiveRoutes}" FontWeight="SemiBold"/>
+                            <Run Text="/"/>
+                            <Run Text="{Binding TotalRoutes}"/>
+                            <Run Text=" | Default Gateway: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="{Binding DefaultGateway}" FontWeight="SemiBold"/>
+                        </TextBlock>
+
+                        <TextBlock Text="{Binding RoutingSummary}"
+                                   FontSize="11"
+                                   Margin="20,0,0,0"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+    </DockPanel>
+
+</Window>

@@ -1,0 +1,113 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        x:Class="RetroX25.Desktop.Views.KnownHostEditDialog"
+        x:DataType="vm:KnownHostEditDialogViewModel"
+        Title="Known Host Configuration"
+        Width="500" Height="500"
+        MinWidth="450" MinHeight="450"
+        CanResize="false"
+        WindowStartupLocation="CenterOwner"
+        Icon="/Assets/avalonia-logo.ico">
+
+    <Grid RowDefinitions="*,Auto" Margin="16">
+
+        <!-- Form fields -->
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="12">
+
+                <!-- Name -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Host Name:"
+                               FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding Name}"
+                             Watermark="e.g., SerialGateway, RemoteHost"/>
+                    <TextBlock Text="Friendly name for this known host"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Enabled -->
+                <CheckBox Content="Host Enabled"
+                          IsChecked="{Binding Enabled}"/>
+
+                <!-- Machine ID -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Machine ID:"
+                               FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding MachineId}"
+                             Watermark="100"/>
+                    <TextBlock Text="X.121 address of this X.25 machine (e.g., 100)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Reachability -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Reachability:"
+                               FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding AvailableReachability}"
+                              SelectedItem="{Binding Reachability}"
+                              HorizontalAlignment="Stretch"/>
+                    <TextBlock Text="Direct: reachable through an interface | Gateway: reachable through another machine"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Via -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Via:"
+                               FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding Via}"
+                             Watermark="Serial0 or 100"/>
+                    <TextBlock Text="Interface name (for Direct) or gateway machine ID (for Gateway)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Description -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Description (optional):"
+                               FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding Description}"
+                             Watermark="Description of this known host"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="60"/>
+                </StackPanel>
+
+                <!-- Validation Error -->
+                <Border Background="#FFFFE0E0"
+                        BorderBrush="#FFFF0000"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="8"
+                        IsVisible="{Binding ValidationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <TextBlock Text="{Binding ValidationError}"
+                               Foreground="#FFCC0000"
+                               TextWrapping="Wrap"/>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8"
+                    Margin="0,16,0,0">
+            <Button Command="{Binding OkCommand}"
+                    Content="OK"
+                    Width="80"
+                    IsDefault="True"
+                    Click="OnOkClick"/>
+            <Button Command="{Binding CancelCommand}"
+                    Content="Cancel"
+                    Width="80"
+                    IsCancel="True"
+                    Click="OnCancelClick"/>
+        </StackPanel>
+
+    </Grid>
+</Window>

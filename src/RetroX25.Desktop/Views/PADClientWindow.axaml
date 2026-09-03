@@ -1,0 +1,117 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+        x:Class="RetroX25.Desktop.Views.PADClientWindow"
+        x:DataType="vm:PADClientWindowViewModel"
+        Icon="/Assets/icon.ico"
+        Title="{Binding WindowTitle}"
+        Width="1000" Height="700"
+        MinWidth="800" MinHeight="500">
+
+    <Design.DataContext>
+        <vm:PADClientWindowViewModel/>
+    </Design.DataContext>
+
+    <!-- Event handlers wired in code-behind -->
+
+    <!-- Main layout with DockPanel -->
+    <DockPanel LastChildFill="True">
+
+        <!-- Status Bar (docked to bottom) -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,4">
+            <TextBlock Text="{Binding StatusText}"
+                       FontSize="11"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Action Buttons (docked to bottom, above status) -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Command="{Binding ClearConsoleCommand}"
+                        Content="Clear Console"
+                        Width="120"/>
+                <Button Command="{Binding DisconnectCommand}"
+                        Content="Disconnect"
+                        Width="100"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Help Text (docked to bottom, above buttons) -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                Padding="12,4">
+            <StackPanel Spacing="2">
+                <TextBlock Text="{Binding CharModeIndicator}"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource SystemAccentColor}"/>
+                <TextBlock Text="X.28 commands: CALL &lt;address&gt;, STAT, CLEAR, PAR?, SET &lt;param&gt;:&lt;value&gt; (press Enter to execute)"
+                           FontSize="11"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                <TextBlock Text="Special: Ctrl+P=DLE escape | Ctrl+A-Z=control codes | Ctrl+C=break | Characters sent immediately per X.3"
+                           FontSize="11"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content Area - Split between Console and X.3 Parameters -->
+        <Grid ColumnDefinitions="2*,4,*" Margin="12">
+            <!-- Console Output (left side) -->
+            <Border Grid.Column="0"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                <DockPanel LastChildFill="True">
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Console Output:"
+                               FontWeight="SemiBold"
+                               Margin="8,8,8,4"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  Background="{DynamicResource SystemControlBackgroundAltMediumLowBrush}"
+                                  Padding="8">
+                        <TextBlock Text="{Binding ConsoleText}"
+                                   FontFamily="Consolas,Courier New"
+                                   FontSize="12"
+                                   TextWrapping="NoWrap"/>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- Splitter -->
+            <GridSplitter Grid.Column="1"
+                          Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                          Width="4"/>
+
+            <!-- X.3 Parameters (right side) -->
+            <Border Grid.Column="2"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                <DockPanel LastChildFill="True">
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="X.3 Parameters:"
+                               FontWeight="SemiBold"
+                               Margin="8,8,8,4"/>
+                    <ListBox ItemsSource="{Binding X3Parameters}"
+                             FontFamily="Consolas,Courier New"
+                             FontSize="11"
+                             Background="{DynamicResource SystemControlBackgroundAltMediumLowBrush}"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+    </DockPanel>
+
+</Window>

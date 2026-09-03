@@ -1,0 +1,180 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Monitor.Desktop.ViewModels"
+        xmlns:controls="clr-namespace:NodifyM.Avalonia.Controls;assembly=NodifyM.Avalonia"
+        xmlns:vmb="clr-namespace:NodifyM.Avalonia.ViewModelBase;assembly=NodifyM.Avalonia"
+        x:Class="RetroX25.Monitor.Desktop.Views.NetworkMapWindow"
+        x:DataType="vm:NetworkMapViewModel"
+        Width="980" Height="760"
+        Title="X.25 Network Map"
+        Background="{DynamicResource AppBackgroundBrush}">
+
+  <!-- Explicit rows (not a DockPanel): the NodifyEditor is a greedy control whose measured size made the
+       DockPanel fill-slot overlap the toolbar. Grid rows cannot overlap, so each band gets its own space. -->
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+    <!-- Menu bar. -->
+    <Menu Grid.Row="0">
+      <MenuItem Header="_File">
+        <MenuItem Header="E_xit" Click="OnExit" />
+      </MenuItem>
+      <MenuItem Header="_View">
+        <MenuItem Header="_Preferences…" Click="OnOpenPreferences" />
+      </MenuItem>
+      <MenuItem Header="_Help">
+        <MenuItem Header="_About" Click="OnAbout" />
+      </MenuItem>
+    </Menu>
+
+    <!-- Toolbar: the NMC seed (a local switch access endpoint + its management address) and discovery. -->
+    <Border Grid.Row="1" Classes="Toolbar">
+      <StackPanel Spacing="6">
+
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Text="Seed host:" VerticalAlignment="Center" />
+          <TextBox Text="{Binding SeedHost}" Width="120" />
+          <TextBlock Text="Port:" VerticalAlignment="Center" />
+          <TextBox Text="{Binding SeedPort}" Width="70" />
+          <TextBlock Text="Mgmt addr:" VerticalAlignment="Center" />
+          <TextBox Text="{Binding SeedMgmtAddr}" Width="110" />
+          <Button Content="Discover" Classes="Accent" Command="{Binding DiscoverCommand}" />
+          <Button Content="Clear" Command="{Binding ClearCommand}" />
+          <TextBlock Text="{Binding Status}" VerticalAlignment="Center" Margin="12,0,0,0"
+                     Foreground="{DynamicResource AppTextSecondaryBrush}" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Text="Login:" VerticalAlignment="Center"
+                     Foreground="{DynamicResource AppTextSecondaryBrush}" />
+          <TextBlock Text="User" VerticalAlignment="Center" />
+          <TextBox Text="{Binding Username}" Width="110" />
+          <TextBlock Text="Password" VerticalAlignment="Center" />
+          <TextBox Text="{Binding Password}" Width="110" PasswordChar="•" />
+          <TextBlock Text="Drag nodes to arrange; positions are remembered. Wheel to zoom, drag canvas to pan."
+                     VerticalAlignment="Center" Margin="12,0,0,0"
+                     Foreground="{DynamicResource AppTextSecondaryBrush}" />
+        </StackPanel>
+
+      </StackPanel>
+    </Border>
+
+    <!-- Legend. Swatches use the same palette keys as the nodes, so they track the active theme. -->
+    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="14" Margin="10,4,10,8">
+      <StackPanel Orientation="Horizontal" Spacing="4">
+        <Ellipse Width="12" Height="12" Fill="{DynamicResource NodeReachableBrush}" VerticalAlignment="Center" />
+        <TextBlock Text="reachable, all links up" VerticalAlignment="Center" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="4">
+        <Ellipse Width="12" Height="12" Fill="{DynamicResource NodeDegradedBrush}" VerticalAlignment="Center" />
+        <TextBlock Text="a link is down" VerticalAlignment="Center" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="4">
+        <Ellipse Width="12" Height="12" Fill="{DynamicResource NodeDownBrush}" VerticalAlignment="Center" />
+        <TextBlock Text="unreachable" VerticalAlignment="Center" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="4">
+        <Ellipse Width="12" Height="12" Fill="{DynamicResource NodeUnknownBrush}" VerticalAlignment="Center" />
+        <TextBlock Text="stub (no management address)" VerticalAlignment="Center" />
+      </StackPanel>
+      <TextBlock Text="Right-click a node for tools, a trunk for its routing."
+                 Foreground="{DynamicResource AppTextSecondaryBrush}"
+                 VerticalAlignment="Center" Margin="12,0,0,0" />
+    </StackPanel>
+
+    <!-- The interactive graph. Compiled bindings are off inside so the per-item templates bind against the
+         NodifyM node/connection view-models rather than the window's view-model. -->
+    <!-- NodifyEditor ignores its layout slot (it sizes to its content extent and centres itself, overflowing
+         the cell). This clipping host occupies row 2 like a normal control and crops the editor to that band,
+         so the editor can never paint over the toolbar above it. -->
+    <Border x:Name="EditorHost" Grid.Row="2" ClipToBounds="True">
+    <controls:NodifyEditor x:Name="Editor"
+                           x:CompileBindings="False"
+                           ClipToBounds="True"
+                           Background="{DynamicResource MapCanvasBrush}"
+                           ItemsSource="{Binding Nodes}"
+                           Connections="{Binding Connections}"
+                           SelectedItems="{Binding SelectedNodes}"
+                           PendingConnection="{Binding PendingConnection}">
+
+      <!-- Suppress NodifyM's default background grid: an empty template draws nothing, leaving just the
+           themed canvas colour. -->
+      <controls:NodifyEditor.GridLineTemplate>
+        <DataTemplate>
+          <Panel />
+        </DataTemplate>
+      </controls:NodifyEditor.GridLineTemplate>
+
+      <!-- Trunks: a state-coloured line with a right-click menu to show its routing. -->
+      <controls:NodifyEditor.ConnectionTemplate>
+        <DataTemplate DataType="vm:MapConnectionViewModel">
+          <controls:Connection Source="{Binding Source.Anchor}"
+                               Target="{Binding Target.Anchor}"
+                               Stroke="{Binding Stroke}"
+                               StrokeThickness="3">
+            <controls:Connection.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="Show routing…" Click="OnShowTrunkRouting" />
+              </ContextMenu>
+            </controls:Connection.ContextMenu>
+          </controls:Connection>
+        </DataTemplate>
+      </controls:NodifyEditor.ConnectionTemplate>
+
+      <!-- Pending connection: connecting is disabled (connectors have CanConnect=false), but the editor
+           still expects a template. -->
+      <controls:NodifyEditor.PendingConnectionTemplate>
+        <DataTemplate DataType="vmb:PendingConnectionViewModelBase">
+          <controls:PendingConnection />
+        </DataTemplate>
+      </controls:NodifyEditor.PendingConnectionTemplate>
+
+      <!-- Nodes: a rounded status-coloured card with metadata and a right-click tool menu. A single hidden
+           connector anchors the trunks. -->
+      <controls:NodifyEditor.ItemTemplate>
+        <controls:NodeTemplateSelector>
+          <DataTemplate DataType="vm:MapNodeViewModel">
+            <controls:Node Location="{Binding Location, Mode=TwoWay}"
+                           IsResize="False"
+                           Input="{Binding Input}">
+              <controls:Node.Header>
+                <Border Background="{Binding Fill}"
+                        CornerRadius="12"
+                        BorderBrush="{DynamicResource NodeBorderBrush}"
+                        BorderThickness="1"
+                        Padding="10"
+                        MinWidth="150">
+                  <Border.ContextMenu>
+                    <ContextMenu>
+                      <MenuItem Header="Packet Analyzer" Click="OnOpenPacketAnalyzer" />
+                      <MenuItem Header="Link Status" Click="OnOpenLinkStatus" />
+                      <MenuItem Header="Log Viewer" Click="OnOpenLogViewer" />
+                    </ContextMenu>
+                  </Border.ContextMenu>
+                  <StackPanel>
+                    <TextBlock Text="{Binding Name}" FontWeight="Bold"
+                               Foreground="{DynamicResource NodeTextBrush}"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Dnic}" Foreground="{DynamicResource NodeTextBrush}" FontSize="11" />
+                    <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource NodeTextBrush}"
+                               FontSize="10" Opacity="0.85" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Border>
+              </controls:Node.Header>
+              <controls:Node.InputConnectorTemplate>
+                <DataTemplate DataType="vmb:ConnectorViewModelBase">
+                  <controls:NodeInput VerticalAlignment="Center"
+                                      IsConnected="{Binding IsConnected}"
+                                      Anchor="{Binding Anchor, Mode=OneWayToSource}" />
+                </DataTemplate>
+              </controls:Node.InputConnectorTemplate>
+            </controls:Node>
+          </DataTemplate>
+        </controls:NodeTemplateSelector>
+      </controls:NodifyEditor.ItemTemplate>
+
+    </controls:NodifyEditor>
+    </Border>
+
+  </Grid>
+
+</Window>

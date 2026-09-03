@@ -1,0 +1,116 @@
+{
+  "SerialPort": "NONE",
+  "BaudRate": 19200,
+  "HistoryCapacity": 500,
+
+  "Lapb": {
+    "IsDCE": true,
+    "T1Timeout": "00:00:03",
+    "T2Timeout": "00:00:00.200",
+    "T3Timeout": "00:00:00",
+    "MaxRetries": 5,
+    "WindowSize": 7,
+    "Modulo": 8
+  },
+
+  "X25": {
+    "LocalMachineId": "23430200",
+    "T20Timeout": "00:00:30",
+    "T21Timeout": "00:03:00",
+    "T22Timeout": "00:00:30",
+    "T23Timeout": "00:03:00",
+    "MaxRetries": 3,
+    "WindowSize": 2,
+    "PacketSize": 128,
+    "Modulo": 8
+  },
+
+  "Routing": {
+    "Enabled": true,
+    "SerialInterfaces": [],
+    "XotInterfaces": [
+      {
+        "Name": "XOT_Server0",
+        "Enabled": true,
+        "Mode": "Server",
+        "LocalPort": 1998,
+        "RemoteMachineId": "23430001",
+        "TcpKeepalive": true,
+        "KeepAliveIntervalSeconds": 30,
+        "ProtocolMode": "X25Only",
+        "Description": "XOT server for incoming C PAD connections (DNIC 2343)"
+      },
+      {
+        "Name": "XOT_SwitchA",
+        "Enabled": true,
+        "Mode": "Client",
+        "RemoteIPAddress": "127.0.0.1",
+        "RemotePort": 2001,
+        "RemoteMachineId": "23400000",
+        "TcpKeepalive": true,
+        "KeepAliveIntervalSeconds": 30,
+        "ProtocolMode": "X25Only",
+        "Description": "XOT client to C switch A access port (DNIC 2340)"
+      }
+    ],
+    "TcpLapbInterfaces": [],
+    "RoutingTable": [
+      {
+        "Name": "LocalTAD",
+        "X121AddressPattern": "23430200",
+        "Type": "Local",
+        "Destination": "LocalTAD",
+        "Priority": 200,
+        "Enabled": true,
+        "Description": "Route address 23430200 to built-in TAD echo service"
+      },
+      {
+        "Name": "LocalTAD_All2343",
+        "X121AddressPattern": "2343.*",
+        "Type": "Local",
+        "Destination": "LocalTAD",
+        "Priority": 100,
+        "Enabled": true,
+        "Description": "Route all DNIC 2343 addresses to local TAD"
+      },
+      {
+        "Name": "CSwitch_2340",
+        "X121AddressPattern": "2340.*",
+        "Type": "Interface",
+        "Destination": "XOT_SwitchA",
+        "Priority": 100,
+        "Enabled": true,
+        "Description": "Route DNIC 2340 to C switch A"
+      },
+      {
+        "Name": "CSwitch_2341",
+        "X121AddressPattern": "2341.*",
+        "Type": "Interface",
+        "Destination": "XOT_SwitchA",
+        "Priority": 100,
+        "Enabled": true,
+        "Description": "Route DNIC 2341 via C switch A (transit)"
+      },
+      {
+        "Name": "CSwitch_2342",
+        "X121AddressPattern": "2342.*",
+        "Type": "Interface",
+        "Destination": "XOT_SwitchA",
+        "Priority": 100,
+        "Enabled": true,
+        "Description": "Route DNIC 2342 via C switch A to echo service"
+      }
+    ],
+    "KnownHosts": []
+  },
+
+  "Timers": {
+    "CentralTimerManagement": true
+  },
+
+  "Logging": {
+    "EnableFileLogging": true,
+    "LogFilePath": "x25emu-xot-test.log",
+    "LogLevel": "Debug"
+  }
+}

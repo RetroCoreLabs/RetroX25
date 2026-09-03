@@ -1,0 +1,36 @@
+{
+  "serialPort": "COM1",
+  "baudRate": 19200,
+  "historyCapacity": 200,
+  "lapb": {
+    "t1Timeout": "00:00:03",
+    "t2Timeout": "00:00:00.2000000",
+    "t3Timeout": "00:00:00",
+    "maxRetries": 5,
+    "isDCE": false,
+    "windowSize": 7,
+    "modulo": 8
+  },
+  "x25": {
+    "t20Timeout": "00:00:30",
+    "t21Timeout": "00:03:00",
+    "t22Timeout": "00:00:30",
+    "t23Timeout": "00:03:00",
+    "maxRetries": 3,
+    "windowSize": 2,
+    "packetSize": 128,
+    "modulo": 8
+  },
+  "routing": {
+    "routes": [],
+    "transportInterfaces": []
+  },
+  "timers": {
+    "centralTimerManagement": true
+  },
+  "logging": {
+    "enableFileLogging": false,
+    "logFilePath": "x25emulator.log",
+    "logLevel": "Information"
+  }
+}

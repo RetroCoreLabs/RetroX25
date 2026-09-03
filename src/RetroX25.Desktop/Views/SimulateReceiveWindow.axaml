@@ -1,0 +1,193 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+        x:Class="RetroX25.Desktop.Views.SimulateReceiveWindow"
+        x:DataType="vm:SimulateReceiveWindowViewModel"
+        Icon="/Assets/icon.ico"
+        Title="Simulate Receive - Inject Test Data"
+        Width="800" Height="600"
+        MinWidth="600" MinHeight="400">
+
+    <Design.DataContext>
+        <vm:SimulateReceiveWindowViewModel/>
+    </Design.DataContext>
+
+    <DockPanel LastChildFill="True">
+
+        <!-- Status Bar at Bottom -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,6">
+            <TextBlock FontSize="11" VerticalAlignment="Center">
+                <Run Text="Status: " FontWeight="SemiBold"/>
+                <Run Text="{Binding InjectionStatus}"/>
+            </TextBlock>
+        </Border>
+
+        <!-- Main Content -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+            <StackPanel Spacing="12">
+
+                <!-- Device Selection Section -->
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Target Device" FontSize="14" FontWeight="SemiBold"/>
+                        <TextBlock Text="Select the device or routing layer to inject packets into:"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                   TextWrapping="Wrap"/>
+                        <ComboBox ItemsSource="{Binding AvailableDevices}"
+                                  SelectedItem="{Binding SelectedDevice}"
+                                  HorizontalAlignment="Stretch"
+                                  Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Packet Library Tabs -->
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Packet Library" FontSize="14" FontWeight="SemiBold"/>
+
+                        <TabControl>
+                            <!-- LAPB Tab -->
+                            <TabItem Header="LAPB">
+                                <StackPanel Spacing="8" Margin="0,8,0,0">
+                                    <ListBox ItemsSource="{Binding LapbPackets}"
+                                             SelectedItem="{Binding SelectedLapbPacket}"
+                                             Height="200">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="11"/>
+                                                    <TextBlock Text="{Binding Description}"
+                                                               FontSize="10"
+                                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                                    <TextBlock Text="{Binding HexData}"
+                                                               FontFamily="Consolas,Courier New"
+                                                               FontSize="10"
+                                                               Foreground="{DynamicResource SystemAccentColor}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <Button Content="Send Selected LAPB Packet"
+                                            Command="{Binding SendLapbPacketCommand}"
+                                            HorizontalAlignment="Stretch"/>
+                                </StackPanel>
+                            </TabItem>
+
+                            <!-- SINTRAN PAD Tab -->
+                            <TabItem Header="SINTRAN PAD">
+                                <StackPanel Spacing="8" Margin="0,8,0,0">
+                                    <ListBox ItemsSource="{Binding SintranPadPackets}"
+                                             SelectedItem="{Binding SelectedSintranPadPacket}"
+                                             Height="200">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="11"/>
+                                                    <TextBlock Text="{Binding Description}"
+                                                               FontSize="10"
+                                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                                    <TextBlock Text="{Binding HexData}"
+                                                               FontFamily="Consolas,Courier New"
+                                                               FontSize="10"
+                                                               Foreground="{DynamicResource SystemAccentColor}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <Button Content="Send Selected SINTRAN Packet"
+                                            Command="{Binding SendSintranPadPacketCommand}"
+                                            HorizontalAlignment="Stretch"/>
+                                </StackPanel>
+                            </TabItem>
+
+                            <!-- X.25 Tab -->
+                            <TabItem Header="X.25">
+                                <StackPanel Spacing="8" Margin="0,8,0,0">
+                                    <ListBox ItemsSource="{Binding X25Packets}"
+                                             SelectedItem="{Binding SelectedX25Packet}"
+                                             Height="200">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="11"/>
+                                                    <TextBlock Text="{Binding Description}"
+                                                               FontSize="10"
+                                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                                    <TextBlock Text="{Binding HexData}"
+                                                               FontFamily="Consolas,Courier New"
+                                                               FontSize="10"
+                                                               Foreground="{DynamicResource SystemAccentColor}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <Button Content="Send Selected X.25 Packet"
+                                            Command="{Binding SendX25PacketCommand}"
+                                            HorizontalAlignment="Stretch"/>
+                                </StackPanel>
+                            </TabItem>
+                        </TabControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Custom Hex Input Section -->
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Custom Hex Input" FontSize="14" FontWeight="SemiBold"/>
+                        <TextBlock Text="Enter hex data (spaces optional): e.g. '01 3F 00 64' or '013F0064'"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                   TextWrapping="Wrap"/>
+                        <TextBox Text="{Binding CustomHexInput}"
+                                 Watermark="Enter hex bytes..."
+                                 FontFamily="Consolas,Courier New"
+                                 AcceptsReturn="False"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="Send Custom Hex"
+                                    Command="{Binding SendCustomHexCommand}"
+                                    HorizontalAlignment="Left"/>
+                            <Button Content="Clear"
+                                    Command="{Binding ClearCustomHexCommand}"
+                                    HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Last Sent Packet Display -->
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Last Sent Packet" FontSize="14" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding LastSentPacket}"
+                                   FontFamily="Consolas,Courier New"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource SystemAccentColor}"/>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+    </DockPanel>
+
+</Window>

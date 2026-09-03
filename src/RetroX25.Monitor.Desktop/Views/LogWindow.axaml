@@ -1,0 +1,49 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Monitor.Desktop.ViewModels"
+        x:Class="RetroX25.Monitor.Desktop.Views.LogWindow"
+        x:DataType="vm:LogViewModel"
+        Width="900" Height="560"
+        Title="X.25 Log Viewer"
+        Background="{DynamicResource AppBackgroundBrush}">
+
+  <DockPanel>
+
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="8">
+      <TextBlock Text="Switch:" VerticalAlignment="Center" />
+      <ComboBox ItemsSource="{Binding Switches}" SelectedItem="{Binding SelectedSwitch}" MinWidth="200">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:SwitchEndpoint">
+            <TextBlock Text="{Binding Display}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+      <Button Content="Connect" Command="{Binding ConnectCommand}" />
+      <Button Content="Disconnect" Command="{Binding DisconnectCommand}" />
+      <TextBlock Text="Level:" VerticalAlignment="Center" Margin="12,0,0,0" />
+      <ComboBox ItemsSource="{Binding Levels}" SelectedIndex="{Binding MinLevelIndex}" MinWidth="110" />
+      <TextBlock Text="Search:" VerticalAlignment="Center" />
+      <TextBox Text="{Binding Search}" Width="200" Watermark="filter text" />
+      <Button Content="Clear" Command="{Binding ClearLogsCommand}" />
+      <TextBlock Text="{Binding Status}" VerticalAlignment="Center" Margin="12,0,0,0" Opacity="0.8" />
+    </StackPanel>
+
+    <DataGrid x:CompileBindings="False"
+              Margin="8,0,8,8"
+              ItemsSource="{Binding Logs}"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              GridLinesVisibility="Horizontal"
+              FontFamily="Cascadia Mono,Consolas,Menlo,monospace"
+              FontSize="12">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Time" Binding="{Binding Time}" Width="95" />
+        <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="90" />
+        <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="140" />
+        <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" />
+      </DataGrid.Columns>
+    </DataGrid>
+
+  </DockPanel>
+
+</Window>

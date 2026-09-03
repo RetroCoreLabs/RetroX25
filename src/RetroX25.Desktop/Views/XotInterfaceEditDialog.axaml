@@ -1,0 +1,145 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        x:Class="RetroX25.Desktop.Views.XotInterfaceEditDialog"
+        x:DataType="vm:XotInterfaceEditDialogViewModel"
+        Title="XOT Interface Configuration"
+        Width="500" Height="600"
+        MinWidth="450" MinHeight="550"
+        CanResize="false"
+        WindowStartupLocation="CenterOwner"
+        Icon="/Assets/avalonia-logo.ico">
+
+    <Grid RowDefinitions="*,Auto" Margin="16">
+
+        <!-- Form fields -->
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="12">
+
+                <!-- Name -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Interface Name:"
+                               FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding Name}"
+                             Watermark="e.g., XOT0, XOT1"/>
+                    <TextBlock Text="Unique name for this XOT interface (e.g., XOT0)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Enabled -->
+                <CheckBox Content="Interface Enabled"
+                          IsChecked="{Binding Enabled}"/>
+
+                <!-- Mode -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="XOT Mode:"
+                               FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding AvailableModes}"
+                              SelectedItem="{Binding Mode}"
+                              HorizontalAlignment="Stretch"/>
+                    <TextBlock Text="Client connects to remote XOT server, Server accepts incoming connections"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Remote IP Address (Client mode) -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Remote IP Address:"
+                               FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding RemoteIPAddress}"
+                             Watermark="192.168.1.100"/>
+                    <TextBlock Text="IP address of remote XOT server (for Client mode)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Remote Port -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Remote Port:"
+                               FontWeight="SemiBold"/>
+                    <NumericUpDown Value="{Binding RemotePort}"
+                                   Minimum="1"
+                                   Maximum="65535"
+                                   FormatString="0"
+                                   ShowButtonSpinner="True"/>
+                    <TextBlock Text="TCP port on remote XOT server (standard XOT port is 1998)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Local Port (Server mode) -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Local Port:"
+                               FontWeight="SemiBold"/>
+                    <NumericUpDown Value="{Binding LocalPort}"
+                                   Minimum="1"
+                                   Maximum="65535"
+                                   FormatString="0"
+                                   ShowButtonSpinner="True"/>
+                    <TextBlock Text="TCP port for local XOT server listening (for Server mode, standard is 1998)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Remote Machine ID -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Remote Machine ID:"
+                               FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding RemoteMachineId}"
+                             Watermark="300"/>
+                    <TextBlock Text="X.121 address of remote X.25 system (e.g., 300)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- TCP Keepalive -->
+                <CheckBox Content="TCP Keepalive Enabled"
+                          IsChecked="{Binding TcpKeepalive}"/>
+
+                <!-- Description -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Description (optional):"
+                               FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding Description}"
+                             Watermark="Description of this interface"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="60"/>
+                </StackPanel>
+
+                <!-- Validation Error -->
+                <Border Background="#FFFFE0E0"
+                        BorderBrush="#FFFF0000"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="8"
+                        IsVisible="{Binding ValidationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <TextBlock Text="{Binding ValidationError}"
+                               Foreground="#FFCC0000"
+                               TextWrapping="Wrap"/>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8"
+                    Margin="0,16,0,0">
+            <Button Command="{Binding OkCommand}"
+                    Content="OK"
+                    Width="80"
+                    IsDefault="True"
+                    Click="OnOkClick"/>
+            <Button Command="{Binding CancelCommand}"
+                    Content="Cancel"
+                    Width="80"
+                    IsCancel="True"
+                    Click="OnCancelClick"/>
+        </StackPanel>
+
+    </Grid>
+</Window>

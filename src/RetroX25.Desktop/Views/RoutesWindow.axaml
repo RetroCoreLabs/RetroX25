@@ -1,0 +1,156 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="700"
+        x:Class="RetroX25.Desktop.Views.RoutesWindow"
+        x:DataType="vm:RoutesWindowViewModel"
+        Icon="/Assets/icon.ico"
+        Title="X.25 Routes"
+        Width="1200" Height="700"
+        MinWidth="900" MinHeight="600">
+
+    <Design.DataContext>
+        <vm:RoutesWindowViewModel/>
+    </Design.DataContext>
+
+    <!-- DataGrid StyleInclude -->
+    <Window.Styles>
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+    </Window.Styles>
+
+    <!-- Main layout -->
+    <DockPanel LastChildFill="True">
+
+        <!-- Summary at top -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="12,8">
+            <TextBlock Text="{Binding RouteSummary}"
+                       FontSize="14"
+                       FontWeight="SemiBold"/>
+        </Border>
+
+        <!-- Bottom buttons -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,8">
+            <Button Command="{Binding RefreshCommand}"
+                    Content="Refresh Routes"
+                    Width="120"
+                    HorizontalAlignment="Right"/>
+        </Border>
+
+        <!-- Main content area -->
+        <Grid ColumnDefinitions="2*,4,3*" Margin="12">
+            <!-- Routes list (left) -->
+            <Border Grid.Column="0"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Configured Routes:"
+                               FontWeight="SemiBold"
+                               Margin="8,8,8,4"/>
+                    <DataGrid ItemsSource="{Binding Routes}"
+                              SelectedItem="{Binding SelectedRoute}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              GridLinesVisibility="Horizontal"
+                              HeadersVisibility="Column">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Pattern" Binding="{Binding Pattern}" Width="*"/>
+                            <DataGridTextColumn Header="→" Binding="{Binding Type}" Width="70"/>
+                            <DataGridTextColumn Header="Destination" Binding="{Binding Destination}" Width="100"/>
+                            <DataGridTextColumn Header="Pri" Binding="{Binding Priority}" Width="50"/>
+                            <DataGridCheckBoxColumn Header="✓" Binding="{Binding Enabled}" Width="40"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Border>
+
+            <!-- Splitter -->
+            <GridSplitter Grid.Column="1"
+                          Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                          Width="4"/>
+
+            <!-- Details and testing (right) -->
+            <Grid Grid.Column="2" RowDefinitions="*,4,*">
+                <!-- Route details (top) -->
+                <Border Grid.Row="0"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top"
+                                   Text="Route Details:"
+                                   FontWeight="SemiBold"
+                                   Margin="8,8,8,4"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      Background="{DynamicResource SystemControlBackgroundAltMediumLowBrush}"
+                                      Padding="8">
+                            <TextBlock Text="{Binding RouteDetails}"
+                                       FontFamily="Consolas,Courier New"
+                                       FontSize="11"
+                                       TextWrapping="Wrap"/>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+
+                <!-- Splitter -->
+                <GridSplitter Grid.Row="1"
+                              Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                              Height="4"/>
+
+                <!-- Route testing (bottom) -->
+                <Border Grid.Row="2"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top"
+                                   Text="Route Testing:"
+                                   FontWeight="SemiBold"
+                                   Margin="8,8,8,4"/>
+
+                        <StackPanel DockPanel.Dock="Top"
+                                    Margin="8"
+                                    Spacing="8">
+                            <TextBlock Text="Test Address:"
+                                       FontSize="11"/>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBox Grid.Column="0"
+                                         Text="{Binding TestAddress}"
+                                         Watermark="Enter X.121 address..."/>
+                                <Button Grid.Column="1"
+                                        Command="{Binding TestRouteCommand}"
+                                        Content="Test"
+                                        Margin="8,0,0,0"
+                                        Width="80"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      Background="{DynamicResource SystemControlBackgroundAltMediumLowBrush}"
+                                      Padding="8"
+                                      Margin="8,0,8,8">
+                            <TextBlock Text="{Binding TestResults}"
+                                       FontFamily="Consolas,Courier New"
+                                       FontSize="11"
+                                       TextWrapping="Wrap"/>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+    </DockPanel>
+
+</Window>

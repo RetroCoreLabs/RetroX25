@@ -1,0 +1,103 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RetroX25.Desktop.ViewModels"
+             x:Class="RetroX25.Desktop.Views.XotInterfacesTab"
+             x:DataType="vm:XotInterfacesTabViewModel">
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="12">
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0"
+                   Text="XOT Interfaces - X.25 over TCP/IP connections to remote X.25 systems"
+                   FontSize="14"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,12"/>
+
+        <!-- Main content area -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+
+            <!-- List of XOT interfaces -->
+            <Border Grid.Column="0"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="8"
+                    Margin="0,0,12,0">
+                <ListBox ItemsSource="{Binding XotInterfaces}"
+                         SelectedItem="{Binding SelectedInterface}"
+                         DisplayMemberBinding="{Binding DisplayText}">
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="Padding" Value="8"/>
+                            <Setter Property="FontFamily" Value="Consolas,Courier New"/>
+                            <Setter Property="FontSize" Value="11"/>
+                        </Style>
+                    </ListBox.Styles>
+                </ListBox>
+            </Border>
+
+            <!-- Buttons -->
+            <StackPanel Grid.Column="1" Spacing="8">
+                <Button Command="{Binding AddInterfaceCommand}"
+                        Content="Add"
+                        Width="100"
+                        HorizontalContentAlignment="Center"/>
+
+                <Button Command="{Binding EditInterfaceCommand}"
+                        Content="Edit"
+                        Width="100"
+                        HorizontalContentAlignment="Center"/>
+
+                <Button Command="{Binding DeleteInterfaceCommand}"
+                        Content="Delete"
+                        Width="100"
+                        HorizontalContentAlignment="Center"/>
+
+                <Separator Height="1" Margin="0,8"/>
+
+                <Button Command="{Binding RefreshCommand}"
+                        Content="Refresh"
+                        Width="100"
+                        HorizontalContentAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Status bar -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="8,4"
+                Margin="0,12,0,0">
+            <TextBlock Text="{Binding StatusText}"
+                       FontSize="11"/>
+        </Border>
+
+        <!-- Help text -->
+        <Border Grid.Row="2"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                Padding="12"
+                Margin="0,-80,0,44"
+                IsVisible="{Binding XotInterfaces.Count, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+            <StackPanel Spacing="8">
+                <TextBlock Text="No XOT Interfaces Configured"
+                           FontWeight="SemiBold"
+                           FontSize="13"/>
+                <TextBlock TextWrapping="Wrap"
+                           FontSize="11"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}">
+                    XOT (X.25 over TCP) interfaces provide TCP/IP connections to remote X.25 systems.
+                    Each XOT interface can operate as a client (connecting to remote) or server (accepting connections).
+                </TextBlock>
+                <TextBlock TextWrapping="Wrap"
+                           FontSize="11"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}">
+                    Click "Add" to configure a new XOT interface.
+                </TextBlock>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

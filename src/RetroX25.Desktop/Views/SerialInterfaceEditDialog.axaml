@@ -1,0 +1,163 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        x:Class="RetroX25.Desktop.Views.SerialInterfaceEditDialog"
+        x:DataType="vm:SerialInterfaceEditDialogViewModel"
+        Title="Serial Interface Configuration"
+        Width="500" Height="550"
+        MinWidth="450" MinHeight="500"
+        CanResize="false"
+        WindowStartupLocation="CenterOwner"
+        Icon="/Assets/avalonia-logo.ico">
+
+    <Grid RowDefinitions="*,Auto" Margin="16">
+
+        <!-- Form fields -->
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="12">
+
+                <!-- Name -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Interface Name:"
+                               FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding Name}"
+                             Watermark="e.g., Serial0, Serial1"/>
+                    <TextBlock Text="Unique name for this serial interface (e.g., Serial0)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Enabled -->
+                <CheckBox Content="Interface Enabled"
+                          IsChecked="{Binding Enabled}"/>
+
+                <!-- Port Name -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Serial Port:"
+                               FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding PortName}"
+                             Watermark="COM1"/>
+                    <TextBlock Text="Physical COM port name (e.g., COM1, COM2)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Baud Rate -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Baud Rate:"
+                               FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding AvailableBaudRates}"
+                              SelectedItem="{Binding BaudRate}"
+                              HorizontalAlignment="Stretch"/>
+                    <TextBlock Text="Connection speed (9600 or 19200 common for X.25)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Data Bits -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Data Bits:"
+                               FontWeight="SemiBold"/>
+                    <NumericUpDown Value="{Binding DataBits}"
+                                   Minimum="5"
+                                   Maximum="8"
+                                   FormatString="0"
+                                   ShowButtonSpinner="True"/>
+                    <TextBlock Text="Number of data bits (typically 8)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Parity -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Parity:"
+                               FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding AvailableParities}"
+                              SelectedItem="{Binding Parity}"
+                              HorizontalAlignment="Stretch"/>
+                    <TextBlock Text="Parity checking (typically None for X.25)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Stop Bits -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Stop Bits:"
+                               FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding AvailableStopBits}"
+                              SelectedItem="{Binding StopBits}"
+                              HorizontalAlignment="Stretch"/>
+                    <TextBlock Text="Number of stop bits (typically One)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Framing -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Framing:"
+                               FontWeight="SemiBold"/>
+                    <ComboBox ItemsSource="{Binding AvailableFramings}"
+                              SelectedItem="{Binding Framing}"
+                              HorizontalAlignment="Stretch"/>
+                    <TextBlock Text="Byte-stuffed framing over LAPB: Hdlc (RFC 1662) or Slip (RFC 1055)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Remote Machine ID -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Remote Machine ID:"
+                               FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding RemoteMachineId}"
+                             Watermark="100"/>
+                    <TextBlock Text="X.121 address of remote X.25 system (e.g., 100)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Description -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Description (optional):"
+                               FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding Description}"
+                             Watermark="Description of this interface"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="60"/>
+                </StackPanel>
+
+                <!-- Validation Error -->
+                <Border Background="#FFFFE0E0"
+                        BorderBrush="#FFFF0000"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="8"
+                        IsVisible="{Binding ValidationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <TextBlock Text="{Binding ValidationError}"
+                               Foreground="#FFCC0000"
+                               TextWrapping="Wrap"/>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8"
+                    Margin="0,16,0,0">
+            <Button Command="{Binding OkCommand}"
+                    Content="OK"
+                    Width="80"
+                    IsDefault="True"
+                    Click="OnOkClick"/>
+            <Button Command="{Binding CancelCommand}"
+                    Content="Cancel"
+                    Width="80"
+                    IsCancel="True"
+                    Click="OnCancelClick"/>
+        </StackPanel>
+
+    </Grid>
+</Window>

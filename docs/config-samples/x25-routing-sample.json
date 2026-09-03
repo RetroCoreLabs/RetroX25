@@ -1,0 +1,76 @@
+{
+  "Lapb": {
+    "IsDCE": true,
+    "T1Timeout": "00:00:03",
+    "T2Timeout": "00:00:00.200",
+    "T3Timeout": "00:00:20",
+    "MaxRetries": 5,
+    "WindowSize": 7
+  },
+  
+  "Routing": {
+    "Enabled": true,
+    "EnableFailover": true,
+    "FailoverTimeout": 5000,
+    "DefaultRoute": "Serial-Default",
+    
+    "Interfaces": [
+      {
+        "Name": "Serial0",
+        "Type": "Serial",
+        "Enabled": true,
+        "Properties": {
+          "PortName": "COM1",
+          "BaudRate": 19200,
+          "LocalX121Address": "31064001234",
+          "StationType": "DCE_Primary"
+        },
+        "Description": "Primary serial connection"
+      },
+      {
+        "Name": "XOT-Client",
+        "Type": "XOT_Client",
+        "Enabled": true,
+        "Properties": {
+          "SourceAddress": "0.0.0.0",
+          "ConnectTimeout": 30000,
+          "MaxConnections": 50
+        },
+        "Description": "XOT client for outbound connections"
+      }
+    ],
+    
+    "Routes": [
+      {
+        "Name": "Route-100-Serial",
+        "X121AddressPattern": "^100$",
+        "Type": "Serial",
+        "Destination": "Serial0",
+        "Priority": 200,
+        "Enabled": true,
+        "Direction": "Bidirectional",
+        "Description": "Route to X.121 address 100 via serial port"
+      },
+      {
+        "Name": "Route-240-XOT",
+        "X121AddressPattern": "^240$",
+        "Type": "XOT_Client",
+        "Destination": "192.168.1.240",
+        "Priority": 200,
+        "Enabled": true,
+        "Direction": "Bidirectional",
+        "Description": "Route to X.121 address 240 via XOT to 192.168.1.240"
+      },
+      {
+        "Name": "Serial-Default",
+        "X121AddressPattern": ".*",
+        "Type": "Serial",
+        "Destination": "Serial0",
+        "Priority": 50,
+        "Enabled": true,
+        "Direction": "Bidirectional",
+        "Description": "Default route - all unmatched addresses via serial"
+      }
+    ]
+  }
+}
