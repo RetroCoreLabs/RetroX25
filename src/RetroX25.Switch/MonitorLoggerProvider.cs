@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using RetroIO.Protocols.X25.Monitor;
 
+using RetroIO.Protocols.X25.Switch;
 namespace RetroX25.Switch
 {
     /// <summary>
