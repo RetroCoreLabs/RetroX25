@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>RetroX25.Desktop.Tests</AssemblyName>
+    <RootNamespace>RetroX25.Desktop.Tests</RootNamespace>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- The windows bind with compiled bindings; keep parity with the app project or the tests
+         would resolve bindings a different way from the shipping app and prove nothing. -->
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <!-- Headless Avalonia with real Skia rendering: a missing avares:// resource or an unresolvable
+         DynamicResource only shows up when something actually renders. -->
+    <PackageReference Include="Avalonia.Headless.NUnit" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\RetroX25.Desktop\RetroX25.Desktop.csproj" />
+  </ItemGroup>
+
+</Project>

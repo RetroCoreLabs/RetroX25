@@ -13,6 +13,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/RetroX25.Monitor.Desktop.Tests/RetroX25.Monitor.Desktop.Tests.csproj" />
+    <Project Path="tests/RetroX25.Desktop.Tests/RetroX25.Desktop.Tests.csproj" />
     <Project Path="tests/RetroX25.Tests/RetroX25.Tests.csproj" />
   </Folder>
 </Solution>

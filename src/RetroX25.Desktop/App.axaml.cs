@@ -57,7 +57,16 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private void ConfigureServices(IServiceCollection services)
+    /// <summary>
+    /// Registers every service and view-model the desktop app runs on.
+    /// </summary>
+    /// <param name="services">The collection to populate.</param>
+    /// <remarks>
+    /// Public and static so the headless UI tests build the SAME graph the app does. A test that
+    /// hand-rolled its own registrations would drift, and would then pass while the real startup
+    /// path was broken - which is the failure it exists to catch.
+    /// </remarks>
+    public static void ConfigureServices(IServiceCollection services)
     {
         // Logging
         var historyProvider = new HistoryLoggingProvider(1000);
@@ -98,7 +107,11 @@ public partial class App : Application
         // Note: PADClientWindowViewModel and SintranTadClientWindowViewModel require windowNumber parameter, created manually in MainWindowViewModel
     }
 
-    private RuntimeConfig CreateDefaultConfig()
+    /// <summary>
+    /// Builds the default runtime configuration the app starts on.
+    /// </summary>
+    /// <returns>The configuration.</returns>
+    public static RuntimeConfig CreateDefaultConfig()
     {
         // Use RuntimeConfig.CreateDefault() which includes proper routing setup
         // User can modify this through the Configuration window (F9)
