@@ -91,7 +91,7 @@ namespace RetroX25.Xot
             Console.WriteLine("============================");
             Console.WriteLine();
             Console.WriteLine("Usage:");
-            Console.WriteLine("  X25Emulator.XOT.exe [options]");
+            Console.WriteLine("  x25xot [options]");
             Console.WriteLine();
             Console.WriteLine("Options:");
             Console.WriteLine("  --mode, -m <client|server>    Operating mode");
@@ -100,8 +100,8 @@ namespace RetroX25.Xot
             Console.WriteLine("  --help, -?                    Show this help");
             Console.WriteLine();
             Console.WriteLine("Examples:");
-            Console.WriteLine("  X25Emulator.XOT.exe --mode client --host 192.168.1.100 --port 1998");
-            Console.WriteLine("  X25Emulator.XOT.exe --mode server --port 1998");
+            Console.WriteLine("  x25xot --mode client --host 192.168.1.100 --port 1998");
+            Console.WriteLine("  x25xot --mode server --port 1998");
             Console.WriteLine();
             Console.WriteLine("Interactive Mode:");
             Console.WriteLine("  Run without arguments for interactive menu");
