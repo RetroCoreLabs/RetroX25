@@ -7,11 +7,20 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
-    <!-- Single-file publishing configuration -->
+    <!--
+      Single-file publishing. build.ps1 in the repo root passes these for EVERY app, so they are
+      here only for someone publishing this project on its own.
+
+      NOT trimmed. PublishTrimmed was set here and it does not work: Terminal.Gui is not
+      trim-annotated, so ILLink reports IL2104 ("produced trim warnings") and, with
+      TreatWarningsAsErrors on, publish fails outright with NETSDK1144. Even if it were forced
+      through, Terminal.Gui builds its view hierarchy by reflection - exactly what trimming
+      removes - so the breakage would move from the build to the running terminal UI.
+    -->
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PublishTrimmed>true</PublishTrimmed>
+    <PublishTrimmed>false</PublishTrimmed>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
 
