@@ -36,7 +36,7 @@ which is what you need when the machine on the other end wants to call *you*.
 |---|---|---|---|
 | P1 | .NET SDK as pinned in `global.json`, or the published exe | To build or run | `dotnet --info` |
 | P2 | **A Windows desktop session** | It is a GUI — Avalonia | Not usable over a plain SSH session |
-| P3 | RetroIO packed to the local feed | Restore | `dir E:\Dev\RCL\localfeed` |
+| P3 | RetroIO packed to the local feed | Restore | `dir ..\localfeed` |
 | P4 | Something to call | The PAD window | `.\demo\demo.ps1 start` |
 | P5 | A serial port | Only for a serial interface | Configurable, not required |
 

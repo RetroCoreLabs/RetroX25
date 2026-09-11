@@ -132,7 +132,7 @@ After a call storm, check `show x25 vc` on the switch — it must be **empty**. 
 the storm exists to find.
 
 > **A known issue to rule out first:** the bulk-transfer stall recorded in
-> `E:\Dev\RCL\Migration\X25 integration tests.md`, where `PeerAcked` never leaves 0. If a stream run stalls, that
+> the X.25 integration-test notes in the migration notes, where `PeerAcked` never leaves 0. If a stream run stalls, that
 > is probably this — a known open item, not a new fault.
 
 Built on `RetroIO.Protocols.X25.Client` (`RetroIO/src/RetroIO.Protocols.X25.Client/README.md`).

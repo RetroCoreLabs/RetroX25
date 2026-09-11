@@ -745,7 +745,7 @@ RetroX25.Xot/
 
 ```bash
 # The usual way - build.ps1 builds, tests and publishes every app in this repo
-cd E:\Dev\RCL\RetroX25
+# from the repository root
 .\build.ps1
 
 # Or just this project

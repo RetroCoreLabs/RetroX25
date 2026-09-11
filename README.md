@@ -40,7 +40,7 @@ them is a failing test rather than an argument.
 |---|---|---|---|
 | P1 | .NET SDK as pinned in `global.json` | Everything | `dotnet --info` |
 | P2 | PowerShell 7+ | `build.ps1`, `demo.ps1` | `$PSVersionTable.PSVersion` |
-| P3 | **RetroIO built and packed to `E:\Dev\RCL\localfeed`** | Restore | `dir E:\Dev\RCL\localfeed` shows `0.1.0-local.*` |
+| P3 | **RetroIO built and packed to the local feed** (`../localfeed`, beside the repositories) | Restore | `dir ..\localfeed` shows `0.1.0-local.*` |
 | P4 | `.\build.ps1` run | Testing the published exes | `dir publish\win-x64\*.exe` lists ten |
 | P5 | TCP ports 2200-2203, 2210, 9101-9103, 4001-4003 free | The demo network | `netstat -ano \| findstr "2200 2201 9101 4001"` |
 | P6 | A Windows desktop session | `RetroX25.exe`, `x25monitor` | Two of the ten are Avalonia apps |
@@ -53,7 +53,7 @@ Until the RetroIO packages are on nuget.org they come from the local feed, so **
 first publish**. That is expected, not a broken build.
 
 ```powershell
-cd E:\Dev\RCL\RetroX25
+# from the repository root
 .\build.ps1                 # build, test, publish all ten as single self-contained files
 .\demo\demo.ps1 start       # three chained switches and an echo service
 .\demo\demo.ps1 pad         # a PAD client; at the * prompt:  CALL 23520001
@@ -181,7 +181,7 @@ in that file — never by process name.
 
 ## Against the C reference implementation
 
-The C emulator lives in WSL at `/home/ronny/repos/os/x25emu`, on DNICs **2340/2341/2342** — chosen *not* to
+The C emulator (the `x25emu` repository, checked out under WSL) runs on DNICs **2340/2341/2342** — chosen *not* to
 collide with this network's 2350/2351/2352, so the two can be trunked.
 
 ```mermaid
@@ -245,12 +245,12 @@ The protocol itself is tested in RetroIO — `tests/RetroIO.Protocols.X25.Tests`
 That is the right place for it: these are applications, and a protocol bug found here should become a test there.
 
 Manual test procedures, including the hardware cases, are in
-`E:\Dev\RCL\Migration\Manual tests - RetroX25.md` and `Manual tests - X25 multi-network.md`.
+the migration notes, as `Manual tests - RetroX25.md` and `Manual tests - X25 multi-network.md`.
 
 ## Conventions
 
 - Names follow the workspace naming standard; diagrams follow the workspace Mermaid palette. Both live one level
-  up, **outside this repository**, so they are paths rather than links: `E:\Dev\RCL\NAMING.md` and
-  `E:\Dev\RCL\MERMAID_COLOR_STANDARDS.md`.
-- `python E:\Dev\RCL\eng\check-docs.py .` checks every link and diagram in this repo.
+  up in the workspace root, **outside this repository**, so they are paths rather than links: `NAMING.md` and
+  `MERMAID_COLOR_STANDARDS.md`.
+- `python ../eng/check-docs.py .` checks every link and diagram in this repo.
 - The org is **RetroCoreLabs**. `HackerCorpLabs` is retired and must not appear in anything new.

@@ -35,7 +35,7 @@ Without one, you have two programs that can talk to each other directly and no n
 | # | Requirement | Why | How to check |
 |---|---|---|---|
 | P1 | .NET SDK as pinned in `global.json`, or the published exe | To build or run | `dotnet --info` |
-| P2 | RetroIO packed to the local feed | Restore | `dir E:\Dev\RCL\localfeed` |
+| P2 | RetroIO packed to the local feed | Restore | `dir ..\localfeed` |
 | P3 | **A config file** | Ports, routes, addresses and users are all declarative | `demo\switch-a.ini` is the fullest example |
 | P4 | Free TCP ports | One per listening port, plus management and monitor | `netstat -ano \| findstr <port>` |
 | P5 | No other switch on those ports | A second instance is the classic confusing failure | `.\demo\demo.ps1 status` |
