@@ -252,5 +252,5 @@ the migration notes, as `Manual tests - RetroX25.md` and `Manual tests - X25 mul
 - Names follow the workspace naming standard; diagrams follow the workspace Mermaid palette. Both live one level
   up in the workspace root, **outside this repository**, so they are paths rather than links: `NAMING.md` and
   `MERMAID_COLOR_STANDARDS.md`.
-- `python ../eng/check-docs.py .` checks every link and diagram in this repo.
+- `python eng/check-docs.py` checks every link and diagram in this repo.
 - The org is **RetroCoreLabs**. `HackerCorpLabs` is retired and must not appear in anything new.
