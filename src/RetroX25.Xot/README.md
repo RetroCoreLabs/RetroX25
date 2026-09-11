@@ -1,6 +1,114 @@
-# RetroX25.Xot.cs - XOT Test Application
+# x25xot — the XOT test application
 
-A standalone Terminal.Gui-based testing application for X.25 over TCP (XOT) protocol with SINTRAN routing support.
+## What it is
+
+A standalone Terminal.Gui application for testing **XOT** — X.25 over TCP — in either direction, with SINTRAN
+routing support. It runs as a client, as a server, or interactively with a menu and function keys.
+
+## Why you need it
+
+Because sometimes you need to send **one packet** and see exactly what comes back, and every other tool here is
+busy being a correct X.25 implementation.
+
+`x25pad` places a call and manages a circuit properly. This is the level below: open an XOT connection, push a
+call request, watch the bytes. When a peer is rejecting something and the specification does not explain why, being
+able to send a single packet by hand — and to be the **server** so you can see what the other side sends first — is
+what settles it.
+
+It is also the tool for the **SINTRAN** side of XOT: a full SINTRAN HOST implementation in both roles, a SINTRAN
+PAD client over LAPB, and a pure X.25 PAD client with no LAPB. Having all three in one place is how the difference
+between them gets established, because the difference is exactly what breaks interoperability.
+
+## What you can use it for
+
+- **Being either end** of an XOT connection: `--mode client` or `--mode server`.
+- Sending a call request by hand (**F1** in interactive mode) and reading the answer.
+- Testing the **SINTRAN HOST** protocol in client and server roles.
+- Comparing a SINTRAN PAD client **over LAPB** with a pure X.25 PAD client **without** it — the two are genuinely
+  different on the wire.
+- Configuring X.3 parameters interactively and seeing the effect.
+- Proving two endpoints connect at all, before anything more complicated is attempted.
+
+## Prerequisites
+
+| # | Requirement | Why | How to check |
+|---|---|---|---|
+| P1 | .NET SDK as pinned in `global.json`, or the published exe | To build or run | `dotnet --info` |
+| P2 | A terminal | Terminal.Gui draws on it; function keys must reach it | A real terminal, not a pipe |
+| P3 | A peer, or this tool in the other mode | Anything useful | Two shells: one server, one client |
+| P4 | A free TCP port | Server mode | 1998 is the conventional XOT port |
+| P5 | A SINTRAN machine | The SINTRAN windows, for a real test | Record as SKIPPED if unavailable |
+
+```powershell
+x25xot --mode server --port 1998                          # be the server
+x25xot --mode client --host 127.0.0.1 --port 1998         # be the client
+x25xot                                                    # interactive menu
+x25xot --help                                             # usage
+```
+
+In interactive mode, **F1 sends a Call Request**.
+
+## Client and server, both from here
+
+```mermaid
+flowchart LR
+    S["x25xot --mode server --port 1998"]
+    C["x25xot --mode client --host ... --port 1998"]
+    SW["or a real x25switch"]
+    ND["or a SINTRAN machine"]
+
+    C -->|"XOT over TCP"| S
+    C --> SW
+    C --> ND
+    ND --> S
+
+    classDef tool fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    classDef core fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    classDef ext  fill:#E91E63,stroke:#AD1457,stroke-width:2px,color:#fff
+
+    class S,C tool
+    class SW core
+    class ND ext
+```
+
+Running it against **itself**, in two shells, is the first thing to try: if that does not connect, the problem is
+local and not the peer.
+
+## The windows, and which to pick
+
+```mermaid
+flowchart TB
+    MENU["Interactive menu"]
+    XOTW["XOT Test<br/>send and receive raw packets"]
+    SINC["SINTRAN Client<br/>full HOST, client AND server"]
+    SPAD["SINTRAN PAD Client<br/>over LAPB"]
+    XPAD["X.25 PAD Client<br/>pure X.25, NO LAPB"]
+    X3W["X.3 Parameters"]
+
+    MENU --> XOTW
+    MENU --> SINC
+    MENU --> SPAD
+    MENU --> XPAD
+    MENU --> X3W
+
+    classDef app  fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    classDef core fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    classDef link fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+
+    class MENU app
+    class XOTW,X3W app
+    class SINC core
+    class SPAD link
+    class XPAD core
+```
+
+**The LAPB distinction is the one to get right.** The SINTRAN PAD client runs over LAPB; the X.25 PAD client does
+not, because RFC 1613 XOT puts the packet straight onto TCP. Pointing the wrong one at a peer produces a link that
+looks dead for no visible reason.
+
+---
+
+The sections below are the detailed reference: every command-line parameter, every window, and the client/server state machines.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -30,13 +138,13 @@ This application provides multiple testing windows for XOT protocol development:
 
 ```bash
 # Server Mode (listen for incoming connections)
-RetroX25.Xot.cs.exe --mode server --port <port> --machine-id <id>
+x25xot --mode server --port <port> --machine-id <id>
 
 # Client Mode (connect to remote host)
-RetroX25.Xot.cs.exe --mode client --host <hostname> --port <port> --machine-id <local-id> --remote-id <remote-id>
+x25xot --mode client --host <hostname> --port <port> --machine-id <local-id> --remote-id <remote-id>
 
 # Interactive Mode (show menu)
-RetroX25.Xot.cs.exe
+x25xot
 ```
 
 ### Command-Line Parameters
@@ -53,19 +161,19 @@ RetroX25.Xot.cs.exe
 
 ```bash
 # Start SINTRAN server on port 1998 with machine ID 100
-RetroX25.Xot.cs.exe --mode server --port 1998 --machine-id 100
+x25xot --mode server --port 1998 --machine-id 100
 
 # Connect to SINTRAN server at localhost:1998 as machine ID 200
-RetroX25.Xot.cs.exe --mode client --host localhost --port 1998 --machine-id 200 --remote-id 100
+x25xot --mode client --host localhost --port 1998 --machine-id 200 --remote-id 100
 
 # Start SINTRAN PAD client as machine ID 200
-RetroX25.Xot.cs.exe --mode sintran-pad --machine-id 200
+x25xot --mode sintran-pad --machine-id 200
 
 # Start pure X.25 PAD client (no SINTRAN)
-RetroX25.Xot.cs.exe --mode x25-pad
+x25xot --mode x25-pad
 
 # Show interactive menu
-RetroX25.Xot.cs.exe
+x25xot
 ```
 
 ---
@@ -76,7 +184,7 @@ RetroX25.Xot.cs.exe
 
 1. **Start the server**:
    ```bash
-   RetroX25.Xot.cs.exe --mode server --port 1998 --machine-id 100
+   x25xot --mode server --port 1998 --machine-id 100
    ```
 
 2. **Wait for connections**:
@@ -102,7 +210,7 @@ RetroX25.Xot.cs.exe
 
 1. **Start the client**:
    ```bash
-   RetroX25.Xot.cs.exe --mode client --host localhost --port 1998 --machine-id 200 --remote-id 100
+   x25xot --mode client --host localhost --port 1998 --machine-id 200 --remote-id 100
    ```
 
 2. **Connection process**:
@@ -165,12 +273,12 @@ graph TB
 
     XOT_C <-->|TCP/IP Port 1998| SERVER
 
-    style UI fill:#e1f5ff
-    style XOT_C fill:#fff4e1
-    style LAPB_C fill:#e8f5e9
-    style X25_C fill:#f3e5f5
-    style ROUT_C fill:#ffe0b2
-    style PAD_C fill:#ffccbc
+    style UI fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style XOT_C fill:#E91E63,stroke:#AD1457,stroke-width:2px,color:#fff
+    style LAPB_C fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    style X25_C fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style ROUT_C fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    style PAD_C fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
 ```
 
 ### SINTRAN Server Mode Architecture
@@ -204,12 +312,12 @@ graph TB
 
     CLIENT <-->|TCP/IP Port 1998| XOT_S
 
-    style UI_S fill:#e1f5ff
-    style XOT_S fill:#fff4e1
-    style LAPB_S fill:#e8f5e9
-    style X25_S fill:#f3e5f5
-    style ROUT_S fill:#ffe0b2
-    style PAD_S fill:#ffccbc
+    style UI_S fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style XOT_S fill:#E91E63,stroke:#AD1457,stroke-width:2px,color:#fff
+    style LAPB_S fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    style X25_S fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style ROUT_S fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    style PAD_S fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
 ```
 
 ### Protocol Stack Layering
@@ -232,12 +340,12 @@ graph LR
         SINTRAN --> APP
     end
 
-    style TCP fill:#ffebee
-    style XOT fill:#fff3e0
-    style LAPB fill:#e8f5e9
-    style X25 fill:#e3f2fd
-    style SINTRAN fill:#f3e5f5
-    style APP fill:#fce4ec
+    style TCP fill:#3F51B5,stroke:#283593,stroke-width:2px,color:#fff
+    style XOT fill:#E91E63,stroke:#AD1457,stroke-width:2px,color:#fff
+    style LAPB fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    style X25 fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    style SINTRAN fill:#E91E63,stroke:#AD1457,stroke-width:2px,color:#fff
+    style APP fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
 ```
 
 ### Data Flow: Client → Server
@@ -299,10 +407,10 @@ graph LR
         PID --> DATA
     end
 
-    style M1 fill:#ffcdd2
-    style M2 fill:#f8bbd0
-    style PID fill:#e1bee7
-    style DATA fill:#d1c4e9
+    style M1 fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    style M2 fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    style PID fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    style DATA fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
 ```
 
 ---
@@ -354,9 +462,9 @@ graph TB
     CONNECTED --> |F4| DISCONNECT[Disconnect]
     DISCONNECT --> WAIT
 
-    style START fill:#e3f2fd
-    style CONNECTED fill:#c8e6c9
-    style DISCONNECT fill:#ffccbc
+    style START fill:#3F51B5,stroke:#283593,stroke-width:2px,color:#fff
+    style CONNECTED fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    style DISCONNECT fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
 ```
 
 ### Server Mode Characteristics
@@ -390,10 +498,10 @@ graph TB
     CONNECTED_S --> |F4| STOP[Stop Server]
     STOP --> WAIT_S
 
-    style START_S fill:#e3f2fd
-    style LISTEN fill:#fff9c4
-    style CONNECTED_S fill:#c8e6c9
-    style STOP fill:#ffccbc
+    style START_S fill:#3F51B5,stroke:#283593,stroke-width:2px,color:#fff
+    style LISTEN fill:#FFA726,stroke:#F57C00,stroke-width:2px,color:#000
+    style CONNECTED_S fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    style STOP fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
 ```
 
 ### Key Differences
@@ -606,7 +714,7 @@ This ensures the server remains lightweight until a client actually connects.
 ## File Structure
 
 ```
-RetroX25.Xot.cs/
+RetroX25.Xot/
 ├── Program.cs                      # Entry point, CLI parsing, menu system
 ├── SintranClientWindow.cs          # SINTRAN HOST window (client/server)
 ├── SintranPadClientWindow.cs       # SINTRAN PAD client window
@@ -636,15 +744,21 @@ RetroX25.Xot.cs/
 ### Build
 
 ```bash
-cd E:\Dev\Repos\Ronny\X25Emulator
-dotnet build RetroX25.Xot.cs\RetroX25.Xot.cs.csproj
+# The usual way - build.ps1 builds, tests and publishes every app in this repo
+cd E:\Dev\RCL\RetroX25
+.\build.ps1
+
+# Or just this project
+dotnet build src\RetroX25.Xot\RetroX25.Xot.csproj -nodeReuse:false
 ```
 
 ### Run
 
 ```bash
-cd RetroX25.Xot.cs\bin\Debug\net9.0
-RetroX25.Xot.cs.exe [arguments]
+# The published single-file executable, after build.ps1:
+#   publish\win-x64\x25xot.exe
+cd src\RetroX25.Xot\bin\Debug\net9.0
+x25xot [arguments]
 ```
 
 ### Development
