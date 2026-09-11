@@ -1,5 +1,10 @@
 # x25echo — the echo service
 
+<!-- A still screenshot of RetroX25.Echo doing its job. PNG, under 10 MB. Uncomment when
+     the capture exists; keep the alt text, it is all a screen reader gets.
+![RetroX25.Echo in use.](../../docs/images/readme/RetroX25.Echo.png)
+-->
+
 ## What it is
 
 A tiny X.25 service. It attaches to a switch port, accepts any call routed to its address, and sends every octet

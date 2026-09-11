@@ -1,5 +1,10 @@
 # x25console — the console emulator
 
+<!-- A still screenshot of RetroX25.Console doing its job. PNG, under 10 MB. Uncomment when
+     the capture exists; keep the alt text, it is all a screen reader gets.
+![RetroX25.Console in use.](../../docs/images/readme/RetroX25.Console.png)
+-->
+
 ## What it is
 
 A full X.25 stack driven entirely from a **JSON configuration file**, with a text-mode interface. It is the whole

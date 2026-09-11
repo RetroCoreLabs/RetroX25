@@ -1,5 +1,10 @@
 # x25pad — the interactive terminal client
 
+<!-- A still screenshot of RetroX25.Pad doing its job. PNG, under 10 MB. Uncomment when
+     the capture exists; keep the alt text, it is all a screen reader gets.
+![RetroX25.Pad in use.](../../docs/images/readme/RetroX25.Pad.png)
+-->
+
 ## What it is
 
 A PAD: a Packet Assembler/Disassembler. It turns a terminal into an X.25 DTE — you type, it packs the characters

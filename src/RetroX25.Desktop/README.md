@@ -1,5 +1,10 @@
 # RetroX25.exe — the desktop application
 
+<!-- A still screenshot of RetroX25.Desktop doing its job. PNG, under 10 MB. Uncomment when
+     the capture exists; keep the alt text, it is all a screen reader gets.
+![RetroX25.Desktop in use.](../../docs/images/readme/RetroX25.Desktop.png)
+-->
+
 ## What it is
 
 An Avalonia desktop application that puts the whole X.25 stack behind a window: a PAD client you can type in, a

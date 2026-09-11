@@ -1,5 +1,10 @@
 # x25traffic — the load generator
 
+<!-- A still screenshot of RetroX25.Traffic doing its job. PNG, under 10 MB. Uncomment when
+     the capture exists; keep the alt text, it is all a screen reader gets.
+![RetroX25.Traffic in use.](../../docs/images/readme/RetroX25.Traffic.png)
+-->
+
 ## What it is
 
 Drives load through an X.25 network and reports what arrived. Two modes: **stream**, which places one call and

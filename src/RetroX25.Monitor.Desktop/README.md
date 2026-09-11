@@ -1,5 +1,10 @@
 # x25monitor — the network monitor
 
+<!-- A still screenshot of RetroX25.Monitor.Desktop doing its job. PNG, under 10 MB. Uncomment when
+     the capture exists; keep the alt text, it is all a screen reader gets.
+![RetroX25.Monitor.Desktop in use.](../../docs/images/readme/RetroX25.Monitor.Desktop.png)
+-->
+
 ## What it is
 
 An Avalonia desktop monitor for a **whole X.25 network**. It connects to switches' monitor ports and shows a

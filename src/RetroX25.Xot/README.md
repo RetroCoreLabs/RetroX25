@@ -1,5 +1,10 @@
 # x25xot — the XOT test application
 
+<!-- A still screenshot of RetroX25.Xot doing its job. PNG, under 10 MB. Uncomment when
+     the capture exists; keep the alt text, it is all a screen reader gets.
+![RetroX25.Xot in use.](../../docs/images/readme/RetroX25.Xot.png)
+-->
+
 ## What it is
 
 A standalone Terminal.Gui application for testing **XOT** — X.25 over TCP — in either direction, with SINTRAN
@@ -109,16 +114,6 @@ looks dead for no visible reason.
 ---
 
 The sections below are the detailed reference: every command-line parameter, every window, and the client/server state machines.
-
-## Table of Contents
-- [Overview](#overview)
-- [Command-Line Arguments](#command-line-arguments)
-- [Usage Instructions](#usage-instructions)
-- [Architecture Overview](#architecture-overview)
-- [Client vs Server Modes](#client-vs-server-modes)
-- [Window Types](#window-types)
-
----
 
 ## Overview
 

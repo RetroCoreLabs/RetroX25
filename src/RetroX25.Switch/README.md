@@ -1,5 +1,10 @@
 # x25switch — the packet switch
 
+<!-- A still screenshot of RetroX25.Switch doing its job. PNG, under 10 MB. Uncomment when
+     the capture exists; keep the alt text, it is all a screen reader gets.
+![RetroX25.Switch in use.](../../docs/images/readme/RetroX25.Switch.png)
+-->
+
 ## What it is
 
 `x25switch` is an X.25 switching node. It is the centre of any network built with this repository: every other

@@ -1,5 +1,10 @@
 # x25trace — the wire tracer
 
+<!-- A still screenshot of RetroX25.Trace doing its job. PNG, under 10 MB. Uncomment when
+     the capture exists; keep the alt text, it is all a screen reader gets.
+![RetroX25.Trace in use.](../../docs/images/readme/RetroX25.Trace.png)
+-->
+
 ## What it is
 
 A passive packet decoder. It sits on an XOT connection, reads whatever crosses it, and prints each X.25 packet

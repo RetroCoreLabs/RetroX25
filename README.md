@@ -3,6 +3,16 @@
 **An X.25 network you can run.** Ten applications — a packet switch, two desktop front ends, and seven console
 tools — built on the `RetroIO.Protocols.X25.*` packages.
 
+[![build](https://github.com/RetroCoreLabs/RetroX25/actions/workflows/build.yml/badge.svg)](https://github.com/RetroCoreLabs/RetroX25/actions/workflows/build.yml)
+[![release](https://img.shields.io/github/v/release/RetroCoreLabs/RetroX25)](https://github.com/RetroCoreLabs/RetroX25/releases)
+[![licence](https://img.shields.io/github/license/RetroCoreLabs/RetroX25)](LICENSE)
+[![downloads](https://img.shields.io/github/downloads/RetroCoreLabs/RetroX25/total)](https://github.com/RetroCoreLabs/RetroX25/releases)
+[Applications](#the-ten-applications) Â· [Prerequisites](#prerequisites) Â· [The demo network](#the-demo-network) Â· [About X.25](#about-x25)
+
+<!-- A 5-15 second recording: the switch running, a call placed from x25pad, the packets
+     appearing in x25monitor. Under 10 MB. Uncomment when the capture exists.
+![The x25switch console, a call placed from x25pad, and the packets appearing live in x25monitor.](docs/images/readme/demo.gif)
+-->
 ## Why this repo exists
 
 X.25 is how computers talked to each other before the internet won, and a great deal of surviving equipment still
@@ -34,6 +44,20 @@ them is a failing test rather than an argument.
 
 ---
 
+## Status
+
+No tagged release yet, so the release and download badges above are empty until the first
+`v*` tag is pushed. The ten applications are built and run.
+
+- **The whole solution builds in Release with no errors**, and three test projects cover it.
+- **Two implementations, one set of vectors.** The C emulator `x25emu` implements the same
+  protocols, the two are trunked together, and both read the same X.25 conformance vectors.
+- **The six-switch demonstration network runs**, and a dialling trunk whose peer does not
+  answer now costs 13 ms at start-up instead of a full TCP connect timeout.
+- **Not yet measured:** call setup rate and throughput under load. `x25traffic` exists to
+  measure them; no number is claimed here because none has been taken.
+
+---
 ## Prerequisites
 
 | # | Requirement | Needed for | How to check |
@@ -247,6 +271,26 @@ That is the right place for it: these are applications, and a protocol bug found
 Manual test procedures, including the hardware cases, are in
 the migration notes, as `Manual tests - RetroX25.md` and `Manual tests - X25 multi-network.md`.
 
+## About X.25
+
+X.25 is how computers talked to each other over public networks before the internet won.
+The ITU-T standardised it in 1976 and carriers ran it worldwide - Telenor, Transpac,
+Datex-P, Tymnet - into the 2000s. A call is placed to an address, a virtual circuit is set
+up across the network, data flows in numbered packets with flow control and error recovery,
+and the circuit is cleared. Conceptually it is a telephone call for data.
+
+It matters now because a great deal of surviving equipment still speaks nothing else: Norsk
+Data minicomputers, Cisco routers, terminal servers, banking and telex gear. The carriers are
+gone, so to reach any of that you have to provide the network yourself - a switch, something
+to call with, something to answer, and a way to see what crossed the wire. That is what this
+repository is.
+
+The layers, briefly: **LAPB** is the link layer over a serial line; **XOT** (RFC 1613)
+carries X.25 over TCP so two sites can be joined across the modern internet; **PAD** (X.3,
+X.28, X.29) is the terminal interface a human uses to place a call. The specifications are
+ITU-T X.25, X.75 and X.121.
+
+---
 ## Conventions
 
 - Names follow the workspace naming standard; diagrams follow the workspace Mermaid palette. Both live one level
@@ -254,3 +298,13 @@ the migration notes, as `Manual tests - RetroX25.md` and `Manual tests - X25 mul
   `MERMAID_COLOR_STANDARDS.md`.
 - `python eng/check-docs.py` checks every link and diagram in this repo.
 - The org is **RetroCoreLabs**. `HackerCorpLabs` is retired and must not appear in anything new.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get a build running, what the code is
+expected to look like, and what will get a change sent back. A security problem goes through
+[SECURITY.md](SECURITY.md) and never a public issue.
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).

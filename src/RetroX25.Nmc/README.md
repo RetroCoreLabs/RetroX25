@@ -1,5 +1,10 @@
 # x25nmc — the network management console
 
+<!-- A still screenshot of RetroX25.Nmc doing its job. PNG, under 10 MB. Uncomment when
+     the capture exists; keep the alt text, it is all a screen reader gets.
+![RetroX25.Nmc in use.](../../docs/images/readme/RetroX25.Nmc.png)
+-->
+
 ## What it is
 
 A management console that reaches switches **over X.25 itself**. It connects to a local switch, places an X.25 call
