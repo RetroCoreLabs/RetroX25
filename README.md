@@ -11,7 +11,7 @@ tools — built on the `RetroIO.Protocols.X25.*` packages.
 
 <!-- A 5-15 second recording: the switch running, a call placed from x25pad, the packets
      appearing in x25monitor. Under 10 MB. Uncomment when the capture exists.
-![The x25switch console, a call placed from x25pad, and the packets appearing live in x25monitor.](docs/images/readme/demo.gif)
+![The x25switch console, a call placed from x25pad, and the packets appearing live in x25monitor.](src/docs/images/readme/demo.gif)
 -->
 ## How this code was written
 
@@ -68,10 +68,10 @@ No tagged release yet, so the release and download badges above are empty until 
 
 | # | Requirement | Needed for | How to check |
 |---|---|---|---|
-| P1 | .NET SDK as pinned in `global.json` | Everything | `dotnet --info` |
+| P1 | .NET SDK as pinned in `src/global.json` | Everything | `dotnet --info` |
 | P2 | PowerShell 7+ | `build.ps1`, `demo.ps1` | `$PSVersionTable.PSVersion` |
 | P3 | **RetroIO built and packed to the local feed** (`../localfeed`, beside the repositories) | Restore | `dir ..\localfeed` shows `0.1.0-local.*` |
-| P4 | `.\build.ps1` run | Testing the published exes | `dir publish\win-x64\*.exe` lists ten |
+| P4 | `.\src\build.ps1` run | Testing the published exes | `dir src\publish\win-x64\*.exe` lists ten |
 | P5 | TCP ports 2200-2203, 2210, 9101-9103, 4001-4003 free | The demo network | `netstat -ano \| findstr "2200 2201 9101 4001"` |
 | P6 | A Windows desktop session | `RetroX25.exe`, `x25monitor` | Two of the ten are Avalonia apps |
 | P7 | A terminal | The console tools | Any modern terminal |
@@ -84,13 +84,13 @@ first publish**. That is expected, not a broken build.
 
 ```powershell
 # from the repository root
-.\build.ps1                 # build, test, publish all ten as single self-contained files
-.\demo\demo.ps1 start       # three chained switches and an echo service
-.\demo\demo.ps1 pad         # a PAD client; at the * prompt:  CALL 23520001
-.\demo\demo.ps1 stop        # always stop with the script, never by process name
+.\src\build.ps1                 # build, test, publish all ten as single self-contained files
+.\src\demo\demo.ps1 start       # three chained switches and an echo service
+.\src\demo\demo.ps1 pad         # a PAD client; at the * prompt:  CALL 23520001
+.\src\demo\demo.ps1 stop        # always stop with the script, never by process name
 ```
 
-Git Bash or WSL: the same verbs on `./demo/demo.sh`.
+Git Bash or WSL: the same verbs on `./src/demo/demo.sh`.
 
 ---
 
@@ -158,7 +158,7 @@ port 9101. The interesting test is `x25nmc` reaching switches B and C *through* 
 
 ## The demo network
 
-`demo\demo.ps1` starts three chained switches and an echo service.
+`src\demo\demo.ps1` starts three chained switches and an echo service.
 
 ```mermaid
 flowchart LR
@@ -197,14 +197,14 @@ proof it routed rather than short-circuited.
 
 | Command | What it does |
 |---|---|
-| `.\demo\demo.ps1 start` | Build and start three switches plus the echo |
-| `.\demo\demo.ps1 pad` | A PAD client |
-| `.\demo\demo.ps1 gui` | The monitor GUI |
-| `.\demo\demo.ps1 cli-a` / `cli-b` / `cli-c` | Telnet to a switch's management console |
-| `.\demo\demo.ps1 stop` | Stop everything |
-| `.\demo\crossenv-test.ps1` | The automated interop check against the C reference |
+| `.\src\demo\demo.ps1 start` | Build and start three switches plus the echo |
+| `.\src\demo\demo.ps1 pad` | A PAD client |
+| `.\src\demo\demo.ps1 gui` | The monitor GUI |
+| `.\src\demo\demo.ps1 cli-a` / `cli-b` / `cli-c` | Telnet to a switch's management console |
+| `.\src\demo\demo.ps1 stop` | Stop everything |
+| `.\src\demo\crossenv-test.ps1` | The automated interop check against the C reference |
 
-`stop` reads and writes `demo\.pids`. **Always stop with the script**; if you must kill something, kill the PID
+`stop` reads and writes `src\demo\.pids`. **Always stop with the script**; if you must kill something, kill the PID
 in that file — never by process name.
 
 ---
@@ -246,8 +246,8 @@ flowchart LR
 **The WSL side dials in**, so nothing changes on this side. Start this demo first and allow inbound TCP 2210.
 
 ```powershell
-.\demo\crossenv-test.ps1
-.\demo\crossenv-test.ps1 -WslHost 172.23.178.242 -Port 2001   # if auto-detect fails
+.\src\demo\crossenv-test.ps1
+.\src\demo\crossenv-test.ps1 -WslHost 172.23.178.242 -Port 2001   # if auto-detect fails
 ```
 
 It finds the WSL address with `hostname -I` (which changes across reboots), calls the reference echo service
@@ -258,7 +258,7 @@ Both directions matter: from our PAD, `CALL 23420001` should reach the reference
 
 ### One file, two implementations
 
-The X.25 conformance vectors in `RetroIO/tests/x25-vectors/x25-vectors.json` are read by **this stack and the C
+The X.25 conformance vectors in `RetroIO/src/tests/x25-vectors/x25-vectors.json` are read by **this stack and the C
 one**. A disagreement about bytes on the wire is therefore a failing test on both sides rather than a mystery on
 the trunk.
 
@@ -268,10 +268,10 @@ the trunk.
 
 | Project | Covers |
 |---|---|
-| `tests/RetroX25.Desktop.Tests` | The desktop app |
-| `tests/RetroX25.Monitor.Desktop.Tests` | The monitor app |
+| `src/tests/RetroX25.Desktop.Tests` | The desktop app |
+| `src/tests/RetroX25.Monitor.Desktop.Tests` | The monitor app |
 
-The protocol itself is tested in RetroIO — `tests/RetroIO.Protocols.X25.Tests`, including the shared vectors.
+The protocol itself is tested in RetroIO — `src/tests/RetroIO.Protocols.X25.Tests`, including the shared vectors.
 That is the right place for it: these are applications, and a protocol bug found here should become a test there.
 
 Manual test procedures, including the hardware cases, are in
@@ -302,14 +302,14 @@ ITU-T X.25, X.75 and X.121.
 - Names follow the workspace naming standard; diagrams follow the workspace Mermaid palette. Both live one level
   up in the workspace root, **outside this repository**, so they are paths rather than links: `NAMING.md` and
   `MERMAID_COLOR_STANDARDS.md`.
-- `python eng/check-docs.py` checks every link and diagram in this repo.
+- `python src/eng/check-docs.py` checks every link and diagram in this repo.
 - The org is **RetroCoreLabs**. `HackerCorpLabs` is retired and must not appear in anything new.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get a build running, what the code is
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for how to get a build running, what the code is
 expected to look like, and what will get a change sent back. A security problem goes through
-[SECURITY.md](SECURITY.md) and never a public issue.
+[SECURITY.md](.github/SECURITY.md) and never a public issue.
 
 ## Licence
 

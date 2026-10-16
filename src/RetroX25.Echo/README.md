@@ -2,7 +2,7 @@
 
 <!-- A still screenshot of RetroX25.Echo doing its job. PNG, under 10 MB. Uncomment when
      the capture exists; keep the alt text, it is all a screen reader gets.
-![RetroX25.Echo in use.](../../docs/images/readme/RetroX25.Echo.png)
+![RetroX25.Echo in use.](../docs/images/readme/RetroX25.Echo.png)
 -->
 
 ## What it is
@@ -33,7 +33,7 @@ thing that is broken.
 | # | Requirement | Why | How to check |
 |---|---|---|---|
 | P1 | .NET SDK as pinned in `global.json`, or the published exe | To build or run | `dotnet --info` |
-| P2 | **A running switch** | It dials **out** to a switch port and waits | `.\demo\demo.ps1 start` |
+| P2 | **A running switch** | It dials **out** to a switch port and waits | `.\src\demo\demo.ps1 start` |
 | P3 | The switch's XOT host and port | To attach | `-x`; default `127.0.0.1:2006` |
 | P4 | **A route pointing at its port** | Otherwise no call ever reaches it | A `[route.N]` entry in the switch INI |
 | P5 | An address to answer on | So callers have something to dial | `-a`; default `23420001` |

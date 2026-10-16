@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\RetroX25.Desktop\RetroX25.Desktop.csproj" />
+    <ProjectReference Include="..\..\RetroX25.Desktop\RetroX25.Desktop.csproj" />
   </ItemGroup>
 
 </Project>

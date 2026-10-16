@@ -2,7 +2,7 @@
 
 <!-- A still screenshot of RetroX25.Xot doing its job. PNG, under 10 MB. Uncomment when
      the capture exists; keep the alt text, it is all a screen reader gets.
-![RetroX25.Xot in use.](../../docs/images/readme/RetroX25.Xot.png)
+![RetroX25.Xot in use.](../docs/images/readme/RetroX25.Xot.png)
 -->
 
 ## What it is
@@ -741,7 +741,7 @@ RetroX25.Xot/
 ```bash
 # The usual way - build.ps1 builds, tests and publishes every app in this repo
 # from the repository root
-.\build.ps1
+.\src\build.ps1
 
 # Or just this project
 dotnet build src\RetroX25.Xot\RetroX25.Xot.csproj -nodeReuse:false
@@ -751,7 +751,7 @@ dotnet build src\RetroX25.Xot\RetroX25.Xot.csproj -nodeReuse:false
 
 ```bash
 # The published single-file executable, after build.ps1:
-#   publish\win-x64\x25xot.exe
+#   src\publish\win-x64\x25xot.exe
 cd src\RetroX25.Xot\bin\Debug\net9.0
 x25xot [arguments]
 ```

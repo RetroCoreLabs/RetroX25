@@ -2,7 +2,7 @@
 
 <!-- A still screenshot of RetroX25.Nmc doing its job. PNG, under 10 MB. Uncomment when
      the capture exists; keep the alt text, it is all a screen reader gets.
-![RetroX25.Nmc in use.](../../docs/images/readme/RetroX25.Nmc.png)
+![RetroX25.Nmc in use.](../docs/images/readme/RetroX25.Nmc.png)
 -->
 
 ## What it is
@@ -38,7 +38,7 @@ routing, the management API and authentication in one go.
 |---|---|---|---|
 | P1 | .NET SDK as pinned in `global.json`, or the published exe | To build or run | `dotnet --info` |
 | P2 | A terminal | It draws a status screen | Any modern terminal |
-| P3 | **A local switch to connect through** | Every query is an X.25 call placed through it | `.\demo\demo.ps1 start` |
+| P3 | **A local switch to connect through** | Every query is an X.25 call placed through it | `.\src\demo\demo.ps1 start` |
 | P4 | The management **address** of each switch | The call destination | `mgmt_addr` in each switch INI |
 | P5 | A username and password | The management API authenticates | `[user.N]`; the demo uses `admin` / `admin` |
 | P6 | A route to that address | Otherwise the call is refused before it starts | Ordinary routing rules |

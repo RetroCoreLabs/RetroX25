@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\RetroX25.Monitor.Desktop\RetroX25.Monitor.Desktop.csproj" />
+    <ProjectReference Include="..\..\RetroX25.Monitor.Desktop\RetroX25.Monitor.Desktop.csproj" />
   </ItemGroup>
 
 </Project>

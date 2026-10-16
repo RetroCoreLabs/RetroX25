@@ -2,7 +2,7 @@
 
 <!-- A still screenshot of RetroX25.Switch doing its job. PNG, under 10 MB. Uncomment when
      the capture exists; keep the alt text, it is all a screen reader gets.
-![RetroX25.Switch in use.](../../docs/images/readme/RetroX25.Switch.png)
+![RetroX25.Switch in use.](../docs/images/readme/RetroX25.Switch.png)
 -->
 
 ## What it is
@@ -41,20 +41,20 @@ Without one, you have two programs that can talk to each other directly and no n
 |---|---|---|---|
 | P1 | .NET SDK as pinned in `global.json`, or the published exe | To build or run | `dotnet --info` |
 | P2 | RetroIO packed to the local feed | Restore | `dir ..\localfeed` |
-| P3 | **A config file** | Ports, routes, addresses and users are all declarative | `demo\switch-a.ini` is the fullest example |
+| P3 | **A config file** | Ports, routes, addresses and users are all declarative | `src\demo\switch-a.ini` is the fullest example |
 | P4 | Free TCP ports | One per listening port, plus management and monitor | `netstat -ano \| findstr <port>` |
-| P5 | No other switch on those ports | A second instance is the classic confusing failure | `.\demo\demo.ps1 status` |
+| P5 | No other switch on those ports | A second instance is the classic confusing failure | `.\src\demo\demo.ps1 status` |
 | P6 | A peer, a router, or another switch | Only for a trunk | Optional |
 
 ```powershell
-x25switch demo\switch-a.ini -v
+x25switch src\demo\switch-a.ini -v
 ```
 
 `<config-file>` is **required** and positional. `-v` raises verbosity and can be repeated.
 
 ## Configuration
 
-INI. `demo\switch-a.ini` is the fullest example.
+INI. `src\demo\switch-a.ini` is the fullest example.
 
 | Section | Keys |
 |---|---|
@@ -149,7 +149,7 @@ then DNIC, then default. That ordering is why a default route can exist at all.
 ## The management console
 
 ```powershell
-.\demo\demo.ps1 cli-a        # telnet 127.0.0.1 9101, admin / admin
+.\src\demo\demo.ps1 cli-a        # telnet 127.0.0.1 9101, admin / admin
 ```
 
 | Command | Shows |

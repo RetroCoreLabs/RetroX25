@@ -2,7 +2,7 @@
 
 <!-- A still screenshot of RetroX25.Desktop doing its job. PNG, under 10 MB. Uncomment when
      the capture exists; keep the alt text, it is all a screen reader gets.
-![RetroX25.Desktop in use.](../../docs/images/readme/RetroX25.Desktop.png)
+![RetroX25.Desktop in use.](../docs/images/readme/RetroX25.Desktop.png)
 -->
 
 ## What it is
@@ -42,7 +42,7 @@ which is what you need when the machine on the other end wants to call *you*.
 | P1 | .NET SDK as pinned in `global.json`, or the published exe | To build or run | `dotnet --info` |
 | P2 | **A Windows desktop session** | It is a GUI — Avalonia | Not usable over a plain SSH session |
 | P3 | RetroIO packed to the local feed | Restore | `dir ..\localfeed` |
-| P4 | Something to call | The PAD window | `.\demo\demo.ps1 start` |
+| P4 | Something to call | The PAD window | `.\src\demo\demo.ps1 start` |
 | P5 | A serial port | Only for a serial interface | Configurable, not required |
 
 > **First-launch caveat, stated honestly:** headless tests cannot catch compiled-binding errors or a missing
@@ -142,4 +142,4 @@ sequenceDiagram
 - The runtime and the history bus are
   `RetroIO.Protocols.X25.Runtime` (`RetroIO/src/RetroIO.Protocols.X25.Runtime/README.md`) and
   `RetroIO.Protocols.X25` (`RetroIO/src/RetroIO.Protocols.X25/README.md`).
-- Tests: `tests/RetroX25.Desktop.Tests`.
+- Tests: `src/tests/RetroX25.Desktop.Tests`.

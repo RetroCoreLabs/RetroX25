@@ -2,7 +2,7 @@
 
 <!-- A still screenshot of RetroX25.Monitor.Desktop doing its job. PNG, under 10 MB. Uncomment when
      the capture exists; keep the alt text, it is all a screen reader gets.
-![RetroX25.Monitor.Desktop in use.](../../docs/images/readme/RetroX25.Monitor.Desktop.png)
+![RetroX25.Monitor.Desktop in use.](../docs/images/readme/RetroX25.Monitor.Desktop.png)
 -->
 
 ## What it is
@@ -46,7 +46,7 @@ neighbour's monitor endpoint, so the monitor connects onward by itself instead o
 | P5 | Traffic | To see packets | Run `x25pad` or `x25traffic` alongside |
 
 ```powershell
-.\demo\demo.ps1 gui      # against the demo network
+.\src\demo\demo.ps1 gui      # against the demo network
 ```
 
 The default endpoint in code is Switch A at **`127.0.0.1:4001`**. Add `4002` and `4003` for B and C.
@@ -130,4 +130,4 @@ simply cannot be walked onward from, and shows as "no monitor".
 - The protocol and the decode are
   `RetroIO.Protocols.X25.Monitor` (`RetroIO/src/RetroIO.Protocols.X25.Monitor/README.md`) — **X25MON/1**,
   which the C emulator also speaks, so one monitor can watch both implementations.
-- Tests: `tests/RetroX25.Monitor.Desktop.Tests`.
+- Tests: `src/tests/RetroX25.Monitor.Desktop.Tests`.

@@ -2,7 +2,7 @@
 
 <!-- A still screenshot of RetroX25.Pad doing its job. PNG, under 10 MB. Uncomment when
      the capture exists; keep the alt text, it is all a screen reader gets.
-![RetroX25.Pad in use.](../../docs/images/readme/RetroX25.Pad.png)
+![RetroX25.Pad in use.](../docs/images/readme/RetroX25.Pad.png)
 -->
 
 ## What it is
@@ -36,7 +36,7 @@ dialled a PAD, got a `*` prompt, and typed `CALL`.
 |---|---|---|---|
 | P1 | .NET SDK as pinned in `global.json`, or the published exe | To build or run | `dotnet --info` |
 | P2 | A terminal | It is interactive and puts the tty into character mode | Any modern terminal |
-| P3 | **Something to call** | A PAD with no network is a prompt and nothing else | `.\demo\demo.ps1 start` |
+| P3 | **Something to call** | A PAD with no network is a prompt and nothing else | `.\src\demo\demo.ps1 start` |
 | P4 | The switch's host and port | To connect | Default `localhost:1998`; the demo's access port is 2200 |
 | P5 | An address to call | X.121 format | Echo answers on `23520001` in the demo |
 
@@ -50,7 +50,7 @@ x25pad [-x host:port] [-v]
 | `-v` | More verbosity; repeat for more |
 
 ```powershell
-.\demo\demo.ps1 pad                      # against the demo network
+.\src\demo\demo.ps1 pad                      # against the demo network
 x25pad -x 127.0.0.1:2200 -v              # by hand
 ```
 

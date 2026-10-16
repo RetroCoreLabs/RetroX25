@@ -2,7 +2,7 @@
 
 <!-- A still screenshot of RetroX25.Trace doing its job. PNG, under 10 MB. Uncomment when
      the capture exists; keep the alt text, it is all a screen reader gets.
-![RetroX25.Trace in use.](../../docs/images/readme/RetroX25.Trace.png)
+![RetroX25.Trace in use.](../docs/images/readme/RetroX25.Trace.png)
 -->
 
 ## What it is

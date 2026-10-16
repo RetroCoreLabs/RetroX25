@@ -33,7 +33,7 @@
     <PackageReference Include="RetroIO.Protocols.X25.Switch" />
     <PackageReference Include="RetroIO.Protocols.X25.Switch.Management" />
     <!-- Referenced for XotSwitchPort in the socket-level switch interop tests; the app's Main is not run. -->
-    <ProjectReference Include="..\..\src\RetroX25.Switch\RetroX25.Switch.csproj" />
+    <ProjectReference Include="..\..\RetroX25.Switch\RetroX25.Switch.csproj" />
     <PackageReference Include="RetroIO.Protocols.X25.Nmc" />
   </ItemGroup>
 

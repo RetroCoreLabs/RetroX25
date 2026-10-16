@@ -2,7 +2,7 @@
 
 <!-- A still screenshot of RetroX25.Traffic doing its job. PNG, under 10 MB. Uncomment when
      the capture exists; keep the alt text, it is all a screen reader gets.
-![RetroX25.Traffic in use.](../../docs/images/readme/RetroX25.Traffic.png)
+![RetroX25.Traffic in use.](../docs/images/readme/RetroX25.Traffic.png)
 -->
 
 ## What it is
@@ -40,7 +40,7 @@ dropped half of it.
 | # | Requirement | Why | How to check |
 |---|---|---|---|
 | P1 | .NET SDK as pinned in `global.json`, or the published exe | To build or run | `dotnet --info` |
-| P2 | A running switch | It is a DTE and needs a network | `.\demo\demo.ps1 start` |
+| P2 | A running switch | It is a DTE and needs a network | `.\src\demo\demo.ps1 start` |
 | P3 | **Something that answers** | Otherwise you measure refusals | `x25echo`, and aim at its address |
 | P4 | The XOT host and port | To attach | `-x`; the demo's access port is 2200 |
 | P5 | **An address to call** | Required — there is no default destination | `-d 23520001` |
