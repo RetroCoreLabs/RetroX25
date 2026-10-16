@@ -13,6 +13,12 @@ tools — built on the `RetroIO.Protocols.X25.*` packages.
      appearing in x25monitor. Under 10 MB. Uncomment when the capture exists.
 ![The x25switch console, a call placed from x25pad, and the packets appearing live in x25monitor.](docs/images/readme/demo.gif)
 -->
+## How this code was written
+
+Some of the code in this repository was written with the help of AI, mostly Claude (Anthropic).
+Ronny Hansen directs the work, tests it against real hardware and emulators, and is responsible for
+what is in the repository. We say so plainly so you know what you are using.
+
 ## Why this repo exists
 
 X.25 is how computers talked to each other before the internet won, and a great deal of surviving equipment still
