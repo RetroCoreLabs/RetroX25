@@ -1,3 +1,10 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -174,9 +181,30 @@ namespace RetroX25.Switch
                 monitorHost.SetTopology(topology, node.UptimeStartMs);
             }
 
+            // A port that does not start is a startup error, not something to run on without. A switch
+            // with a dead listener still answers its management console and looks alive, while every
+            // call routed to that port goes nowhere. (A dialling trunk that has not linked yet still
+            // counts as started: it keeps retrying in the background.)
+            int failedPorts = 0;
             for (int i = 0; i < node.Ports.Count; i++)
             {
-                node.Ports[i].Start();
+                if (!node.Ports[i].Start())
+                {
+                    failedPorts++;
+                }
+            }
+
+            if (failedPorts > 0)
+            {
+                logger.LogError("x25switch: {Failed} of {Ports} ports did not start - see the errors above. Exiting.",
+                    failedPorts, node.Ports.Count);
+                monitorHost?.Dispose();
+                for (int i = 0; i < node.Ports.Count; i++)
+                {
+                    node.Ports[i].Stop();
+                }
+
+                return 1;
             }
 
             if (monitor != null)

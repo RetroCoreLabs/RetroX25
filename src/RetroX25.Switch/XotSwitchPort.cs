@@ -1,3 +1,10 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
@@ -176,8 +183,19 @@ namespace RetroX25.Switch
                 // A listening port is considered up (bound) once the listener starts; a peer may not be
                 // connected yet -- PeerConnected reflects that separately.
                 _active = ok;
-                _logger.LogInformation("Port {Id} ({Mode} {Type}): listening on {Host}:{Port}",
-                    Id, Config.Mode, Config.Type, host, Config.Port);
+                if (ok)
+                {
+                    _logger.LogInformation("Port {Id} ({Mode} {Type}): listening on {Host}:{Port}",
+                        Id, Config.Mode, Config.Type, host, Config.Port);
+                }
+                else
+                {
+                    // This used to log "listening" here as well, so a port that never bound looked
+                    // healthy and nothing could reach it. Seen on a machine where Windows had reserved
+                    // TCP 2180-2279: every demo listener failed, and the log said they were all up.
+                    _logger.LogError("Port {Id} ({Mode} {Type}): could NOT listen on {Host}:{Port} - the port is down",
+                        Id, Config.Mode, Config.Type, host, Config.Port);
+                }
             }
             else
             {
