@@ -102,7 +102,6 @@ namespace RetroX25.Console
         // Protocol instances
         private ProtocolRuntime? _runtime;
         private PacketDisplayManager? _displayManager;
-        private X25Layer? _x25;
 
         // Child windows
         private List<PadTestWindow> _padTestWindows = new List<PadTestWindow>();
@@ -180,9 +179,6 @@ namespace RetroX25.Console
                 // Initialize packet display manager for collapse functionality
                 _displayManager = new PacketDisplayManager(_runtime);
 
-                // Get layer references from runtime
-                _x25 = runtime.X25Layer;
-
                 // Subscribe to ProtocolRuntime history events to capture all frames
                 // This is the single source of truth for all protocol events
                 _runtime.HistoryItemAdded += OnHistoryItemAdded;
@@ -196,12 +192,10 @@ namespace RetroX25.Console
                     _collapseToggleButton.Text = _displayManager.GlobalCollapseEnabled ? "[Expand]" : "[Collapse]";
                 }
 
-                // Subscribe to X.25 events for call/data handling
-                _x25.IncomingCall += OnIncomingCall;
-                _x25.DataReceived += OnData;
-                _x25.CallCleared += OnClear;
-                _x25.CallReset += OnReset;
-                _x25.RestartRequested += OnRestart;
+                // There is no process-wide X.25 engine to subscribe to any more: every XOT connection and
+                // every link owns its own, and the runtime reports what they do through the history
+                // (HistoryItemAdded above). Calls, data, clears, resets and restarts therefore all arrive
+                // as history items and are shown from OnHistoryItemAdded.
 
                 // ProtocolRuntime starts automatically in constructor
                 _logger.LogInformation("ProtocolRuntime initialized");
@@ -622,7 +616,7 @@ namespace RetroX25.Console
                 Y = 2,
                 Width = 6
             };
-            _filterIntButton.Clicked += () => ToggleL3Filter("INT");
+            _filterIntButton.Clicked += () => ToggleL3Filter(X25PacketDecoder.Interrupt);
 
             _filterLCNButton = new Button("[LCN:All]")
             {
@@ -1059,6 +1053,14 @@ namespace RetroX25.Console
                 HistoryItem = item // Store reference to business model
             };
 
+            // Only an HDLC frame has an FCS result; the runtime records it on the HDLC history item.
+            // LAPB and X.25 items are made from the frame after the FCS was checked and removed, so
+            // for them the result stays unset and the screen shows "—" rather than OK or BAD.
+            if (item is HdlcHistoryItem hdlcItem)
+            {
+                packetInfo.L2FCSValid = hdlcItem.FcsValid;
+            }
+
             // Handle relationships for two-line display - simplified using business logic flags
             if (item.RelatedItem != null)
             {
@@ -1227,7 +1229,7 @@ namespace RetroX25.Console
                     {
                         byte[] x25Bytes = new byte[x25Length];
                         Array.Copy(data, 2, x25Bytes, 0, x25Length);
-                        ParseX25DetailsFromBytes(x25Bytes, packet);
+                        X25PacketDecoder.Decode(x25Bytes, packet);
                     }
                 }
             }
@@ -1254,16 +1256,21 @@ namespace RetroX25.Console
                 packet.Type = GetUFrameTypeName(uType);
             }
 
-            // For LAPB frames, we don't validate FCS since it's handled by HDLC layer
-            packet.L2FCS = 0;
-            packet.L2FCSValid = true;
-            packet.IsError = false;
+            // The FCS belongs to the HDLC frame, which strips it before the LAPB layer sees the frame.
+            // A LAPB packet therefore has no FCS result of its own, and L2FCSValid is left unset
+            // (shown as "—") instead of being filled in with a value nobody checked.
         }
 
+        /// <summary>
+        /// Decodes a packet whose data is a bare X.25 packet into its layer 3 fields.
+        /// </summary>
+        /// <param name="packet">
+        /// The packet record; its <see cref="PacketInfo.Data"/> starts at the general format
+        /// identifier and carries no LAPB or HDLC bytes.
+        /// </param>
         private void ParseX25Packet(PacketInfo packet)
         {
-            // PacketInfo.Data already contains pure X.25 bytes (GFI, LCN, PTI, ...)
-            ParseX25DetailsFromBytes(packet.Data, packet);
+            X25PacketDecoder.Decode(packet.Data, packet);
         }
 
         // Optimized U-frame type lookup
@@ -1287,63 +1294,6 @@ namespace RetroX25.Console
         private static string GetUFrameTypeName(byte uType)
         {
             return UFrameTypes.TryGetValue(uType, out string? name) ? name : $"0x{uType:X2}";
-        }
-
-        private void ParseX25DetailsFromBytes(byte[] x25Data, PacketInfo packet)
-        {
-            if (x25Data == null || x25Data.Length < 3) return;
-
-            // X.25 header starts at offset 0 in provided buffer
-            byte gfid = x25Data[0];
-            packet.L3M = (gfid & 0x80) != 0;
-            packet.L3Q = (gfid & 0x40) != 0;
-            packet.L3D = (gfid & 0x20) != 0;
-
-            // LCI = (GFI & 0x07) << 8 | LCN. For display we keep LCN byte, grid shows LCN or full LCI elsewhere.
-            byte lcnLow = x25Data[1];
-            byte lcg = (byte)(gfid & 0x07);
-            int lci = (lcg << 8) | lcnLow;
-
-            // Preserve both for future enhancements; grid currently uses L3LCN
-            packet.L3LCN = (ushort)lci; // show full LCI to avoid ambiguity across groups
-
-            byte pktType = x25Data[2];
-            packet.L3Type = pktType switch
-            {
-                0x0B => "CALL-REQ",
-                0x0F => "CALL-ACC",
-                0x13 => "CLEAR-REQ",
-                0x17 => "CLEAR-CONF",
-                0x23 => "INT",
-                0x27 => "INT-CONF",
-                0x1B => "RESET-REQ",
-                0x1F => "RESET-CONF",
-                0xFB => "RESTART-REQ",
-                0xFF => "RESTART-CONF",
-                0xF3 => "REG-REQ",
-                0xF7 => "REG-CONF",
-                0xF1 => "DIAG",
-                // Data packets have LSB=0, show based on P(S)/P(R) 
-                _ when (pktType & 0x01) == 0x00 => "DATA",
-                // Flow control packets: RR, RNR, REJ have variable P(R)
-                _ when (pktType & 0x1F) == 0x01 => "RR",
-                _ when (pktType & 0x1F) == 0x05 => "RNR",
-                _ when (pktType & 0x1F) == 0x09 => "REJ",
-                _ => $"0x{pktType:X2}"
-            };
-
-            // Parse additional fields based on packet type  
-            if ((pktType & 0x01) == 0x00 && x25Data.Length >= 4) // DATA packets have LSB=0
-            {
-                packet.L3M = (x25Data[3] & 0x80) != 0;
-                packet.L3Q = (x25Data[3] & 0x40) != 0;
-                packet.L3D = (x25Data[3] & 0x20) != 0;
-            }
-            else if ((pktType == 0x13 || pktType == 0x1B || pktType == 0xFB) && x25Data.Length >= 5) // CLEAR/RESET/RESTART
-            {
-                packet.L3Cause = x25Data[3];
-                packet.L3Diag = x25Data[4];
-            }
         }
 
         private string GenerateDisplayRow(PacketInfo packet)
@@ -1402,7 +1352,7 @@ namespace RetroX25.Console
             sb.Append($"Len:{packet.Length,-3} ");
 
             // FCS (6 chars)
-            sb.Append($"FCS:{(packet.L2FCSValid ? "OK" : "BAD")} ");
+            sb.Append($"FCS:{FormatFcs(packet)} ");
 
             // Notes (rest)
             string notes = packet.Description;
@@ -1551,8 +1501,7 @@ namespace RetroX25.Console
             sb.Append($"Len:{packet.Length,-3} ");
 
             // FCS (6 chars)
-            string fcsStatus = packet.Direction == "RX" ? (packet.L2FCSValid ? "OK" : "BAD") : "OK";
-            sb.Append($"FCS:{fcsStatus,-3}");
+            sb.Append($"FCS:{FormatFcs(packet),-3}");
 
             // Notes (rest)
             string notes = GetNotes(packet);
@@ -1663,7 +1612,7 @@ namespace RetroX25.Console
             sb.Append($"Len:{packet.Length,-4} ");
 
             // Status (8 chars)
-            string status = packet.L2FCSValid ? "FCS:OK" : "FCS:BAD";
+            string status = "FCS:" + FormatFcs(packet);
             sb.Append($"{status,-8} ");
 
             // Description
@@ -1687,20 +1636,10 @@ namespace RetroX25.Console
 
         private string GetL3Type(PacketInfo packet)
         {
-            // First check for X.25 packet types
+            // An X.25 packet shows the name X25PacketDecoder gave it.
             if (!string.IsNullOrEmpty(packet.L3Type))
             {
-                return packet.L3Type switch
-                {
-                    "DATA" => "DATA",
-                    "CALL-REQ" => "CALL-REQ",
-                    "CALL-CONF" => "CALL-CONF",
-                    "CLR-IND" => "CLR-IND",
-                    "RESET" => "RESET",
-                    "RESTART" => "RESTART",
-                    "INT" => "INT",
-                    _ => packet.L3Type
-                };
+                return packet.L3Type;
             }
 
             // If no X.25 data, show LAPB frame name
@@ -1770,18 +1709,38 @@ namespace RetroX25.Console
             return string.Join(" ", flags);
         }
 
+        /// <summary>
+        /// Formats the frame check sequence result of a packet for the packet list.
+        /// </summary>
+        /// <param name="packet">
+        /// The packet whose <see cref="PacketInfo.L2FCSValid"/> is shown.
+        /// </param>
+        /// <returns>
+        /// <c>OK</c> or <c>BAD</c> when the HDLC layer reported a result, and <c>—</c> when this
+        /// packet has no FCS of its own because it was made after the FCS was removed.
+        /// </returns>
+        private static string FormatFcs(PacketInfo packet)
+        {
+            if (!packet.L2FCSValid.HasValue)
+            {
+                return "—";
+            }
+
+            return packet.L2FCSValid.Value ? "OK" : "BAD";
+        }
+
         private string GetNotes(PacketInfo packet)
         {
-            if (!packet.L2FCSValid && packet.Direction == "RX")
+            if (packet.L2FCSValid == false && packet.Direction == "RX")
                 return "FCS error";
 
-            if (packet.L3Type == "CALL-CONF")
+            if (packet.L3Type == X25PacketDecoder.CallAccepted)
                 return "VC established";
-            if (packet.L3Type == "CALL-REQ")
+            if (packet.L3Type == X25PacketDecoder.CallRequest)
                 return "VC setup";
-            if (packet.L3Type == "DATA")
+            if (packet.L3Type == X25PacketDecoder.Data)
                 return "Data";
-            if (packet.L3Type == "CLR-IND")
+            if (packet.L3Type == X25PacketDecoder.ClearRequest)
                 return $"Cause={packet.L3Cause:X2} Diag={packet.L3Diag:X2}";
             if (packet.L2Type == "S" && packet.L2Control == 0x01)
                 return "Ack";
@@ -2004,16 +1963,23 @@ namespace RetroX25.Console
         /// </summary>
         private string GetHdlcFrameSummary(PacketInfo packet)
         {
+            // The summary reports the FCS result, so it needs one. An HDLC packet always has it (set
+            // from the runtime's HDLC history item); anything else would have to invent a value.
+            if (!packet.L2FCSValid.HasValue)
+            {
+                return $"HDLC frame - FCS result not reported - Length: {packet.Data.Length}";
+            }
+
             try
             {
-                // Create HdlcFrameEventArgs from PacketInfo data  
+                // Create HdlcFrameEventArgs from PacketInfo data
                 var hdlcFrame = new HdlcFrameEventArgs
                 {
                     FrameData = packet.Data,
                     Length = packet.Data.Length,
                     Direction = packet.Direction == "TX" ? FrameDirection.Transmit : FrameDirection.Receive,
                     Timestamp = packet.Timestamp,
-                    FcsValid = packet.L2FCSValid,
+                    FcsValid = packet.L2FCSValid.Value,
                     FrameId = packet.PacketNumber
                 };
 
@@ -2048,9 +2014,9 @@ namespace RetroX25.Console
             var details = new StringBuilder();
 
             // Add any additional details not covered by ToString() methods
-            if (packet.L2FCS != 0)
+            if (packet.L2FCSValid.HasValue)
             {
-                details.AppendLine($"FCS: 0x{packet.L2FCS:X4} ({(packet.L2FCSValid ? "Valid" : "Invalid")})");
+                details.AppendLine($"FCS: {(packet.L2FCSValid.Value ? "Valid" : "Invalid")}");
             }
 
             if (!string.IsNullOrEmpty(packet.L3Facilities))
@@ -2073,62 +2039,6 @@ namespace RetroX25.Console
                 _ when address.StartsWith("0x") => Convert.ToByte(address, 16),
                 _ => 0x03 // Default to DTE
             };
-        }
-
-        private string AnalyzeCudData(string cudHex)
-        {
-            try
-            {
-                // Convert hex string to bytes
-                var cudBytes = ParseHexString(cudHex);
-                if (cudBytes == null || cudBytes.Length < 2) return "";
-
-                // Check if it's XMSG protocol
-                var version = XmsgProtocolHelper.ExtractVersionFromCud(cudBytes);
-                if (version.HasValue)
-                {
-                    var port = XmsgProtocolHelper.ExtractPortFromCud(cudBytes);
-                    var result = new StringBuilder();
-                    result.Append($"XMSG Protocol: {version.Value} (0x{(ushort)version.Value:X4}) - {version.Value.GetVersionDescription()}");
-
-                    if (port.HasValue)
-                    {
-                        result.Append($", Port: 0x{port.Value:X4} ({port.Value})");
-                        if (XmsgProtocolHelper.IsValidXmsgPortRange(port.Value))
-                        {
-                            var servicePort = (XmsgServicePort)port.Value;
-                            result.Append($" - {servicePort.GetServiceDescription()}");
-                        }
-                    }
-                    return result.ToString();
-                }
-
-                return "";
-            }
-            catch
-            {
-                return "";
-            }
-        }
-
-        private byte[]? ParseHexString(string hex)
-        {
-            try
-            {
-                var cleanHex = hex.Replace(" ", "").Replace("-", "");
-                if (cleanHex.Length % 2 != 0) return null;
-
-                var bytes = new byte[cleanHex.Length / 2];
-                for (int i = 0; i < bytes.Length; i++)
-                {
-                    bytes[i] = Convert.ToByte(cleanHex.Substring(i * 2, 2), 16);
-                }
-                return bytes;
-            }
-            catch
-            {
-                return null;
-            }
         }
 
         private string GetAddressFieldDescription(string address)
@@ -2220,7 +2130,7 @@ namespace RetroX25.Console
 
         private string GetContextDescription(PacketInfo packet)
         {
-            if (!packet.L2FCSValid && packet.Direction == "RX")
+            if (packet.L2FCSValid == false && packet.Direction == "RX")
                 return "FCS error detected";
 
             return packet.Type switch
@@ -2233,10 +2143,10 @@ namespace RetroX25.Console
                 "RR" => "Acknowledgment",
                 "RNR" => "Flow control - not ready",
                 "REJ" => "Retransmission request",
-                _ when packet.L3Type == "CALL-REQ" => "VC setup request",
-                _ when packet.L3Type == "CALL-CONF" => "VC established",
-                _ when packet.L3Type == "DATA" => "User data",
-                _ when packet.L3Type == "CLR-IND" => "VC clearing",
+                _ when packet.L3Type == X25PacketDecoder.CallRequest => "VC setup request",
+                _ when packet.L3Type == X25PacketDecoder.CallAccepted => "VC established",
+                _ when packet.L3Type == X25PacketDecoder.Data => "User data",
+                _ when packet.L3Type == X25PacketDecoder.ClearRequest => "VC clearing",
                 _ when packet.L2Type == "I" => "Information transfer",
                 _ => ""
             };
@@ -2525,66 +2435,6 @@ namespace RetroX25.Console
             return packet.ToArray();
         }
 
-        private void OnIncomingCall(object? sender, X25PacketEventArgs e)
-        {
-            // Process UI update immediately (event-driven)
-            ProcessPacketImmediately(new PacketInfo
-            {
-                Timestamp = DateTime.Now,
-                Type = "CALL",
-                Description = $"Incoming call on LCN {e.Packet.LCN}"
-            });
-
-            // Accept the call immediately (protocol logic)
-            _x25?.AcceptCall(e.Packet.LCN);
-        }
-
-        private void OnData(object? sender, X25PacketEventArgs e)
-        {
-            string dataStr = e.GetDataString();
-
-            // Process UI update immediately (event-driven)
-            ProcessPacketImmediately(new PacketInfo
-            {
-                Timestamp = DateTime.Now,
-                Type = "DATA",
-                Description = $"LCN {e.Packet.LCN}: {dataStr}"
-            });
-        }
-
-        private void OnClear(object? sender, X25PacketEventArgs e)
-        {
-            // Process UI update immediately (event-driven)
-            ProcessPacketImmediately(new PacketInfo
-            {
-                Timestamp = DateTime.Now,
-                Type = "CALL",
-                Description = $"Call cleared on LCN {e.Packet.LCN}"
-            });
-        }
-
-        private void OnReset(object? sender, X25PacketEventArgs e)
-        {
-            // Process UI update immediately (event-driven)
-            ProcessPacketImmediately(new PacketInfo
-            {
-                Timestamp = DateTime.Now,
-                Type = "CALL",
-                Description = $"Call reset on LCN {e.Packet.LCN}"
-            });
-        }
-
-        private void OnRestart(object? sender, X25PacketEventArgs e)
-        {
-            // Process UI update immediately (event-driven)
-            ProcessPacketImmediately(new PacketInfo
-            {
-                Timestamp = DateTime.Now,
-                Type = "CALL",
-                Description = "Restart requested"
-            });
-        }
-
         private void ResetStatistics()
         {
             // Reset packet numbering only - statistics are now handled by ProtocolRuntime
@@ -2731,7 +2581,7 @@ namespace RetroX25.Console
                 case "CLEAR": _showClearFrames = !_showClearFrames; break;
                 case "RESET": _showResetFrames = !_showResetFrames; break;
                 case "RESTART": _showRestartFrames = !_showRestartFrames; break;
-                case "INT": _showIntFrames = !_showIntFrames; break;
+                case X25PacketDecoder.Interrupt: _showIntFrames = !_showIntFrames; break;
             }
             RefreshPacketDisplay();
         }
@@ -4236,18 +4086,19 @@ namespace RetroX25.Console
         public bool L2PF { get; set; }
 
         /// <summary>
-        /// Gets or sets whether the frame check sequence is shown as valid.
+        /// Gets or sets the result of the frame check sequence test on the HDLC frame this packet
+        /// is, as reported by the protocol runtime.
         /// </summary>
+        /// <value>
+        /// <see langword="true"/> when the FCS matched, <see langword="false"/> when it did not, and
+        /// <see langword="null"/> when this packet has no FCS result of its own.
+        /// </value>
         /// <remarks>
-        /// The FCS is not checked here, because the HDLC layer removes it. The LAPB decode always sets
-        /// this to true; a packet that is not decoded as LAPB keeps the default of false.
+        /// Only an HDLC packet has a result. A LAPB or X.25 packet is made from the frame after the
+        /// HDLC layer has tested and removed the FCS, so it stays null and the packet list shows
+        /// <c>—</c>. It is never set to a value that nobody tested.
         /// </remarks>
-        public bool L2FCSValid { get; set; }
-
-        /// <summary>
-        /// Gets or sets the frame check sequence value; the LAPB decode always sets it to 0.
-        /// </summary>
-        public ushort L2FCS { get; set; }
+        public bool? L2FCSValid { get; set; }
 
         // Layer 3 (X.25) fields
 
@@ -4258,51 +4109,54 @@ namespace RetroX25.Console
         public string L3Type { get; set; } = "";
 
         /// <summary>
-        /// Gets or sets the full logical channel identifier: the low 3 bits of the first X.25 byte as
-        /// the group, followed by the second byte as the channel.
+        /// Gets or sets the full logical channel identifier: the logical channel group number (the low
+        /// four bits of the first X.25 octet) followed by the channel number (the second octet).
         /// </summary>
         /// <value>
-        /// The 11-bit channel identifier, or null when no X.25 header was decoded.
+        /// The 12-bit identifier, 0 to 4095, or null when no X.25 header was decoded.
         /// </value>
         public ushort? L3LCN { get; set; }
 
         /// <summary>
-        /// Gets or sets the general format identifier as text. Nothing in this project sets it, so it
-        /// stays empty.
+        /// Gets or sets the Q (qualifier) bit, bit 8 of the first X.25 octet, of a data packet.
         /// </summary>
-        public string L3GFI { get; set; } = "";
-
-        /// <summary>
-        /// Gets or sets the Q bit as decoded here: bit <c>0x40</c> of the first X.25 byte, or of the
-        /// fourth byte for a data packet.
-        /// </summary>
+        /// <remarks>
+        /// False for every other packet type: in call set-up and clearing packets that bit is the
+        /// address (A) bit, and elsewhere it is zero (X.25 5.1.2).
+        /// </remarks>
         public bool L3Q { get; set; }
 
         /// <summary>
-        /// Gets or sets the D bit as decoded here: bit <c>0x20</c> of the first X.25 byte, or of the
-        /// fourth byte for a data packet.
+        /// Gets or sets the D (delivery confirmation) bit, bit 7 of the first X.25 octet, of a data,
+        /// call request or call accepted packet.
         /// </summary>
+        /// <remarks>
+        /// False for every other packet type, where that bit is zero (X.25 5.1.2).
+        /// </remarks>
         public bool L3D { get; set; }
 
         /// <summary>
-        /// Gets or sets the M bit as decoded here: bit <c>0x80</c> of the first X.25 byte, or of the
-        /// fourth byte for a data packet.
+        /// Gets or sets the M (more data) bit of a data packet: bit 5 of the third octet in modulo 8.
         /// </summary>
+        /// <remarks>
+        /// False for every other packet type, and for a modulo 128 data packet, whose header is laid
+        /// out differently and is not decoded for this bit (see <see cref="X25PacketDecoder"/>).
+        /// </remarks>
         public bool L3M { get; set; }
 
         /// <summary>
-        /// Gets or sets the cause code of a clear, reset or restart request.
+        /// Gets or sets the cause code of a clear, reset or restart request (or indication).
         /// </summary>
         public byte L3Cause { get; set; }
 
         /// <summary>
-        /// Gets or sets the diagnostic code of a clear, reset or restart request.
+        /// Gets or sets the diagnostic code of a clear, reset or restart request (or indication).
         /// </summary>
         public byte L3Diag { get; set; }
 
         /// <summary>
-        /// Gets or sets the X.25 facilities as text, shown in the packet details when not empty.
-        /// Nothing in this project sets it.
+        /// Gets or sets the facility octets of a call or clear packet as hex pairs separated by
+        /// spaces, shown in the packet details when not empty.
         /// </summary>
         public string L3Facilities { get; set; } = "";
 
@@ -4312,7 +4166,9 @@ namespace RetroX25.Console
         /// Gets or sets whether the packet is marked as an error.
         /// </summary>
         /// <remarks>
-        /// The LAPB decode always sets this to false, and nothing in this project sets it to true.
+        /// Set when the X.25 decode finds a field that runs past the end of the packet, such as an
+        /// address or facility length that is too large; the reason is added to
+        /// <see cref="Description"/>.
         /// </remarks>
         public bool IsError { get; set; }
 

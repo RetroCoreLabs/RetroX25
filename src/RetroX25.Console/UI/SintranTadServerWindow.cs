@@ -47,8 +47,8 @@ namespace RetroX25.Console.UI
         /// The window lists the TAD sessions held by the runtime's SINTRAN PVC server, each with its
         /// logical channel and terminal ID, and shows the details of the selected session. Refresh
         /// updates the list at once; Exit or ESC stops the timer and closes the window. The
-        /// Disconnect Selected button only logs the request and refreshes the list; it does not close
-        /// the session.
+        /// Disconnect Selected button sends a clear request on the selected session's logical channel,
+        /// and the session leaves the list when the server has removed its handler.
         /// </remarks>
         /// <param name="runtime">
         /// The protocol runtime whose SINTRAN PVC server is shown.
@@ -167,6 +167,14 @@ namespace RetroX25.Console.UI
             Application.Top.Remove(this);
         }
 
+        /// <summary>
+        /// Clears the virtual circuit of the selected session by sending a clear request on its logical
+        /// channel with cause 0 (DTE originated).
+        /// </summary>
+        /// <remarks>
+        /// The session leaves the list once the clear has been dealt with and the server has removed its
+        /// handler, which is on the next refresh and not necessarily at once.
+        /// </remarks>
         private void OnDisconnect()
         {
             if (_sessionListView.SelectedItem >= 0 && _sessionListView.SelectedItem < _activeSessions.Count)
@@ -176,7 +184,7 @@ namespace RetroX25.Console.UI
                 {
                     _logger.LogInformation("Disconnecting SINTRAN TAD session LCN {LCN}, Terminal ID {TerminalId}",
                         session.LCN, session.TerminalId);
-                    // TODO: Implement disconnect via PVC server
+                    _pvcServer.SendX25Clear(session.LCN, 0x00, 0x00);
                     RefreshSessionList();
                 }
                 catch (Exception ex)
