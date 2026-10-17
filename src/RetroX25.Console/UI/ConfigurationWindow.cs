@@ -1,9 +1,16 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using System.IO;
 using System.Text.Json;
-using Terminal.Gui;
 using RetroIO.Protocols.X25;
 using RetroIO.Protocols.X25.Runtime;
+using Terminal.Gui;
 
 namespace RetroX25.Console.UI
 {
@@ -14,7 +21,7 @@ namespace RetroX25.Console.UI
     {
         private readonly RuntimeConfig _config;
         private readonly string _configFilePath;
-        
+
         // Main UI Controls
         private TabView _tabView = null!;
         private Button _saveButton = null!;
@@ -22,7 +29,7 @@ namespace RetroX25.Console.UI
         private Button _resetButton = null!;
         private Button _closeButton = null!;
         private Label _statusLabel = null!;
-        
+
         // Common tab controls
         private TextField _localMachineIdField = null!;
         private CheckBox _isDCECheckBox = null!;
@@ -32,13 +39,13 @@ namespace RetroX25.Console.UI
         private TextField _maxRetriesField = null!;
         private TextField _windowSizeField = null!;
         private TextField _historyCapacityField = null!;
-        
+
         // Serial tab controls
         private ListView _serialInterfacesList = null!;
         private Button _addSerialButton = null!;
         private Button _editSerialButton = null!;
         private Button _deleteSerialButton = null!;
-        
+
         // XOT tab controls
         private ListView _xotInterfacesList = null!;
         private Button _addXotButton = null!;
@@ -61,7 +68,7 @@ namespace RetroX25.Console.UI
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _configFilePath = configFilePath;
-            
+
             InitializeComponent();
             LoadCurrentSettings();
         }
@@ -88,24 +95,24 @@ namespace RetroX25.Console.UI
             CreateXotTab();
             CreateTcpLapbTab();
             CreateHostsTab();
-            
+
             Add(_tabView);
 
             // Bottom buttons
             var buttonY = Pos.Bottom(_tabView) + 1;
-            
+
             _saveButton = new Button("Save") { X = 2, Y = buttonY };
             _saveButton.Clicked += OnSave;
             Add(_saveButton);
-            
+
             _loadButton = new Button("Load") { X = 10, Y = buttonY };
             _loadButton.Clicked += OnLoad;
             Add(_loadButton);
-            
+
             _resetButton = new Button("Reset") { X = 18, Y = buttonY };
             _resetButton.Clicked += OnReset;
             Add(_resetButton);
-            
+
             _closeButton = new Button("Close") { X = 27, Y = buttonY };
             _closeButton.Clicked += OnClose;
             Add(_closeButton);
@@ -118,7 +125,7 @@ namespace RetroX25.Console.UI
         private void CreateCommonTab()
         {
             var commonTab = new TabView.Tab("Common", new View());
-            
+
             // X.25 Settings
             commonTab.View.Add(new Label("X.25 Settings") { X = 1, Y = 1 });
             commonTab.View.Add(new Label("Local Machine ID:") { X = 3, Y = 3 });
@@ -127,26 +134,26 @@ namespace RetroX25.Console.UI
 
             // LAPB Settings
             commonTab.View.Add(new Label("LAPB Settings") { X = 1, Y = 5 });
-            
+
             _isDCECheckBox = new CheckBox("DCE Mode (Primary Station)") { X = 3, Y = 7 };
             commonTab.View.Add(_isDCECheckBox);
-            
+
             commonTab.View.Add(new Label("T1 Timeout (ms):") { X = 3, Y = 9 });
             _t1TimeoutField = new TextField("") { X = 20, Y = 9, Width = 10 };
             commonTab.View.Add(_t1TimeoutField);
-            
+
             commonTab.View.Add(new Label("T2 Timeout (ms):") { X = 3, Y = 10 });
             _t2TimeoutField = new TextField("") { X = 20, Y = 10, Width = 10 };
             commonTab.View.Add(_t2TimeoutField);
-            
+
             commonTab.View.Add(new Label("T3 Timeout (ms):") { X = 3, Y = 11 });
             _t3TimeoutField = new TextField("") { X = 20, Y = 11, Width = 10 };
             commonTab.View.Add(_t3TimeoutField);
-            
+
             commonTab.View.Add(new Label("Max Retries:") { X = 3, Y = 12 });
             _maxRetriesField = new TextField("") { X = 20, Y = 12, Width = 10 };
             commonTab.View.Add(_maxRetriesField);
-            
+
             commonTab.View.Add(new Label("Window Size:") { X = 3, Y = 13 });
             _windowSizeField = new TextField("") { X = 20, Y = 13, Width = 10 };
             commonTab.View.Add(_windowSizeField);
@@ -158,20 +165,20 @@ namespace RetroX25.Console.UI
             commonTab.View.Add(_historyCapacityField);
 
             // Help text
-            commonTab.View.Add(new Label("Note: DTE Mode (unchecked) recommended for peer-to-peer communication") 
-                { X = 35, Y = 7, Width = 35 });
-            commonTab.View.Add(new Label("T3=0 disables idle supervision (ITU-T X.25 default)") 
-                { X = 35, Y = 11, Width = 35 });
-                
+            commonTab.View.Add(new Label("Note: DTE Mode (unchecked) recommended for peer-to-peer communication")
+            { X = 35, Y = 7, Width = 35 });
+            commonTab.View.Add(new Label("T3=0 disables idle supervision (ITU-T X.25 default)")
+            { X = 35, Y = 11, Width = 35 });
+
             _tabView.AddTab(commonTab, false);
         }
 
         private void CreateSerialTab()
         {
             var serialTab = new TabView.Tab("Serial", new View());
-            
+
             serialTab.View.Add(new Label("Serial Interfaces") { X = 1, Y = 1 });
-            
+
             _serialInterfacesList = new ListView()
             {
                 X = 1,
@@ -180,29 +187,29 @@ namespace RetroX25.Console.UI
                 Height = Dim.Fill() - 4
             };
             serialTab.View.Add(_serialInterfacesList);
-            
+
             // Buttons
             _addSerialButton = new Button("Add") { X = Pos.Right(_serialInterfacesList) + 1, Y = 3 };
             _addSerialButton.Clicked += OnAddSerial;
             serialTab.View.Add(_addSerialButton);
-            
+
             _editSerialButton = new Button("Edit") { X = Pos.Right(_serialInterfacesList) + 1, Y = 5 };
             _editSerialButton.Clicked += OnEditSerial;
             serialTab.View.Add(_editSerialButton);
-            
+
             _deleteSerialButton = new Button("Delete") { X = Pos.Right(_serialInterfacesList) + 1, Y = 7 };
             _deleteSerialButton.Clicked += OnDeleteSerial;
             serialTab.View.Add(_deleteSerialButton);
-            
+
             _tabView.AddTab(serialTab, false);
         }
 
         private void CreateXotTab()
         {
             var xotTab = new TabView.Tab("XOT", new View());
-            
+
             xotTab.View.Add(new Label("XOT Interfaces") { X = 1, Y = 1 });
-            
+
             _xotInterfacesList = new ListView()
             {
                 X = 1,
@@ -211,20 +218,20 @@ namespace RetroX25.Console.UI
                 Height = Dim.Fill() - 4
             };
             xotTab.View.Add(_xotInterfacesList);
-            
+
             // Buttons
             _addXotButton = new Button("Add") { X = Pos.Right(_xotInterfacesList) + 1, Y = 3 };
             _addXotButton.Clicked += OnAddXot;
             xotTab.View.Add(_addXotButton);
-            
+
             _editXotButton = new Button("Edit") { X = Pos.Right(_xotInterfacesList) + 1, Y = 5 };
             _editXotButton.Clicked += OnEditXot;
             xotTab.View.Add(_editXotButton);
-            
+
             _deleteXotButton = new Button("Delete") { X = Pos.Right(_xotInterfacesList) + 1, Y = 7 };
             _deleteXotButton.Clicked += OnDeleteXot;
             xotTab.View.Add(_deleteXotButton);
-            
+
             _tabView.AddTab(xotTab, false);
         }
 
@@ -262,9 +269,9 @@ namespace RetroX25.Console.UI
         private void CreateHostsTab()
         {
             var hostsTab = new TabView.Tab("HOSTS", new View());
-            
+
             hostsTab.View.Add(new Label("Known Hosts (Name-based connections supported)") { X = 1, Y = 1 });
-            
+
             _knownHostsList = new ListView()
             {
                 X = 1,
@@ -273,20 +280,20 @@ namespace RetroX25.Console.UI
                 Height = Dim.Fill() - 4
             };
             hostsTab.View.Add(_knownHostsList);
-            
+
             // Buttons
             _addHostButton = new Button("Add") { X = Pos.Right(_knownHostsList) + 1, Y = 3 };
             _addHostButton.Clicked += OnAddHost;
             hostsTab.View.Add(_addHostButton);
-            
+
             _editHostButton = new Button("Edit") { X = Pos.Right(_knownHostsList) + 1, Y = 5 };
             _editHostButton.Clicked += OnEditHost;
             hostsTab.View.Add(_editHostButton);
-            
+
             _deleteHostButton = new Button("Delete") { X = Pos.Right(_knownHostsList) + 1, Y = 7 };
             _deleteHostButton.Clicked += OnDeleteHost;
             hostsTab.View.Add(_deleteHostButton);
-            
+
             _tabView.AddTab(hostsTab, false);
         }
 
@@ -303,7 +310,7 @@ namespace RetroX25.Console.UI
                 _maxRetriesField.Text = _config.Lapb.MaxRetries.ToString();
                 _windowSizeField.Text = _config.Lapb.WindowSize.ToString();
                 _historyCapacityField.Text = _config.HistoryCapacity.ToString();
-                
+
                 // Load serial interfaces
                 RefreshSerialInterfaces();
 
@@ -315,7 +322,7 @@ namespace RetroX25.Console.UI
 
                 // Load known hosts
                 RefreshKnownHosts();
-                
+
                 _statusLabel.Text = "Current settings loaded";
             }
             catch (Exception ex)
@@ -374,13 +381,13 @@ namespace RetroX25.Console.UI
             {
                 // Validate and update configuration
                 UpdateConfigFromUI();
-                
+
                 // Validate timer relationships
                 ValidateTimerSettings();
-                
+
                 // Save to file
                 SaveToFile();
-                
+
                 _statusLabel.Text = $"Configuration saved to {_configFilePath}";
             }
             catch (Exception ex)
@@ -401,7 +408,7 @@ namespace RetroX25.Console.UI
 
                 LoadFromFile();
                 LoadCurrentSettings(); // Refresh UI
-                
+
                 _statusLabel.Text = $"Configuration loaded from {_configFilePath}";
             }
             catch (Exception ex)
@@ -424,7 +431,7 @@ namespace RetroX25.Console.UI
                 _config.Lapb.MaxRetries = defaults.Lapb.MaxRetries;
                 _config.Lapb.WindowSize = defaults.Lapb.WindowSize;
                 _config.HistoryCapacity = defaults.HistoryCapacity;
-                
+
                 LoadCurrentSettings(); // Refresh UI
                 _statusLabel.Text = "Settings reset to defaults";
             }
@@ -444,29 +451,29 @@ namespace RetroX25.Console.UI
         private void UpdateConfigFromUI()
         {
             _config.X25.LocalMachineId = _localMachineIdField.Text?.ToString() ?? "";
-            
+
             _config.Lapb.IsDCE = _isDCECheckBox.Checked;
-            
+
             if (!int.TryParse(_t1TimeoutField.Text.ToString(), out int t1))
                 throw new ArgumentException("Invalid T1 timeout");
             _config.Lapb.T1Timeout = TimeSpan.FromMilliseconds(t1);
-            
+
             if (!int.TryParse(_t2TimeoutField.Text.ToString(), out int t2))
                 throw new ArgumentException("Invalid T2 timeout");
             _config.Lapb.T2Timeout = TimeSpan.FromMilliseconds(t2);
-            
+
             if (!int.TryParse(_t3TimeoutField.Text.ToString(), out int t3))
                 throw new ArgumentException("Invalid T3 timeout");
             _config.Lapb.T3Timeout = TimeSpan.FromMilliseconds(t3);
-            
+
             if (!int.TryParse(_maxRetriesField.Text.ToString(), out int retries))
                 throw new ArgumentException("Invalid max retries");
             _config.Lapb.MaxRetries = retries;
-            
+
             if (!byte.TryParse(_windowSizeField.Text.ToString(), out byte windowSize))
                 throw new ArgumentException("Invalid window size");
             _config.Lapb.WindowSize = windowSize;
-            
+
             if (!int.TryParse(_historyCapacityField.Text.ToString(), out int capacity))
                 throw new ArgumentException("Invalid history capacity");
             _config.HistoryCapacity = capacity;
@@ -478,15 +485,15 @@ namespace RetroX25.Console.UI
             var t1Ms = _config.Lapb.T1Timeout.TotalMilliseconds;
             var t2Ms = _config.Lapb.T2Timeout.TotalMilliseconds;
             var t3Ms = _config.Lapb.T3Timeout.TotalMilliseconds;
-            
+
             // T2 ≤ T1/2
             if (t2Ms > t1Ms / 2)
-                throw new ArgumentException($"T2 ({t2Ms}ms) must be ≤ T1/2 ({t1Ms/2}ms) per ITU-T X.25");
-            
+                throw new ArgumentException($"T2 ({t2Ms}ms) must be ≤ T1/2 ({t1Ms / 2}ms) per ITU-T X.25");
+
             // T3 > T1 (when enabled)
             if (t3Ms > 0 && t3Ms <= t1Ms)
                 throw new ArgumentException($"T3 ({t3Ms}ms) must be > T1 ({t1Ms}ms) when enabled per ITU-T X.25");
-                
+
             // Window size validation
             if (_config.Lapb.WindowSize < 1 || _config.Lapb.WindowSize > 127)
                 throw new ArgumentException("Window size must be between 1 and 127");
@@ -500,7 +507,7 @@ namespace RetroX25.Console.UI
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never
             };
-            
+
             var json = JsonSerializer.Serialize(_config, options);
             File.WriteAllText(_configFilePath, json);
         }
@@ -512,11 +519,11 @@ namespace RetroX25.Console.UI
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             };
-            
+
             var loadedConfig = JsonSerializer.Deserialize<RuntimeConfig>(json, options);
             if (loadedConfig == null)
                 throw new InvalidOperationException("Failed to deserialize configuration");
-            
+
             // Update ALL config sections with loaded values
             _config.X25.LocalMachineId = loadedConfig.X25.LocalMachineId;
             _config.Lapb.IsDCE = loadedConfig.Lapb.IsDCE;
@@ -526,7 +533,7 @@ namespace RetroX25.Console.UI
             _config.Lapb.MaxRetries = loadedConfig.Lapb.MaxRetries;
             _config.Lapb.WindowSize = loadedConfig.Lapb.WindowSize;
             _config.HistoryCapacity = loadedConfig.HistoryCapacity;
-            
+
             // Update routing configuration
             _config.Routing.Enabled = loadedConfig.Routing.Enabled;
             _config.Routing.SerialInterfaces.Clear();
@@ -534,7 +541,7 @@ namespace RetroX25.Console.UI
             {
                 _config.Routing.SerialInterfaces.Add(si);
             }
-            
+
             _config.Routing.XotInterfaces.Clear();
             foreach (var xi in loadedConfig.Routing.XotInterfaces)
             {
@@ -552,7 +559,7 @@ namespace RetroX25.Console.UI
             {
                 _config.Routing.RoutingTable.Add(route);
             }
-            
+
             _config.Routing.KnownHosts.Clear();
             foreach (var host in loadedConfig.Routing.KnownHosts)
             {
@@ -565,7 +572,7 @@ namespace RetroX25.Console.UI
         {
             var dialog = new SerialInterfaceEditDialog(null);
             Application.Run(dialog);
-            
+
             if (dialog.Result != null)
             {
                 _config.Routing.SerialInterfaces.Add(dialog.Result);
@@ -586,7 +593,7 @@ namespace RetroX25.Console.UI
             var selectedInterface = _config.Routing.SerialInterfaces[selectedIndex];
             var dialog = new SerialInterfaceEditDialog(selectedInterface);
             Application.Run(dialog);
-            
+
             if (dialog.Result != null)
             {
                 _config.Routing.SerialInterfaces[selectedIndex] = dialog.Result;
@@ -619,7 +626,7 @@ namespace RetroX25.Console.UI
         {
             var dialog = new XotInterfaceEditDialog(null);
             Application.Run(dialog);
-            
+
             if (dialog.Result != null)
             {
                 _config.Routing.XotInterfaces.Add(dialog.Result);
@@ -640,7 +647,7 @@ namespace RetroX25.Console.UI
             var selectedInterface = _config.Routing.XotInterfaces[selectedIndex];
             var dialog = new XotInterfaceEditDialog(selectedInterface);
             Application.Run(dialog);
-            
+
             if (dialog.Result != null)
             {
                 _config.Routing.XotInterfaces[selectedIndex] = dialog.Result;
@@ -727,7 +734,7 @@ namespace RetroX25.Console.UI
         {
             var dialog = new KnownHostEditDialog(null);
             Application.Run(dialog);
-            
+
             if (dialog.Result != null)
             {
                 _config.Routing.KnownHosts.Add(dialog.Result);
@@ -748,7 +755,7 @@ namespace RetroX25.Console.UI
             var selectedHost = _config.Routing.KnownHosts[selectedIndex];
             var dialog = new KnownHostEditDialog(selectedHost);
             Application.Run(dialog);
-            
+
             if (dialog.Result != null)
             {
                 _config.Routing.KnownHosts[selectedIndex] = dialog.Result;

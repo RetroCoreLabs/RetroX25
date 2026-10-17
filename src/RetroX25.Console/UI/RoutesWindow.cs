@@ -1,16 +1,23 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Terminal.Gui;
 using Microsoft.Extensions.Logging;
-using RetroIO.Protocols.X25;
-using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Link.Models;
+using RetroIO.Protocols.X25;
 using RetroIO.Protocols.X25.Models;
+using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Protocols.X25.Runtime.Models;
-using RetroIO.Protocols.X25.Sintran;
 using RetroIO.Protocols.X25.Runtime.Transport;
+using RetroIO.Protocols.X25.Sintran;
 using RetroIO.Protocols.X25.Transport;
+using Terminal.Gui;
 
 namespace RetroX25.Console.UI
 {
@@ -30,24 +37,24 @@ namespace RetroX25.Console.UI
         private TextField _testAddressField = null!;
         private ComboBox _testDirectionCombo = null!;
         private TextView _testResultsView = null!;
-        
+
         private List<RouteDisplayItem> _routeItems = new List<RouteDisplayItem>();
 
         public RoutesWindow(ProtocolRuntime runtime, ILogger logger) : base("X.25 Routes")
         {
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            
+
             X = Pos.Center();
             Y = Pos.Center();
             Width = Dim.Fill() - 6;  // Resizable width with margin
             Height = Dim.Fill() - 6;  // Resizable height with margin
             Modal = true;
-            
+
             CreateLayout();
             LoadRoutes();
         }
-        
+
         private void CreateLayout()
         {
             // Summary label at top
@@ -58,7 +65,7 @@ namespace RetroX25.Console.UI
                 Width = Dim.Fill() - 2
             };
             Add(_routesSummaryLabel);
-            
+
             // Routes list view
             _routesListView = new ListView()
             {
@@ -69,7 +76,7 @@ namespace RetroX25.Console.UI
             };
             _routesListView.SelectedItemChanged += OnRouteSelected;
             Add(_routesListView);
-            
+
             // Route details view
             var detailsLabel = new Label("Route Details:")
             {
@@ -77,7 +84,7 @@ namespace RetroX25.Console.UI
                 Y = 3
             };
             Add(detailsLabel);
-            
+
             _routeDetailsView = new TextView()
             {
                 X = Pos.Right(_routesListView) + 1,
@@ -88,7 +95,7 @@ namespace RetroX25.Console.UI
                 WordWrap = true
             };
             Add(_routeDetailsView);
-            
+
             // Test section
             var testLabel = new Label("Route Testing:")
             {
@@ -96,14 +103,14 @@ namespace RetroX25.Console.UI
                 Y = Pos.Bottom(_routeDetailsView) + 1
             };
             Add(testLabel);
-            
+
             var addressLabel = new Label("X.121 Address:")
             {
                 X = Pos.Right(_routesListView) + 1,
                 Y = Pos.Bottom(testLabel) + 1
             };
             Add(addressLabel);
-            
+
             _testAddressField = new TextField("31064001234")
             {
                 X = Pos.Right(addressLabel) + 1,
@@ -111,14 +118,14 @@ namespace RetroX25.Console.UI
                 Width = 15
             };
             Add(_testAddressField);
-            
+
             var directionLabel = new Label("Direction:")
             {
                 X = Pos.Right(_testAddressField) + 2,
                 Y = Pos.Bottom(testLabel) + 1
             };
             Add(directionLabel);
-            
+
             _testDirectionCombo = new ComboBox()
             {
                 X = Pos.Right(directionLabel) + 1,
@@ -129,7 +136,7 @@ namespace RetroX25.Console.UI
             _testDirectionCombo.SetSource(new string[] { "Outbound", "Inbound", "Bidirectional" });
             _testDirectionCombo.SelectedItem = 0;
             Add(_testDirectionCombo);
-            
+
             _testRouteButton = new Button("Test Route")
             {
                 X = Pos.Right(_routesListView) + 1,
@@ -137,7 +144,7 @@ namespace RetroX25.Console.UI
             };
             _testRouteButton.Clicked += OnTestRoute;
             Add(_testRouteButton);
-            
+
             _testResultsView = new TextView()
             {
                 X = Pos.Right(_routesListView) + 1,
@@ -148,7 +155,7 @@ namespace RetroX25.Console.UI
                 WordWrap = true
             };
             Add(_testResultsView);
-            
+
             // Bottom buttons
             _refreshButton = new Button("Refresh")
             {
@@ -157,7 +164,7 @@ namespace RetroX25.Console.UI
             };
             _refreshButton.Clicked += OnRefresh;
             Add(_refreshButton);
-            
+
             _closeButton = new Button("Close")
             {
                 X = Pos.Right(_refreshButton) + 2,
@@ -166,13 +173,13 @@ namespace RetroX25.Console.UI
             _closeButton.Clicked += OnClose;
             Add(_closeButton);
         }
-        
+
         private void LoadRoutes()
         {
             try
             {
                 _routeItems.Clear();
-                
+
                 // Check if routing is enabled
                 if (_runtime.Config.Routing?.Enabled != true)
                 {
@@ -180,17 +187,17 @@ namespace RetroX25.Console.UI
                     _routesListView.SetSource(new List<string> { "Routing disabled - no routes available" });
                     return;
                 }
-                
+
                 // Load configured routes from runtime configuration
                 var routes = _runtime.Config.Routing.RoutingTable;
-                
+
                 if (routes.Count == 0)
                 {
                     _routesSummaryLabel.Text = "No X.25 routes configured";
                     _routesListView.SetSource(new List<string> { "No routes configured" });
                     return;
                 }
-                
+
                 // Convert to display items
                 foreach (var route in routes)
                 {
@@ -209,7 +216,7 @@ namespace RetroX25.Console.UI
                     };
                     _routeItems.Add(displayItem);
                 }
-                
+
                 // Sort by priority (highest first)
                 _routeItems.Sort((a, b) => b.Priority.CompareTo(a.Priority));
 
@@ -229,7 +236,7 @@ namespace RetroX25.Console.UI
                     displayStrings.Add(FormatRouteListItem(_routeItems[i]));
                 }
                 _routesListView.SetSource(displayStrings);
-                
+
                 _logger.LogDebug("Loaded {Count} X.25 routes for display", _routeItems.Count);
             }
             catch (Exception ex)
@@ -239,16 +246,16 @@ namespace RetroX25.Console.UI
                 _routesListView.SetSource(new List<string> { $"Error: {ex.Message}" });
             }
         }
-        
+
         private string FormatRouteListItem(RouteDisplayItem route)
         {
             var status = route.Enabled ? "✓" : "✗";
             var backup = route.BackupCount > 0 ? $"+{route.BackupCount}" : "";
             var cud = route.HasCudPattern ? "CUD" : "";
-            
+
             return $"{status} {route.Name,-20} {route.Pattern,-15} → {route.Type}/{route.Destination}{backup} ({route.Priority}) {cud}";
         }
-        
+
         private void OnRouteSelected(ListViewItemEventArgs e)
         {
             if (e.Item < 0 || e.Item >= _routeItems.Count)
@@ -256,48 +263,48 @@ namespace RetroX25.Console.UI
                 _routeDetailsView.Text = "";
                 return;
             }
-            
+
             var route = _routeItems[e.Item];
             var details = new StringBuilder();
-            
+
             details.AppendLine($"Route Name: {route.Name}");
             details.AppendLine($"Status: {(route.Enabled ? "Enabled" : "Disabled")}");
             details.AppendLine($"Priority: {route.Priority}");
             details.AppendLine();
-            
+
             details.AppendLine($"X.121 Pattern: {route.Pattern}");
             details.AppendLine($"Transport Type: {route.Type}");
             details.AppendLine($"Destination: {route.Destination}");
             details.AppendLine($"Direction: {route.Direction}");
             details.AppendLine();
-            
+
             if (route.BackupCount > 0)
             {
                 details.AppendLine($"Backup Destinations: {route.BackupCount} configured");
             }
-            
+
             if (route.HasCudPattern)
             {
                 details.AppendLine("Call User Data pattern matching enabled");
             }
-            
+
             if (!string.IsNullOrEmpty(route.Description))
             {
                 details.AppendLine();
                 details.AppendLine($"Description:");
                 details.AppendLine(route.Description);
             }
-            
+
             details.AppendLine();
             details.AppendLine("Pattern Examples:");
             details.AppendLine("^31064.*        - DNIC 31064 prefix");
             details.AppendLine("^2340123.*      - Network prefix");
             details.AppendLine("^31064(001|002) - Multiple service codes");
             details.AppendLine(".*              - Wildcard (matches all)");
-            
+
             _routeDetailsView.Text = details.ToString();
         }
-        
+
         private void OnTestRoute()
         {
             try
@@ -308,9 +315,9 @@ namespace RetroX25.Console.UI
                     _testResultsView.Text = "Please enter an X.121 address to test";
                     return;
                 }
-                
+
                 var directionText = _testDirectionCombo.Text?.ToString() ?? "Outbound";
-                
+
                 // Parse direction
                 RouteDirection direction;
                 switch (directionText)
@@ -325,12 +332,12 @@ namespace RetroX25.Console.UI
                         direction = RouteDirection.Outbound;
                         break;
                 }
-                
+
                 var results = new StringBuilder();
                 results.AppendLine($"Testing X.121 address: {testAddress}");
                 results.AppendLine($"Direction: {direction}");
                 results.AppendLine();
-                
+
                 // Test route matching manually since we don't have access to X25Router directly
                 var matchingRoutes = new List<RouteDisplayItem>();
 
@@ -354,7 +361,7 @@ namespace RetroX25.Console.UI
 
                     // Sort by priority (highest first)
                     matchingRoutes.Sort((a, b) => b.Priority.CompareTo(a.Priority));
-                    
+
                     for (int i = 0; i < matchingRoutes.Count; i++)
                     {
                         var route = matchingRoutes[i];
@@ -365,7 +372,7 @@ namespace RetroX25.Console.UI
                         if (i < matchingRoutes.Count - 1) results.AppendLine();
                     }
                 }
-                
+
                 _testResultsView.Text = results.ToString();
                 _logger.LogDebug("Route test completed for address {Address}: {Count} matches", testAddress, matchingRoutes.Count);
             }
@@ -375,7 +382,7 @@ namespace RetroX25.Console.UI
                 _logger.LogError(ex, "Error testing route");
             }
         }
-        
+
         private bool TestRouteMatch(RouteDisplayItem route, string x121Address, RouteDirection direction)
         {
             try
@@ -383,7 +390,7 @@ namespace RetroX25.Console.UI
                 // Check direction compatibility
                 if (!SupportsDirection(route.Direction, direction))
                     return false;
-                
+
                 // Test regex pattern
                 var regex = new System.Text.RegularExpressions.Regex(route.Pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                 return regex.IsMatch(x121Address);
@@ -394,27 +401,27 @@ namespace RetroX25.Console.UI
                 return false;
             }
         }
-        
+
         private bool SupportsDirection(string routeDirection, RouteDirection testDirection)
         {
             if (routeDirection == "Bidirectional")
                 return true;
-                
+
             return routeDirection.Equals(testDirection.ToString(), StringComparison.OrdinalIgnoreCase);
         }
-        
+
         private void OnRefresh()
         {
             LoadRoutes();
             _testResultsView.Text = "";
         }
-        
+
         private void OnClose()
         {
             Application.RequestStop();
         }
     }
-    
+
     /// <summary>
     /// Display item for route information
     /// </summary>

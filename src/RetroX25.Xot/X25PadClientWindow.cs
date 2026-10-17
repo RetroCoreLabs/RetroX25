@@ -1,15 +1,22 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using System.Text;
-using Terminal.Gui;
-using RetroIO.Protocols.X25.Modules;
-using RetroIO.Protocols.X25.Protocols;
-using RetroIO.Protocols.X25.Sintran;
+using Microsoft.Extensions.Logging;
 using RetroIO.Link.Models;
 using RetroIO.Protocols.X25.Models;
+using RetroIO.Protocols.X25.Modules;
+using RetroIO.Protocols.X25.Protocols;
 using RetroIO.Protocols.X25.Runtime.Models;
 using RetroIO.Protocols.X25.Runtime.Transport;
+using RetroIO.Protocols.X25.Sintran;
 using RetroIO.Protocols.X25.Transport;
-using Microsoft.Extensions.Logging;
+using Terminal.Gui;
 
 namespace RetroX25.Xot
 {

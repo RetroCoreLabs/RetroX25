@@ -1,11 +1,18 @@
-using RetroIO.Protocols.X25;
-using RetroIO.Protocols.X25.Runtime;
-using RetroIO.Link.Models;
-using RetroIO.Protocols.X25.Models;
-using RetroIO.Protocols.X25.Runtime.Models;
-using RetroIO.Protocols.X25.Sintran;
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using System.IO.Ports;
+using RetroIO.Link.Models;
+using RetroIO.Protocols.X25;
+using RetroIO.Protocols.X25.Models;
+using RetroIO.Protocols.X25.Runtime;
+using RetroIO.Protocols.X25.Runtime.Models;
+using RetroIO.Protocols.X25.Sintran;
 
 namespace RetroX25.Console
 {
@@ -25,10 +32,10 @@ namespace RetroX25.Console
         public static RuntimeConfig CreateSampleRoutingConfig()
         {
             var config = new RuntimeConfig();
-            
+
             // Configure X.25 settings
             config.X25.LocalMachineId = "200";
-            
+
             // Standard LAPB configuration for peer-to-peer DTE mode
             config.Lapb.IsDCE = false;  // DTE mode for peer-to-peer communication
             config.Lapb.T1Timeout = TimeSpan.FromSeconds(3);
@@ -36,13 +43,13 @@ namespace RetroX25.Console
             config.Lapb.T3Timeout = TimeSpan.FromMilliseconds(0);  // Disabled per ITU-T X.25 
             config.Lapb.MaxRetries = 5;
             config.Lapb.WindowSize = 7;
-            
+
             // Enable centralized routing
             config.Routing.Enabled = true;
             config.Routing.EnableFailover = true;
             config.Routing.FailoverTimeout = 5000;
             config.Routing.DefaultGateway = "100";
-            
+
             // Configure Serial0 interface
             config.Routing.SerialInterfaces.Add(new SerialInterfaceConfig
             {
@@ -56,7 +63,7 @@ namespace RetroX25.Console
                 RemoteMachineId = "100",
                 Description = "Serial connection to X.25 switch 100"
             });
-            
+
             // Configure XOT0 interface  
             config.Routing.XotInterfaces.Add(new XotInterfaceConfig
             {
@@ -68,9 +75,9 @@ namespace RetroX25.Console
                 RemoteMachineId = "300",
                 Description = "XOT connection to remote X.25 network 300"
             });
-            
+
             // Configure routing table
-            
+
             // Route 1: Local TAD server
             config.Routing.RoutingTable.Add(new X25RouteEntry
             {
@@ -82,7 +89,7 @@ namespace RetroX25.Console
                 Enabled = true,
                 Description = "Route to built-in TAD server"
             });
-            
+
             // Route 2: Serial network (addresses starting with 100)
             config.Routing.RoutingTable.Add(new X25RouteEntry
             {
@@ -94,7 +101,7 @@ namespace RetroX25.Console
                 Enabled = true,
                 Description = "Route 100.* addresses to Serial0"
             });
-            
+
             // Route 3: XOT network (addresses starting with 300)
             config.Routing.RoutingTable.Add(new X25RouteEntry
             {
@@ -106,7 +113,7 @@ namespace RetroX25.Console
                 Enabled = false, // Disabled since XOT interface is disabled
                 Description = "Route 300.* addresses to XOT0"
             });
-            
+
             // Route 4: Gateway route for indirect access
             config.Routing.RoutingTable.Add(new X25RouteEntry
             {
@@ -118,7 +125,7 @@ namespace RetroX25.Console
                 Enabled = true,
                 Description = "Route 101.* through gateway 100"
             });
-            
+
             // Configure known hosts for multi-hop routing
             config.Routing.KnownHosts.Add(new KnownHostEntry
             {
@@ -129,10 +136,10 @@ namespace RetroX25.Console
                 Description = "Gateway machine 100 for remote network access",
                 Enabled = true
             });
-            
+
             return config;
         }
-        
+
         /// <summary>
         /// Create a minimal routing configuration for testing
         /// Only includes LocalTAD route
@@ -140,13 +147,13 @@ namespace RetroX25.Console
         public static RuntimeConfig CreateMinimalRoutingConfig()
         {
             var config = new RuntimeConfig();
-            
+
             // Configure X.25 settings
             config.X25.LocalMachineId = "200";
-            
+
             // Enable routing with just LocalTAD
             config.Routing.Enabled = true;
-            
+
             // Route to LocalTAD only
             config.Routing.RoutingTable.Add(new X25RouteEntry
             {
@@ -158,10 +165,10 @@ namespace RetroX25.Console
                 Enabled = true,
                 Description = "Route to built-in TAD server"
             });
-            
+
             return config;
         }
-        
+
         /// <summary>
         /// Create comprehensive routing configuration for production use
         /// Includes multiple interfaces and complex routing scenarios

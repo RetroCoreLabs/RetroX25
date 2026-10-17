@@ -1,8 +1,15 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
-using Terminal.Gui;
 using Microsoft.Extensions.Logging;
 using RetroIO.Protocols.X25;
 using RetroIO.Protocols.X25.Runtime;
+using Terminal.Gui;
 
 namespace RetroX25.Console.UI
 {
@@ -13,12 +20,12 @@ namespace RetroX25.Console.UI
     {
         protected readonly ProtocolRuntime _runtime;
         protected readonly ILogger _logger;
-        
+
         /// <summary>
         /// Event fired when window is closed, allowing parent to remove from tracking
         /// </summary>
         public new event EventHandler? Closed;
-        
+
         /// <summary>
         /// Create a new base window with common settings
         /// </summary>
@@ -26,7 +33,7 @@ namespace RetroX25.Console.UI
         {
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            
+
             // Common window properties
             X = 2;
             Y = 2;
@@ -35,7 +42,7 @@ namespace RetroX25.Console.UI
             ColorScheme = Colors.Dialog;
             Modal = false; // Non-modal by default
         }
-        
+
         /// <summary>
         /// Standard window close behavior - override for custom cleanup
         /// </summary>
@@ -43,15 +50,15 @@ namespace RetroX25.Console.UI
         {
             // Perform any custom cleanup first
             OnClosing();
-            
+
             // Fire closed event so parent can remove from tracking list
             Closed?.Invoke(this, EventArgs.Empty);
-            
+
             // Hide window and remove from Application.Top
             this.Visible = false;
             Application.Top.Remove(this);
         }
-        
+
         /// <summary>
         /// Called before window closes - override for cleanup logic
         /// </summary>
@@ -59,7 +66,7 @@ namespace RetroX25.Console.UI
         {
             // Base implementation does nothing
         }
-        
+
         /// <summary>
         /// Standard exit button click handler
         /// </summary>
@@ -67,7 +74,7 @@ namespace RetroX25.Console.UI
         {
             CloseWindow();
         }
-        
+
         /// <summary>
         /// Helper to create a standard exit button
         /// </summary>
@@ -77,7 +84,7 @@ namespace RetroX25.Console.UI
             button.Clicked += OnExitClicked;
             return button;
         }
-        
+
         /// <summary>
         /// Helper to safely invoke UI updates on the main thread
         /// </summary>

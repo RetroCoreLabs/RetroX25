@@ -1,9 +1,16 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using NStack;
-using Terminal.Gui;
+using RetroIO.Link;
 using RetroIO.Protocols.X25;
 using RetroIO.Protocols.X25.Runtime;
-using RetroIO.Link;
+using Terminal.Gui;
 
 namespace RetroX25.Console.UI
 {
@@ -258,7 +265,7 @@ namespace RetroX25.Console.UI
                 // ITU-T X.25 timer validation: T2 <= T1/2
                 if (t2 > t1 / 2)
                 {
-                    MessageBox.ErrorQuery("Validation Error", $"T2 ({t2}ms) must be <= T1/2 ({t1/2}ms) per ITU-T X.25", "OK");
+                    MessageBox.ErrorQuery("Validation Error", $"T2 ({t2}ms) must be <= T1/2 ({t1 / 2}ms) per ITU-T X.25", "OK");
                     return;
                 }
 

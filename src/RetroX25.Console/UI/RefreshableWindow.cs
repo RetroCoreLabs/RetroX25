@@ -1,9 +1,16 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using System.Threading;
-using Terminal.Gui;
 using Microsoft.Extensions.Logging;
 using RetroIO.Protocols.X25;
 using RetroIO.Protocols.X25.Runtime;
+using Terminal.Gui;
 
 namespace RetroX25.Console.UI
 {
@@ -13,24 +20,24 @@ namespace RetroX25.Console.UI
     public abstract class RefreshableWindow : BaseWindow
     {
         private Timer? _refreshTimer;
-        
+
         /// <summary>
         /// Refresh interval in milliseconds (default: 2000ms)
         /// </summary>
         protected virtual int RefreshIntervalMs => 2000;
-        
+
         /// <summary>
         /// Initial delay before first refresh in milliseconds (default: 1000ms)
         /// </summary>
         protected virtual int RefreshDelayMs => 1000;
-        
+
         /// <summary>
         /// Create a new refreshable window
         /// </summary>
         protected RefreshableWindow(string title, ProtocolRuntime runtime, ILogger logger) : base(title, runtime, logger)
         {
         }
-        
+
         /// <summary>
         /// Start the refresh timer
         /// </summary>
@@ -53,7 +60,7 @@ namespace RetroX25.Console.UI
                 period: TimeSpan.FromMilliseconds(RefreshIntervalMs)
             );
         }
-        
+
         /// <summary>
         /// Stop the refresh timer
         /// </summary>
@@ -62,12 +69,12 @@ namespace RetroX25.Console.UI
             _refreshTimer?.Dispose();
             _refreshTimer = null;
         }
-        
+
         /// <summary>
         /// Override this method to implement refresh logic
         /// </summary>
         protected abstract void OnRefresh();
-        
+
         /// <summary>
         /// Helper to create a standard refresh button
         /// </summary>
@@ -77,7 +84,7 @@ namespace RetroX25.Console.UI
             button.Clicked += () => SafeInvoke(OnRefresh);
             return button;
         }
-        
+
         /// <summary>
         /// Override to stop timer before closing
         /// </summary>
@@ -86,7 +93,7 @@ namespace RetroX25.Console.UI
             StopRefreshTimer();
             base.OnClosing();
         }
-        
+
         /// <summary>
         /// Dispose pattern implementation
         /// </summary>

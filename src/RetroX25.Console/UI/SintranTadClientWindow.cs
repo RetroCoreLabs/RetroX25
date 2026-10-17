@@ -1,10 +1,17 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
-using Terminal.Gui;
 using Microsoft.Extensions.Logging;
 using RetroIO.Protocols.X25;
-using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Protocols.X25.Protocols;
+using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Protocols.X25.Sintran;
+using Terminal.Gui;
 
 namespace RetroX25.Console.UI
 {
@@ -145,7 +152,7 @@ namespace RetroX25.Console.UI
 
             // Help text
             Add(new Label("Connected: Type to send data. F9=Exit | Disconnected: Enter address and click Connect")
-                { X = 1, Y = Pos.Bottom(_console) + 1, Width = Dim.Fill() - 2 });
+            { X = 1, Y = Pos.Bottom(_console) + 1, Width = Dim.Fill() - 2 });
         }
 
         private void SetupEventHandlers()

@@ -1,13 +1,20 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Terminal.Gui;
-using RetroIO.Protocols.X25;
-using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Link.Models;
+using RetroIO.Protocols.X25;
 using RetroIO.Protocols.X25.Models;
+using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Protocols.X25.Runtime.Models;
 using RetroIO.Protocols.X25.Sintran;
+using Terminal.Gui;
 
 namespace RetroX25.Console.UI
 {
@@ -19,7 +26,7 @@ namespace RetroX25.Console.UI
     {
         private readonly ProtocolRuntime _runtime;
         private readonly PacketDisplayManager _displayManager;
-        
+
         // UI Controls
         private ListView _packetListView = null!;
         private TextView _detailsTextView = null!;
@@ -28,7 +35,7 @@ namespace RetroX25.Console.UI
         private Button _closeButton = null!;
         private Label _statusLabel = null!;
         private Label _statsLabel = null!;
-        
+
         // Data
         private List<PacketDisplayItem> _currentPackets = new List<PacketDisplayItem>();
         private bool _autoRefresh = true;
@@ -41,11 +48,11 @@ namespace RetroX25.Console.UI
         {
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
             _displayManager = new PacketDisplayManager(_runtime);
-            
+
             InitializeUI();
             SetupEventHandlers();
             RefreshPacketList();
-            
+
             // Subscribe to runtime events for auto-refresh
             _runtime.HistoryItemAdded += OnHistoryItemAdded;
             _displayManager.CollapseStateChanged += OnCollapseStateChanged;
@@ -58,7 +65,7 @@ namespace RetroX25.Console.UI
         {
             Width = Dim.Fill();
             Height = Dim.Fill();
-            
+
             // Top section: Packet list (left) and details (right)
             var topFrame = new FrameView("Packets")
             {
@@ -67,7 +74,7 @@ namespace RetroX25.Console.UI
                 Width = Dim.Percent(50),
                 Height = Dim.Percent(80)
             };
-            
+
             var detailsFrame = new FrameView("Frame Details")
             {
                 X = Pos.Right(topFrame),
@@ -75,7 +82,7 @@ namespace RetroX25.Console.UI
                 Width = Dim.Fill(),
                 Height = Dim.Percent(80)
             };
-            
+
             // Packet list view
             _packetListView = new ListView()
             {
@@ -86,7 +93,7 @@ namespace RetroX25.Console.UI
                 AllowsMarking = false,
                 AllowsMultipleSelection = false
             };
-            
+
             // Details text view
             _detailsTextView = new TextView()
             {
@@ -97,15 +104,15 @@ namespace RetroX25.Console.UI
                 ReadOnly = true,
                 WordWrap = false
             };
-            
+
             // Details text view setup - remove problematic DrawFrame assignment
-            
+
             topFrame.Add(_packetListView);
             detailsFrame.Add(_detailsTextView);
-            
+
             // Bottom section: Controls and status
             var controlsY = Pos.Bottom(topFrame);
-            
+
             // Status labels
             _statusLabel = new Label("Status: Ready")
             {
@@ -114,7 +121,7 @@ namespace RetroX25.Console.UI
                 Width = Dim.Percent(50),
                 Height = 1
             };
-            
+
             _statsLabel = new Label("Statistics: No packets")
             {
                 X = 0,
@@ -122,7 +129,7 @@ namespace RetroX25.Console.UI
                 Width = Dim.Percent(50),
                 Height = 1
             };
-            
+
             // Control buttons
             _collapseToggleButton = new Button("Expand")
             {
@@ -131,7 +138,7 @@ namespace RetroX25.Console.UI
                 Width = 12,
                 Height = 1
             };
-            
+
             _exportButton = new Button("Export")
             {
                 X = Pos.Right(_collapseToggleButton) + 2,
@@ -139,7 +146,7 @@ namespace RetroX25.Console.UI
                 Width = 8,
                 Height = 1
             };
-            
+
             _closeButton = new Button("Close")
             {
                 X = Pos.Right(_exportButton) + 2,
@@ -147,7 +154,7 @@ namespace RetroX25.Console.UI
                 Width = 7,
                 Height = 1
             };
-            
+
             // Add all components to window
             Add(topFrame);
             Add(detailsFrame);
@@ -165,12 +172,12 @@ namespace RetroX25.Console.UI
         {
             // Packet selection handler
             _packetListView.SelectedItemChanged += OnPacketSelected;
-            
+
             // Button handlers
             _collapseToggleButton.Clicked += OnCollapseToggleClicked;
             _exportButton.Clicked += OnExportClicked;
             _closeButton.Clicked += OnCloseClicked;
-            
+
             // Keyboard shortcuts handled in ProcessKey method
         }
 
@@ -192,7 +199,7 @@ namespace RetroX25.Console.UI
         private void ShowPacketDetails(PacketDisplayItem packetItem)
         {
             var details = new StringBuilder();
-            
+
             if (packetItem.Packet is UnifiedHistoryItem unifiedItem)
             {
                 // Show unified packet details
@@ -203,7 +210,7 @@ namespace RetroX25.Console.UI
                 details.AppendLine($"Is Terminal: {unifiedItem.IsTerminal}");
                 details.AppendLine($"Has Error: {unifiedItem.HasProcessingError}");
                 details.AppendLine();
-                
+
                 // Show detailed layer information
                 details.AppendLine(unifiedItem.GetDetailedDisplay());
             }
@@ -217,14 +224,14 @@ namespace RetroX25.Console.UI
                 details.AppendLine($"Timestamp: {packetItem.Packet.Timestamp:HH:mm:ss.fff}");
                 details.AppendLine($"Summary: {packetItem.Packet.GetSummary()}");
                 details.AppendLine();
-                
+
                 if (packetItem.Packet.Payload?.Length > 0)
                 {
                     details.AppendLine("=== RAW DATA ===");
                     details.AppendLine(Convert.ToHexString(packetItem.Packet.Payload));
                 }
             }
-            
+
             _detailsTextView.Text = details.ToString();
         }
 
@@ -236,7 +243,7 @@ namespace RetroX25.Console.UI
             var newState = _displayManager.ToggleGlobalCollapse();
             RefreshPacketList();
             UpdateButtonText();
-            
+
             _statusLabel.Text = $"Status: {(newState ? "Collapsed" : "Expanded")} view";
         }
 
@@ -245,7 +252,7 @@ namespace RetroX25.Console.UI
         /// </summary>
         private void OnExportClicked()
         {
-            try 
+            try
             {
                 ExportPacketData();
                 _statusLabel.Text = "Status: Export completed";
@@ -271,18 +278,18 @@ namespace RetroX25.Console.UI
         {
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var filename = $"packets_export_{timestamp}.txt";
-            
+
             var exportData = new StringBuilder();
             exportData.AppendLine("=== X.25 PACKET EXPORT ===");
             exportData.AppendLine($"Export Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             exportData.AppendLine($"Total Packets: {_currentPackets.Count}");
             exportData.AppendLine($"Display Mode: {(_displayManager.GlobalCollapseEnabled ? "Collapsed" : "Expanded")}");
             exportData.AppendLine();
-            
+
             foreach (var packet in _currentPackets)
             {
                 exportData.AppendLine("=" + new string('=', 50));
-                
+
                 if (packet.Packet is UnifiedHistoryItem unifiedItem)
                 {
                     exportData.AppendLine($"Unified Packet ID: {unifiedItem.Id}");
@@ -299,10 +306,10 @@ namespace RetroX25.Console.UI
                     exportData.AppendLine($"Direction: {packet.Packet.Direction}");
                     exportData.AppendLine($"Summary: {packet.Packet.GetSummary()}");
                 }
-                
+
                 exportData.AppendLine();
             }
-            
+
             System.IO.File.WriteAllText(filename, exportData.ToString());
         }
 
@@ -312,7 +319,7 @@ namespace RetroX25.Console.UI
         private void RefreshPacketList()
         {
             _currentPackets = _displayManager.GetDisplayItems();
-            
+
             // Create display strings for list view
             var displayItems = new List<string>();
             foreach (var item in _currentPackets)
@@ -329,9 +336,9 @@ namespace RetroX25.Console.UI
                     displayItems.Add($"• {item.Packet.Id:D6} [{item.Packet.Layer}] {item.Packet.Direction} {item.Packet.GetSummary()}");
                 }
             }
-            
+
             _packetListView.SetSource(displayItems);
-            
+
             UpdateStatistics();
             UpdateButtonText();
         }
@@ -369,7 +376,7 @@ namespace RetroX25.Console.UI
         /// </summary>
         private void OnCollapseStateChanged(object? sender, bool collapsed)
         {
-            Application.MainLoop.Invoke(() => 
+            Application.MainLoop.Invoke(() =>
             {
                 UpdateButtonText();
                 _statusLabel.Text = $"Status: {(collapsed ? "Collapsed" : "Expanded")} view";
@@ -387,11 +394,11 @@ namespace RetroX25.Console.UI
                     RefreshPacketList();
                     _statusLabel.Text = "Status: Refreshed";
                     return true;
-                    
+
                 case Key.Esc:
                     Application.RequestStop();
                     return true;
-                    
+
                 case Key.Tab:
                     // Toggle focus between packet list and details
                     if (_packetListView.HasFocus)
@@ -400,7 +407,7 @@ namespace RetroX25.Console.UI
                         _packetListView.SetFocus();
                     return true;
             }
-            
+
             return base.ProcessKey(key);
         }
 

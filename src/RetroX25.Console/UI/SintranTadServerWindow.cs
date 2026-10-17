@@ -1,11 +1,18 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using System.Collections.Generic;
-using Terminal.Gui;
 using Microsoft.Extensions.Logging;
 using RetroIO.Protocols.X25;
-using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Protocols.X25.Protocols;
+using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Protocols.X25.Sintran;
+using Terminal.Gui;
 
 namespace RetroX25.Console.UI
 {
@@ -104,9 +111,9 @@ namespace RetroX25.Console.UI
 
             // Help text
             Add(new Label("SINTRAN TAD server with automatic terminal ID assignment (1-8)")
-                { X = 1, Y = 31, Width = 60 });
+            { X = 1, Y = 31, Width = 60 });
             Add(new Label("Select a session to view terminal ID and routing details")
-                { X = 1, Y = 32, Width = 60 });
+            { X = 1, Y = 32, Width = 60 });
         }
 
         private void SetupEventHandlers()

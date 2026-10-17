@@ -1,17 +1,24 @@
-﻿using System;
+﻿//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
+using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using RetroIO.Protocols.X25;
-using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Link.Models;
+using RetroIO.Protocols.X25;
 using RetroIO.Protocols.X25.Models;
+using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Protocols.X25.Runtime.Models;
-using RetroIO.Protocols.X25.Sintran;
 using RetroIO.Protocols.X25.Runtime.Transport;
+using RetroIO.Protocols.X25.Sintran;
 using RetroIO.Protocols.X25.Transport;
 using RetroX25.Desktop.Services;
 using RetroX25.Desktop.Views;

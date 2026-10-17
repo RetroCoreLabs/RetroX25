@@ -1,3 +1,10 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using System.Collections.Generic;
 using Avalonia;
@@ -7,10 +14,10 @@ using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using RetroIO.Protocols.X25;
-using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Link.Lapb;
+using RetroIO.Protocols.X25;
 using RetroIO.Protocols.X25.Common;
+using RetroIO.Protocols.X25.Runtime;
 using RetroX25.Desktop.Services;
 using RetroX25.Desktop.ViewModels;
 using RetroX25.Desktop.Views;

@@ -1,12 +1,19 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Terminal.Gui;
 using Microsoft.Extensions.Logging;
 using RetroIO.Protocols.X25;
-using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Protocols.X25.Protocols;
+using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Protocols.X25.Sintran;
+using Terminal.Gui;
 
 namespace RetroX25.Console.UI
 {
@@ -20,7 +27,7 @@ namespace RetroX25.Console.UI
         private readonly ProtocolRuntime _runtime;
         private readonly ILogger _logger;
         private readonly LocalTadProtocol _localTadProtocol;
-        
+
         // UI Controls
         private ListView _clientListView = null!;
         private TextView _clientDetailsView = null!;
@@ -30,48 +37,48 @@ namespace RetroX25.Console.UI
         private Button _disconnectClientButton = null!;
         private Button _refreshButton = null!;
         private Button _exitButton = null!;
-        
+
         // Data
         private List<LocalTadSessionInfo> _connectedClients = new List<LocalTadSessionInfo>();
         private System.Threading.Timer? _refreshTimer;
-        
+
         public TadServerWindow(ProtocolRuntime runtime, ILogger logger) : base("Local TAD Server - Built-in Address 200")
         {
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _localTadProtocol = runtime.GetLocalTadProtocol();
-            
+
             X = 5;
             Y = 5;
             Width = Dim.Fill() - 4;  // Resizable width
             Height = Dim.Fill() - 4;  // Resizable height  
             ColorScheme = Colors.Dialog;
             Modal = false;
-            
+
             CreateControls();
             SetupEventHandlers();
             StartRefreshTimer();
         }
-        
+
         private void CreateControls()
         {
             // Server info (no configuration needed - built-in server)
             Add(new Label("Built-in LocalTAD Protocol Server (Address: 200)") { X = 1, Y = 1 });
-            
+
             // Control buttons
             _refreshButton = new Button("Refresh") { X = 1, Y = 2 };
             Add(_refreshButton);
-            
+
             _exitButton = new Button("Exit") { X = 12, Y = 2 };
             Add(_exitButton);
-            
+
             // Server status
             _serverStatusLabel = new Label("Status: Always Running") { X = 1, Y = 4 };
             Add(_serverStatusLabel);
-            
+
             _connectionStatsLabel = new Label("Active Sessions: 0") { X = 30, Y = 4 };
             Add(_connectionStatsLabel);
-            
+
             // Connected clients list
             Add(new Label("Active PAD Sessions:") { X = 1, Y = 6 });
             _clientListView = new ListView()
@@ -82,7 +89,7 @@ namespace RetroX25.Console.UI
                 Height = 25
             };
             Add(_clientListView);
-            
+
             // Client details panel
             Add(new Label("Session Details:") { X = 68, Y = 6 });
             _clientDetailsView = new TextView()
@@ -106,7 +113,7 @@ namespace RetroX25.Console.UI
                 ReadOnly = true
             };
             Add(_x3ParametersView);
-            
+
             // Action buttons for selected client
             _disconnectClientButton = new Button("Disconnect Selected")
             {
@@ -115,22 +122,22 @@ namespace RetroX25.Console.UI
                 Enabled = false
             };
             Add(_disconnectClientButton);
-            
+
             // Help text
-            Add(new Label("LocalTAD Protocol handles PAD connections to address 200") 
-                { X = 1, Y = 36, Width = 60 });
-            Add(new Label("Select a session from the list to view detailed information") 
-                { X = 1, Y = 37, Width = 60 });
+            Add(new Label("LocalTAD Protocol handles PAD connections to address 200")
+            { X = 1, Y = 36, Width = 60 });
+            Add(new Label("Select a session from the list to view detailed information")
+            { X = 1, Y = 37, Width = 60 });
         }
-        
+
         private void SetupEventHandlers()
         {
             _refreshButton.Clicked += OnRefresh;
             _exitButton.Clicked += OnExit;
             _disconnectClientButton.Clicked += OnDisconnectClient;
-            
+
             _clientListView.SelectedItemChanged += OnClientSelected;
-            
+
             // ESC key to exit
             KeyPress += (e) =>
             {
@@ -141,20 +148,20 @@ namespace RetroX25.Console.UI
                 }
             };
         }
-        
+
         private void OnRefresh()
         {
             RefreshClientList();
             UpdateConnectionStats();
         }
-        
+
         private void OnExit()
         {
             StopRefreshTimer();
             this.Visible = false;
             Application.Top.Remove(this);
         }
-        
+
         private void OnDisconnectClient()
         {
             if (_clientListView.SelectedItem >= 0 && _clientListView.SelectedItem < _connectedClients.Count)
@@ -179,14 +186,14 @@ namespace RetroX25.Console.UI
                 }
             }
         }
-        
+
         private void OnClientSelected(ListViewItemEventArgs e)
         {
             Application.MainLoop.Invoke(() =>
             {
                 var hasSelection = e.Item >= 0 && e.Item < _connectedClients.Count;
                 _disconnectClientButton.Enabled = hasSelection;
-                
+
                 if (hasSelection)
                 {
                     var session = _connectedClients[e.Item];
@@ -200,7 +207,7 @@ namespace RetroX25.Console.UI
                 }
             });
         }
-        
+
         private void RefreshClientList()
         {
             Application.MainLoop.Invoke(() =>
@@ -211,12 +218,12 @@ namespace RetroX25.Console.UI
                 {
                     selectedLCN = _connectedClients[_clientListView.SelectedItem].LCN;
                 }
-                
+
                 // Get current sessions from LocalTadProtocol
                 var sessions = _localTadProtocol.GetActiveSessions();
                 _connectedClients.Clear();
                 _connectedClients.AddRange(sessions);
-                
+
                 var items = new List<string>(_connectedClients.Count);
                 for (int i = 0; i < _connectedClients.Count; i++)
                 {
@@ -224,7 +231,7 @@ namespace RetroX25.Console.UI
                     items.Add($"[LCN {s.LCN:D2}] Address: {s.CalledAddress} - {s.Duration:hh\\:mm\\:ss}");
                 }
                 _clientListView.SetSource(items);
-                
+
                 // Restore selection if the same LCN still exists
                 if (selectedLCN.HasValue)
                 {
@@ -239,7 +246,7 @@ namespace RetroX25.Console.UI
                 }
             });
         }
-        
+
         private void ShowSessionDetails(LocalTadSessionInfo session)
         {
             var details = $"LocalTAD Session Details\n" +
@@ -254,22 +261,22 @@ namespace RetroX25.Console.UI
                          $"Loopback Echo Server\n" +
                          $"Commands: HELP, STATUS, QUIT\n" +
                          $"All input text is echoed back";
-                         
+
             _clientDetailsView.Text = details;
         }
-        
+
         private void ShowX3Parameters(LocalTadSessionInfo session)
         {
             try
             {
                 // Get X.3 parameters from the TAD server for this session
                 var parameters = _localTadProtocol.GetSessionX3Parameters(session.SessionId);
-                
+
                 if (parameters != null && parameters.Count > 0)
                 {
                     var details = "X.3 Parameter Settings\n" +
                                  "======================\n\n";
-                                 
+
                     // Show key parameters with descriptions
                     var keyParams = new[]
                     {
@@ -282,7 +289,7 @@ namespace RetroX25.Console.UI
                         (byte)16, // CHARACTER_DELETE
                         (byte)17, // LINE_DELETE
                     };
-                    
+
                     foreach (var paramNum in keyParams)
                     {
                         if (parameters.TryGetValue(paramNum, out var value))
@@ -291,7 +298,7 @@ namespace RetroX25.Console.UI
                             details += $"P{paramNum:D2}: {value,3} - {desc}\n";
                         }
                     }
-                    
+
                     details += "\nAll Parameters:\n";
                     var sortedKeys = new List<byte>(parameters.Keys);
                     sortedKeys.Sort();
@@ -302,7 +309,7 @@ namespace RetroX25.Console.UI
                         details += $"P{key:D2}:{value,3} ";
                         if ((key % 8) == 0) details += "\n";
                     }
-                    
+
                     _x3ParametersView.Text = details;
                 }
                 else
@@ -316,7 +323,7 @@ namespace RetroX25.Console.UI
                 _x3ParametersView.Text = $"Error loading X.3 parameters:\n{ex.Message}";
             }
         }
-        
+
         private void UpdateConnectionStats()
         {
             Application.MainLoop.Invoke(() =>
@@ -325,7 +332,7 @@ namespace RetroX25.Console.UI
                 _connectionStatsLabel.Text = $"Active Sessions: {activeSessions}";
             });
         }
-        
+
         private void StartRefreshTimer()
         {
             _refreshTimer = new System.Threading.Timer((_) =>
@@ -335,7 +342,7 @@ namespace RetroX25.Console.UI
                     // Update session durations and refresh selected session details
                     RefreshClientList(); // This will get fresh data from LocalTadProtocol
                     UpdateConnectionStats();
-                    
+
                     if (_clientListView.SelectedItem >= 0 && _clientListView.SelectedItem < _connectedClients.Count)
                     {
                         var selectedSession = _connectedClients[_clientListView.SelectedItem];
@@ -345,7 +352,7 @@ namespace RetroX25.Console.UI
                 });
             }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2)); // Update every 2 seconds
         }
-        
+
         private void StopRefreshTimer()
         {
             _refreshTimer?.Dispose();

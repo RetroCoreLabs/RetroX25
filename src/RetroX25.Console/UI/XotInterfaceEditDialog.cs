@@ -1,7 +1,14 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
-using Terminal.Gui;
 using RetroIO.Protocols.X25;
 using RetroIO.Protocols.X25.Runtime;
+using Terminal.Gui;
 
 namespace RetroX25.Console.UI
 {
@@ -22,7 +29,7 @@ namespace RetroX25.Console.UI
 
         public XotInterfaceConfig? Result { get; private set; }
 
-        public XotInterfaceEditDialog(XotInterfaceConfig? interfaceConfig) 
+        public XotInterfaceEditDialog(XotInterfaceConfig? interfaceConfig)
             : base(interfaceConfig == null ? "Add XOT Interface" : "Edit XOT Interface", 70, 14)
         {
             _originalInterface = interfaceConfig;
@@ -80,8 +87,8 @@ namespace RetroX25.Console.UI
             AddButton(cancelButton);
 
             // Help text
-            Add(new Label("Standard XOT port: 1998") 
-                { X = 45, Y = 4, Width = 20 });
+            Add(new Label("Standard XOT port: 1998")
+            { X = 45, Y = 4, Width = 20 });
         }
 
         private void LoadCurrentValues()

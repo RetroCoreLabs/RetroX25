@@ -1,8 +1,15 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using System.IO.Ports;
-using Terminal.Gui;
 using RetroIO.Protocols.X25;
 using RetroIO.Protocols.X25.Runtime;
+using Terminal.Gui;
 
 namespace RetroX25.Console.UI
 {
@@ -24,7 +31,7 @@ namespace RetroX25.Console.UI
 
         public SerialInterfaceConfig? Result { get; private set; }
 
-        public SerialInterfaceEditDialog(SerialInterfaceConfig? interfaceConfig) 
+        public SerialInterfaceEditDialog(SerialInterfaceConfig? interfaceConfig)
             : base(interfaceConfig == null ? "Add Serial Interface" : "Edit Serial Interface", 70, 18)
         {
             _originalInterface = interfaceConfig;
@@ -102,10 +109,10 @@ namespace RetroX25.Console.UI
             AddButton(cancelButton);
 
             // Help text
-            Add(new Label("Common ports: COM1, COM2, /dev/ttyS0, /dev/ttyUSB0") 
-                { X = 35, Y = 4, Width = 30 });
-            Add(new Label("Common rates: 9600, 19200, 38400, 115200") 
-                { X = 35, Y = 5, Width = 30 });
+            Add(new Label("Common ports: COM1, COM2, /dev/ttyS0, /dev/ttyUSB0")
+            { X = 35, Y = 4, Width = 30 });
+            Add(new Label("Common rates: 9600, 19200, 38400, 115200")
+            { X = 35, Y = 5, Width = 30 });
         }
 
         private void LoadCurrentValues()

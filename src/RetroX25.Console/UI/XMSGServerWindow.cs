@@ -1,12 +1,19 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Terminal.Gui;
 using Microsoft.Extensions.Logging;
 using RetroIO.Protocols.X25;
-using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Protocols.X25.Protocols;
+using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Protocols.X25.Sintran;
+using Terminal.Gui;
 
 namespace RetroX25.Console.UI
 {
@@ -18,7 +25,7 @@ namespace RetroX25.Console.UI
     public class XMSGServerWindow : RefreshableWindow
     {
         private readonly LocalXMSGProtocol _localXmsgProtocol;
-        
+
         // UI Controls
         private ListView _sessionListView = null!;
         private TextView _sessionDetailsView = null!;
@@ -30,48 +37,48 @@ namespace RetroX25.Console.UI
         private Button _disconnectSessionButton = null!;
         private Button _clearSessionsButton = null!;
         private Button _viewServicesButton = null!;
-        
+
         // Data
         private List<XMSGSessionInfo> _activeSessions = new List<XMSGSessionInfo>();
         private int _selectedSessionIndex = -1;
-        
+
         public XMSGServerWindow(ProtocolRuntime runtime, ILogger logger) : base("Local XMSG Server - COSMOS File Services", runtime, logger)
         {
             _localXmsgProtocol = runtime.GetLocalXMSGProtocol();
-            
+
             X = 5;
             Y = 5;
-            
+
             CreateControls();
             SetupEventHandlers();
             StartRefreshTimer();
         }
-        
+
         private void CreateControls()
         {
             // Server info
             Add(new Label("Built-in LocalXMSG Protocol Server - COSMOS File Services") { X = 1, Y = 1 });
-            
+
             // Control buttons
             _refreshButton = CreateRefreshButton(1, 2);
             Add(_refreshButton);
-            
+
             _viewServicesButton = new Button("View Services") { X = 12, Y = 2 };
             Add(_viewServicesButton);
-            
+
             _exitButton = CreateExitButton(28, 2);
             Add(_exitButton);
-            
+
             // Server status
             _serverStatusLabel = new Label("Status: Always Running") { X = 1, Y = 4 };
             Add(_serverStatusLabel);
-            
+
             _connectionStatsLabel = new Label("Active Sessions: 0") { X = 30, Y = 4 };
             Add(_connectionStatsLabel);
-            
+
             _serviceStatsLabel = new Label("Services: File(1000), RPC(1001), Monitor(1002)") { X = 1, Y = 5 };
             Add(_serviceStatsLabel);
-            
+
             // Active sessions list
             Add(new Label("Active XMSG Sessions:") { X = 1, Y = 7 });
             _sessionListView = new ListView()
@@ -82,14 +89,14 @@ namespace RetroX25.Console.UI
                 Height = Dim.Percent(60)
             };
             Add(_sessionListView);
-            
+
             // Session management buttons
             _disconnectSessionButton = new Button("Disconnect Session") { X = 1, Y = Pos.Bottom(_sessionListView) + 1 };
             Add(_disconnectSessionButton);
-            
+
             _clearSessionsButton = new Button("Clear All Sessions") { X = 21, Y = Pos.Bottom(_sessionListView) + 1 };
             Add(_clearSessionsButton);
-            
+
             // Session details view
             Add(new Label("Session Details:") { X = 1, Y = Pos.Bottom(_sessionListView) + 3 });
             _sessionDetailsView = new TextView()
@@ -102,31 +109,31 @@ namespace RetroX25.Console.UI
                 WordWrap = true
             };
             Add(_sessionDetailsView);
-            
+
             UpdateSessionList();
         }
-        
+
         private void SetupEventHandlers()
         {
             _disconnectSessionButton.Clicked += OnDisconnectSessionClicked;
             _clearSessionsButton.Clicked += OnClearSessionsClicked;
             _viewServicesButton.Clicked += OnViewServicesClicked;
-            
+
             _sessionListView.SelectedItemChanged += OnSessionSelectionChanged;
         }
-        
+
         protected override void OnRefresh()
         {
             UpdateSessionList();
             UpdateConnectionStats();
         }
-        
+
         private void UpdateSessionList()
         {
             try
             {
                 _activeSessions = _localXmsgProtocol.GetSessionInfo();
-                
+
                 var items = new string[_activeSessions.Count];
                 for (int i = 0; i < _activeSessions.Count; i++)
                 {
@@ -144,14 +151,14 @@ namespace RetroX25.Console.UI
                 _logger.LogError(ex, "Error updating XMSG session list");
             }
         }
-        
+
         private void UpdateConnectionStats()
         {
             try
             {
                 var activeCount = _localXmsgProtocol.ActiveSessionsCount;
                 _connectionStatsLabel.Text = $"Active Sessions: {activeCount}";
-                
+
                 // Update service statistics
                 int fileSessions = 0, rpcSessions = 0, monitorSessions = 0, otherSessions = 0;
                 for (int i = 0; i < _activeSessions.Count; i++)
@@ -170,7 +177,7 @@ namespace RetroX25.Console.UI
                 _logger.LogError(ex, "Error updating XMSG connection stats");
             }
         }
-        
+
         private void UpdateSessionDetails()
         {
             try
@@ -200,7 +207,7 @@ namespace RetroX25.Console.UI
                                 $"- System Monitor: Status and statistics\\n" +
                                 $"- Session Management: Connect, Disconnect, Status\\n\\n" +
                                 $"Last Updated: {DateTime.UtcNow:HH:mm:ss} UTC";
-                    
+
                     _sessionDetailsView.Text = details;
                 }
                 else
@@ -230,18 +237,18 @@ namespace RetroX25.Console.UI
                 _sessionDetailsView.Text = $"Error updating session details: {ex.Message}";
             }
         }
-        
+
         #region Event Handlers
-        
+
         private void OnDisconnectSessionClicked()
         {
             if (_selectedSessionIndex >= 0 && _selectedSessionIndex < _activeSessions.Count)
             {
                 var session = _activeSessions[_selectedSessionIndex];
-                var result = MessageBox.Query("Disconnect Session", 
-                    $"Disconnect XMSG session on LCN {session.LCN} (Port {session.Port:X4})?", 
+                var result = MessageBox.Query("Disconnect Session",
+                    $"Disconnect XMSG session on LCN {session.LCN} (Port {session.Port:X4})?",
                     "Yes", "No");
-                
+
                 if (result == 0)
                 {
                     try
@@ -262,13 +269,13 @@ namespace RetroX25.Console.UI
                 MessageBox.ErrorQuery("Error", "No session selected", "OK");
             }
         }
-        
+
         private void OnClearSessionsClicked()
         {
-            var result = MessageBox.Query("Clear All Sessions", 
-                $"Disconnect all {_activeSessions.Count} active XMSG sessions?", 
+            var result = MessageBox.Query("Clear All Sessions",
+                $"Disconnect all {_activeSessions.Count} active XMSG sessions?",
                 "Yes", "No");
-            
+
             if (result == 0)
             {
                 try
@@ -279,7 +286,7 @@ namespace RetroX25.Console.UI
                     {
                         _localXmsgProtocol.HandleCallClearing(sessionsCopy[i].LCN);
                     }
-                    
+
                     _logger.LogInformation("All {Count} XMSG sessions cleared by user", sessionCount);
                     UpdateSessionList();
                     MessageBox.Query("Success", $"Cleared {sessionCount} XMSG sessions", "OK");
@@ -291,7 +298,7 @@ namespace RetroX25.Console.UI
                 }
             }
         }
-        
+
         private void OnViewServicesClicked()
         {
             var serviceInfo = "XMSG Service Registry\\n" +
@@ -317,16 +324,16 @@ namespace RetroX25.Console.UI
                             $"Currently Active Sessions: {_activeSessions.Count}\\n" +
                             $"Server Uptime: Running since startup\\n" +
                             $"Protocol Version: XMSG L03 (0x4C03)";
-            
+
             MessageBox.Query("XMSG Services", serviceInfo, "OK");
         }
-        
+
         private void OnSessionSelectionChanged(ListViewItemEventArgs e)
         {
             _selectedSessionIndex = e.Item;
             UpdateSessionDetails();
         }
-        
+
         #endregion
     }
 }

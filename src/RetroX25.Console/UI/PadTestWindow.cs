@@ -1,9 +1,16 @@
+//
+// SPDX-License-Identifier: MIT
+// Copyright (c) 1985-2026 Ronny Hansen
+// RetroCore Labs — https://github.com/RetroCoreLabs
+// RetroX25 - Accessing yesterday's X.25 networks with today's standards
+//
+
 using System;
-using Terminal.Gui;
 using Microsoft.Extensions.Logging;
 using RetroIO.Protocols.X25;
-using RetroIO.Protocols.X25.Runtime;
 using RetroIO.Protocols.X25.Modules;
+using RetroIO.Protocols.X25.Runtime;
+using Terminal.Gui;
 
 namespace RetroX25.Console.UI
 {
@@ -15,41 +22,41 @@ namespace RetroX25.Console.UI
         private readonly ProtocolRuntime _runtime;
         private readonly ILogger _logger;
         private readonly PadClient _padClient;
-        
+
         public int WindowNumber { get; private set; }
         public new event EventHandler? Closed;
-        
+
         // UI Controls
         private Button _exitButton = null!;
         private TextView _console = null!;
         private Label _statusLabel = null!;
         private ListView _x3ParametersListView = null!;
-        
+
         public PadTestWindow(ProtocolRuntime runtime, ILogger logger, int windowNumber = 1)
         {
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             WindowNumber = windowNumber;
-            
+
             // Create PAD client once - it persists for the lifetime of this window
             _padClient = _runtime.CreatePadClient($"TestPAD_{windowNumber}");
-            
+
             // Set a unique calling address for this PAD client
             _padClient.LocalAddress = $"10{windowNumber}";
-            
+
             // Set up PAD client event handlers once
             _padClient.ConnectionStateChanged += OnConnectionStateChanged;
             _padClient.DataReceived += OnDataReceived;
             _padClient.CharacterEcho += OnCharacterEcho;
             _padClient.ParametersChanged += OnParametersChanged;
-            
+
             Title = $"PAD Client Test #{windowNumber}";
             X = 2;
             Y = 2;
 
             ColorScheme = Colors.Dialog;
             Modal = false; // Make it non-modal
-            
+
             CreateControls();
             SetupEventHandlers();
             UpdateX3ParametersList(); // Show X.3 parameters from persistent PAD client
@@ -59,7 +66,7 @@ namespace RetroX25.Console.UI
             {
 
                 ProcessKey(e.KeyEvent);
-                
+
             };
 
             Width = Dim.Fill() - 4;  // Resizable width
@@ -119,7 +126,7 @@ namespace RetroX25.Console.UI
                     _padClient.OnKey(charToSend);
                     return true;
                 }
-                
+
             }
             return true; // consume all keys
         }
@@ -129,11 +136,11 @@ namespace RetroX25.Console.UI
             // Exit button
             _exitButton = new Button("Exit") { X = 1, Y = 1 };
             Add(_exitButton);
-            
+
             // Status label
             _statusLabel = new Label("Status: Disconnected") { X = 1, Y = 3 };
             Add(_statusLabel);
-            
+
             // Output text view (left side, reduced width to make room for X.3 parameters)
             Add(new Label("Output:") { X = 1, Y = 5 });
             _console = new TextView
@@ -147,7 +154,7 @@ namespace RetroX25.Console.UI
                 WordWrap = false
             };
             Add(_console);
-            
+
             // X.3 Parameters list view (right side)
             Add(new Label("X.3 Parameters:") { X = 78, Y = 5 });
             _x3ParametersListView = new ListView()
@@ -158,15 +165,15 @@ namespace RetroX25.Console.UI
                 Height = 22
             };
             Add(_x3ParametersListView);
-                      
-            
+
+
             // Help text for commands
-            Add(new Label("X.28 commands: CALL <address>, STAT, CLEAR, PAR?, SET <param>:<value>") 
-                { X = 1, Y = 30, Width = 75 });
-            Add(new Label("Press Enter to send. Connected chars forwarded per X.3 parameters") 
-                { X = 1, Y = 31, Width = 75 });
+            Add(new Label("X.28 commands: CALL <address>, STAT, CLEAR, PAR?, SET <param>:<value>")
+            { X = 1, Y = 30, Width = 75 });
+            Add(new Label("Press Enter to send. Connected chars forwarded per X.3 parameters")
+            { X = 1, Y = 31, Width = 75 });
         }
-        
+
         private void SetupEventHandlers()
         {
             _exitButton.Clicked += OnExit;
@@ -180,30 +187,30 @@ namespace RetroX25.Console.UI
             _console.SetFocus();
         }
 
-             
-        
-        
+
+
+
         private void OnExit()
         {
             // Clean up and close window
             _padClient.Disconnect(); // Disconnect if connected
             _padClient.Dispose();    // Dispose only on window exit
-            
+
             // Fire closed event so parent can remove from tracking list
             Closed?.Invoke(this, EventArgs.Empty);
-            
+
             // Hide window and remove from Application.Top
             this.Visible = false;
             Application.Top.Remove(this);
         }
-        
-        
+
+
         private void OnConnectionStateChanged(object? sender, PadConnectionEventArgs e)
         {
             Application.MainLoop.Invoke(() =>
             {
-                UpdateStatus($"Connection: {e.State}");                
-                
+                UpdateStatus($"Connection: {e.State}");
+
                 if (e.State == PadConnectionState.Connected)
                 {
                     // AppendText($"PAD ready - Type characters directly (they will be forwarded per X.3 parameters)");                    
@@ -211,7 +218,7 @@ namespace RetroX25.Console.UI
                 else if (e.State == PadConnectionState.Disconnected)
                 {
                 }
-                
+
                 // Always update X.3 parameters display regardless of connection state
                 // X.3 parameters persist throughout PAD client lifetime per ITU-T specification
                 UpdateX3ParametersList();
@@ -235,7 +242,7 @@ namespace RetroX25.Console.UI
                     case '\n': // Line feed: start a new line
                         current += Environment.NewLine;
                         break;
-                    
+
                     case '\r':
                         break; // ignore CR
 
@@ -256,18 +263,18 @@ namespace RetroX25.Console.UI
                 AppendText(e.Data);
             });
         }
-       
-        
+
+
         private void OnCharacterEcho(object? sender, PadCharacterEventArgs e)
         {
             // Display echoed character in the output window for visual feedback
             Application.MainLoop.Invoke(() =>
             {
                 // Convert byte to character for display
-                AppendText(((char)e.Character).ToString());                
+                AppendText(((char)e.Character).ToString());
             });
         }
-        
+
         private void OnParametersChanged(object? sender, EventArgs e)
         {
             // Update X.3 parameters display when parameters change
@@ -285,7 +292,7 @@ namespace RetroX25.Console.UI
                 _statusLabel.Text = $"Status: {status}";
             });
         }
-    
+
         /// <summary>
         /// Update the X.3 parameters list with current PAD client parameters
         /// </summary>
@@ -315,7 +322,7 @@ namespace RetroX25.Console.UI
             }
         }
 
-        
+
 
         /// <summary>
         /// Get short, user-friendly descriptions for X.3 parameters
@@ -325,9 +332,9 @@ namespace RetroX25.Console.UI
             return paramNum switch
             {
                 1 => "PAD Escape",
-                2 => "Echo",  
+                2 => "Echo",
                 3 => "Data Forward",
-                4 => "Idle Timer", 
+                4 => "Idle Timer",
                 5 => "Device Control",
                 6 => "Service Signals",
                 7 => "Break Procedure",
@@ -337,7 +344,7 @@ namespace RetroX25.Console.UI
                 11 => "Binary Speed",
                 12 => "Forward N Chars",
                 13 => "LF Insertion",
-                14 => "Padding LF", 
+                14 => "Padding LF",
                 15 => "Editing",
                 16 => "Char Delete",
                 17 => "Line Delete",
