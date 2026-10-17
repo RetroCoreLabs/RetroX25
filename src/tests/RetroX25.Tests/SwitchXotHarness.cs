@@ -16,6 +16,7 @@ using RetroIO.Protocols.X25.Monitor;
 using RetroIO.Protocols.X25.Routing;
 using RetroIO.Protocols.X25.Switch;
 using RetroIO.Protocols.X25.Switch.Model;
+using RetroIO.Protocols.X25.Switch.Ports;
 using RetroX25.Switch;
 
 namespace RetroX25.Tests
@@ -121,7 +122,7 @@ namespace RetroX25.Tests
             echo.Open(new X25ClientConfig
             {
                 Host = "127.0.0.1",
-                Port = (ushort)sw.P1.ListenPort,
+                Port = sw.P1.BoundPort,
                 LocalAddress = "23410001",
                 Framing = X25ClientFraming.Xot
             }, NullLogger.Instance);
@@ -137,7 +138,7 @@ namespace RetroX25.Tests
             caller.Open(new X25ClientConfig
             {
                 Host = "127.0.0.1",
-                Port = (ushort)sw.P0.ListenPort,
+                Port = sw.P0.BoundPort,
                 LocalAddress = "23400001",
                 Framing = X25ClientFraming.Xot
             }, NullLogger.Instance);

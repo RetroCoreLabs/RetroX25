@@ -32,7 +32,7 @@
     <PackageReference Include="RetroIO.Protocols.X25.Routing" />
     <PackageReference Include="RetroIO.Protocols.X25.Switch" />
     <PackageReference Include="RetroIO.Protocols.X25.Switch.Management" />
-    <!-- Referenced for XotSwitchPort in the socket-level switch interop tests; the app's Main is not run. -->
+    <!-- Referenced for MonitorHost in the socket-level switch interop tests; the app's Main is not run. The X.25 port itself is RetroIO's XotSwitchPort. -->
     <ProjectReference Include="..\..\RetroX25.Switch\RetroX25.Switch.csproj" />
     <PackageReference Include="RetroIO.Protocols.X25.Nmc" />
   </ItemGroup>

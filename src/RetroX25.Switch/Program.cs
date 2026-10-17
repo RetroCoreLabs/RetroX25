@@ -25,7 +25,10 @@ namespace RetroX25.Switch
     /// Loads a switch configuration, brings up each port as an XOT endpoint, routes and stitches calls
     /// between ports, and exposes a telnet management console plus an X.25-based management surface.
     ///
-    /// Usage: x25switch &lt;config-file&gt; [-v]
+    /// Usage: x25switch &lt;config-file&gt; [-v] [-v]
+    ///
+    /// One <c>-v</c> logs at debug level. Two log at trace level, which adds every packet each port
+    /// receives or writes, in hex.
     /// </remarks>
     internal static class Program
     {
@@ -58,7 +61,7 @@ namespace RetroX25.Switch
 
             if (configPath == null)
             {
-                Console.Error.WriteLine("Usage: x25switch <config-file> [-v]");
+                Console.Error.WriteLine("Usage: x25switch <config-file> [-v] [-v]    (two -v also log every packet)");
                 return 1;
             }
 
@@ -87,7 +90,17 @@ namespace RetroX25.Switch
             SwitchNode node = new SwitchNode(config) { UptimeStartMs = Environment.TickCount64 };
             for (int i = 0; i < config.Ports.Count; i++)
             {
-                node.AddPort(new XotSwitchPort(config.Ports[i], logger));
+                XotSwitchPort port = new XotSwitchPort(config.Ports[i], logger);
+                node.AddPort(port);
+
+                // At -v -v (trace level) every packet each port receives or writes is logged in hex, with
+                // its direction. Working out why two X.25 implementations will not talk to each other
+                // comes down to reading the packets they actually exchanged; this is where they are.
+                if (logger.IsEnabled(LogLevel.Trace))
+                {
+                    port.PacketCaptured += (portId, inbound, packet) =>
+                        logger.LogTrace("Port {Port} {Direction} {Packet}", portId, inbound ? "RX" : "TX", BitConverter.ToString(packet).Replace('-', ' '));
+                }
             }
 
             SwitchCore core = new SwitchCore(node);

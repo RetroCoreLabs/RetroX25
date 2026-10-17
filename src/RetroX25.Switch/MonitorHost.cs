@@ -9,29 +9,23 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using RetroIO.Protocols.X25.Monitor;
-
 using RetroIO.Protocols.X25.Switch;
+using RetroIO.Protocols.X25.Switch.Ports;
+
 namespace RetroX25.Switch
 {
-    /// <summary>
-    /// Raised for every raw X.25 packet crossing a port, in both directions.
-    /// </summary>
-    /// <param name="portId">
-    /// The identifier of the port the packet crossed.
-    /// </param>
-    /// <param name="inbound">
-    /// True when the packet was received by the port, false when transmitted.
-    /// </param>
-    /// <param name="frame">
-    /// The raw X.25 packet bytes.
-    /// </param>
-    public delegate void PortFrameCaptured(int portId, bool inbound, byte[] frame);
-
     /// <summary>
     /// Bridges switch ports to a <see cref="MonitorServer"/>: it captures every packet (decoding with
     /// <see cref="X25CaptureDecoder"/> and publishing the record) and periodically publishes a link/port
     /// status snapshot built from the attached ports' counters.
     /// </summary>
+    /// <remarks>
+    /// The ports are RetroIO's <see cref="XotSwitchPort"/>, the one X.25 port the whole stack shares.
+    /// This host reads what that port offers a monitor: its <see cref="XotSwitchPort.PacketCaptured"/>
+    /// tap, its <see cref="PortCounters"/> (including the byte totals), and its connect statistics.
+    /// This project used to carry its own copy of the port to get those, and the copy had drifted from
+    /// the shared one until it no longer compiled against it.
+    /// </remarks>
     public sealed class MonitorHost : IDisposable
     {
         private readonly MonitorServer _server;
@@ -74,7 +68,7 @@ namespace RetroX25.Switch
         public void Attach(XotSwitchPort port)
         {
             _ports.Add(port);
-            port.FrameCaptured += OnFrame;
+            port.PacketCaptured += OnFrame;
         }
 
         /// <summary>
@@ -161,8 +155,8 @@ namespace RetroX25.Switch
                     ConnectAttempts = port.ConnectAttempts,
                     LastConnectedMs = port.LastConnectedMs,
                     LastDisconnectedMs = port.LastDisconnectedMs,
-                    BytesSent = port.BytesSent,
-                    BytesReceived = port.BytesReceived
+                    BytesSent = port.Counters.BytesOut,
+                    BytesReceived = port.Counters.BytesIn
                 });
             }
 

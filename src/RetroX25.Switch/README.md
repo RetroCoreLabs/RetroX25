@@ -50,7 +50,8 @@ Without one, you have two programs that can talk to each other directly and no n
 x25switch src\demo\switch-a.ini -v
 ```
 
-`<config-file>` is **required** and positional. `-v` raises verbosity and can be repeated.
+`<config-file>` is **required** and positional. `-v` raises verbosity and can be repeated; `-v -v` also logs every
+X.25 packet each port sends and receives, as hex.
 
 ## Configuration
 
@@ -59,12 +60,16 @@ INI. `src\demo\switch-a.ini` is the fullest example.
 | Section | Keys |
 |---|---|
 | `[switch]` | `name`, `dnic`, `mgmt_port`, `monitor_port`, `mgmt_addr` |
-| `[port.N]` | `type` (`access`/`trunk`), `transport` (`xot`), `mode` (`dce`/`dte`), `host`, `port`; for trunks also `peer_name`, `peer_monitor_host`, `peer_monitor_port`, `peer_mgmt_addr` |
+| `[port.N]` | `type` (`access`/`trunk`), `transport` (`xot`), `mode` (`dce`/`dte`), `host`, `port`, `lci_base`, `lci_count`; for trunks also `peer_name`, `peer_monitor_host`, `peer_monitor_port`, `peer_mgmt_addr` |
 | `[route.N]` | `type` (`prefix`/`default`), `address`, `prefix_len`, `port` |
 | `[user.N]` | `name`, `password`, `level` |
 
 Defaults follow the switch configuration specification: window size **2**, packet size **128**, LCI base **1**,
 count **16**, TCP port **1998**. A file shorter than you expect is not necessarily incomplete.
+
+A port accepts calls only on the logical channels it declares (`lci_base`, `lci_count`). A call on any other channel
+is answered with a diagnostic and fails. `x25traffic` declares 2048 channels and starts from the highest, so the
+demo's access port sets `lci_count = 2048`.
 
 ## Where it sits
 

@@ -44,7 +44,7 @@ dropped half of it.
 | P3 | **Something that answers** | Otherwise you measure refusals | `x25echo`, and aim at its address |
 | P4 | The XOT host and port | To attach | `-x`; the demo's access port is 2200 |
 | P5 | **An address to call** | Required — there is no default destination | `-d 23520001` |
-| P6 | Enough logical channels | A storm with more VCs than the port has measures "number busy" | the port's LCI count in the INI |
+| P6 | Enough logical channels | A storm with more VCs than the port has measures "number busy" | the port's `lci_count` in the INI; the tool declares 2048 channels, so the port needs at least that many |
 
 ```
 x25traffic -x host:port -d address [options]

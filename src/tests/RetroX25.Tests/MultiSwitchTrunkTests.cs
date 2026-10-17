@@ -14,6 +14,7 @@ using RetroIO.Protocols.X25.Client;
 using RetroIO.Protocols.X25.Routing;
 using RetroIO.Protocols.X25.Switch;
 using RetroIO.Protocols.X25.Switch.Model;
+using RetroIO.Protocols.X25.Switch.Ports;
 using RetroX25.Switch;
 
 namespace RetroX25.Tests
@@ -50,7 +51,7 @@ namespace RetroX25.Tests
             cfgB.Routing.AddRoute(new X121Route { Type = X121RouteType.Default, DestPort = 1 });
             SwitchNode nodeB = new SwitchNode(cfgB);
             XotSwitchPort bTrunkIn = NewPort(0, PortType.Trunk, PortMode.Dce, 0);
-            XotSwitchPort bTrunkOut = NewPort(1, PortType.Trunk, PortMode.Dte, cTrunk.ListenPort);
+            XotSwitchPort bTrunkOut = NewPort(1, PortType.Trunk, PortMode.Dte, cTrunk.BoundPort);
             nodeB.AddPort(bTrunkIn);
             nodeB.AddPort(bTrunkOut);
             SwitchCore coreB = new SwitchCore(nodeB);
@@ -64,7 +65,7 @@ namespace RetroX25.Tests
             cfgA.Routing.AddRoute(new X121Route { Type = X121RouteType.Default, DestPort = 1 });
             SwitchNode nodeA = new SwitchNode(cfgA);
             XotSwitchPort aAccess = NewPort(0, PortType.Access, PortMode.Dce, 0);
-            XotSwitchPort aTrunk = NewPort(1, PortType.Trunk, PortMode.Dte, bTrunkIn.ListenPort);
+            XotSwitchPort aTrunk = NewPort(1, PortType.Trunk, PortMode.Dte, bTrunkIn.BoundPort);
             XotSwitchPort aCrossEnv = NewPort(2, PortType.Trunk, PortMode.Dce, 0);
             nodeA.AddPort(aAccess);
             nodeA.AddPort(aTrunk);
@@ -86,7 +87,7 @@ namespace RetroX25.Tests
                     Array.Copy(data, 0, reply, 0, length);
                     c.Send(vc, reply, length, qBit);
                 });
-                echo.Open(new X25ClientConfig { Host = "127.0.0.1", Port = (ushort)cAccess.ListenPort, LocalAddress = "23520001", Framing = X25ClientFraming.Xot }, NullLogger.Instance);
+                echo.Open(new X25ClientConfig { Host = "127.0.0.1", Port = cAccess.BoundPort, LocalAddress = "23520001", Framing = X25ClientFraming.Xot }, NullLogger.Instance);
 
                 byte[]? received = null;
                 ManualResetEventSlim gotEcho = new ManualResetEventSlim(false);
@@ -96,7 +97,7 @@ namespace RetroX25.Tests
                     Array.Copy(data, 0, received, 0, length);
                     gotEcho.Set();
                 });
-                caller.Open(new X25ClientConfig { Host = "127.0.0.1", Port = (ushort)aAccess.ListenPort, LocalAddress = "23500099", Framing = X25ClientFraming.Xot }, NullLogger.Instance);
+                caller.Open(new X25ClientConfig { Host = "127.0.0.1", Port = aAccess.BoundPort, LocalAddress = "23500099", Framing = X25ClientFraming.Xot }, NullLogger.Instance);
 
                 X25Vc? vc = caller.CallWait("23520001", 5000);
                 Assert.That(vc, Is.Not.Null, "the call should route across two trunks (A -> B -> C) to the echo");
@@ -149,7 +150,7 @@ namespace RetroX25.Tests
                 new PortConfig { Id = 0, Type = PortType.Access, Mode = PortMode.Dce, Host = "127.0.0.1", Port = 0, LciBase = 1 },
                 NullLogger.Instance);
             XotSwitchPort aTrunk = new XotSwitchPort(
-                new PortConfig { Id = 1, Type = PortType.Trunk, Mode = PortMode.Dte, Host = "127.0.0.1", Port = (ushort)bTrunk.ListenPort, LciBase = 1 },
+                new PortConfig { Id = 1, Type = PortType.Trunk, Mode = PortMode.Dte, Host = "127.0.0.1", Port = bTrunk.BoundPort, LciBase = 1 },
                 NullLogger.Instance);
             nodeA.AddPort(aAccess);
             nodeA.AddPort(aTrunk);
@@ -176,7 +177,7 @@ namespace RetroX25.Tests
                 echo.Open(new X25ClientConfig
                 {
                     Host = "127.0.0.1",
-                    Port = (ushort)bAccess.ListenPort,
+                    Port = bAccess.BoundPort,
                     LocalAddress = "23520001",
                     Framing = X25ClientFraming.Xot
                 }, NullLogger.Instance);
@@ -192,7 +193,7 @@ namespace RetroX25.Tests
                 caller.Open(new X25ClientConfig
                 {
                     Host = "127.0.0.1",
-                    Port = (ushort)aAccess.ListenPort,
+                    Port = aAccess.BoundPort,
                     LocalAddress = "23500001",
                     Framing = X25ClientFraming.Xot
                 }, NullLogger.Instance);
