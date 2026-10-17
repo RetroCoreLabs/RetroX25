@@ -3,7 +3,7 @@
         xmlns:vm="using:RetroX25.Desktop.ViewModels"
         x:Class="RetroX25.Desktop.Views.KnownHostEditDialog"
         x:DataType="vm:KnownHostEditDialogViewModel"
-        Title="Known Host Configuration"
+        Title="{Binding DialogTitle}"
         Width="500" Height="500"
         MinWidth="450" MinHeight="450"
         CanResize="false"

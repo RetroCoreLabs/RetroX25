@@ -64,6 +64,12 @@ public partial class XotInterfaceEditDialogViewModel : ObservableObject
     public XotInterfaceConfig? Result { get; private set; }
 
     /// <summary>
+    /// Gets the title of the dialog window: <c>Add XOT Interface</c> when the dialog adds an entry and
+    /// <c>Edit XOT Interface</c> when it edits one.
+    /// </summary>
+    public string DialogTitle => _isNew ? "Add XOT Interface" : "Edit XOT Interface";
+
+    /// <summary>
     /// Creates the dialog view-model and fills its fields from <paramref name="existing"/>.
     /// </summary>
     /// <param name="logger">
@@ -73,8 +79,8 @@ public partial class XotInterfaceEditDialogViewModel : ObservableObject
     /// The interface whose values fill the fields, or null to start from the field defaults.
     /// </param>
     /// <param name="isNew">
-    /// True when the dialog adds a new interface, false when it edits one. The value is
-    /// stored, but nothing in this view-model reads it.
+    /// True when the dialog adds a new xot interface, false when it edits one. It decides the
+    /// words in <see cref="DialogTitle"/>.
     /// </param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="logger"/> is null.

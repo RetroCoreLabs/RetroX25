@@ -12,9 +12,13 @@ using Avalonia.Data.Converters;
 namespace RetroX25.Desktop.Converters;
 
 /// <summary>
-/// Converts boolean values to Visibility.
-/// True -> Visible, False -> Collapsed
+/// Passes a bool through for an <c>IsVisible</c> binding: true shows the control, false hides it.
 /// </summary>
+/// <remarks>
+/// Avalonia has no Visibility type with Visible and Collapsed values, as WPF has; visibility is the
+/// bool <c>IsVisible</c> property. This converter exists so a binding written in the WPF style keeps
+/// working, and it returns a bool.
+/// </remarks>
 public class BoolToVisibilityConverter : IValueConverter
 {
     /// <summary>

@@ -61,6 +61,12 @@ public partial class RouteEditDialogViewModel : ObservableObject
     public X25RouteEntry? Result { get; private set; }
 
     /// <summary>
+    /// Gets the title of the dialog window: <c>Add Route</c> when the dialog adds an entry and
+    /// <c>Edit Route</c> when it edits one.
+    /// </summary>
+    public string DialogTitle => _isNew ? "Add Route" : "Edit Route";
+
+    /// <summary>
     /// Creates the dialog view-model and fills its fields from <paramref name="existing"/>.
     /// </summary>
     /// <param name="logger">
@@ -70,8 +76,8 @@ public partial class RouteEditDialogViewModel : ObservableObject
     /// The route whose values fill the fields, or null to start from the field defaults.
     /// </param>
     /// <param name="isNew">
-    /// True when the dialog adds a new route, false when it edits one. The value is stored,
-    /// but nothing in this view-model reads it.
+    /// True when the dialog adds a new route, false when it edits one. It decides the
+    /// words in <see cref="DialogTitle"/>.
     /// </param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="logger"/> is null.
