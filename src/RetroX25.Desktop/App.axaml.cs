@@ -24,15 +24,35 @@ using RetroX25.Desktop.Views;
 
 namespace RetroX25.Desktop;
 
+/// <summary>
+/// The Avalonia application for the RetroX25 desktop app.
+/// </summary>
+/// <remarks>
+/// Builds the dependency-injection container, starts the protocol runtime and opens the main
+/// window. When the app shuts down it disposes the runtime and the container.
+/// </remarks>
 public partial class App : Application
 {
     private ServiceProvider? _serviceProvider;
 
+    /// <summary>
+    /// Loads the application's XAML resources and styles.
+    /// </summary>
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
     }
 
+    /// <summary>
+    /// Sets up the desktop app once the Avalonia framework is ready.
+    /// </summary>
+    /// <remarks>
+    /// On a classic desktop lifetime this turns off Avalonia's own data-annotation validation,
+    /// builds the services with <see cref="ConfigureServices"/>, initializes the
+    /// <see cref="IRuntimeService"/> with the registered <see cref="RuntimeConfig"/>, opens
+    /// <see cref="MainWindow"/> with its view-model, and hooks shutdown so the runtime is
+    /// disposed.
+    /// </remarks>
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

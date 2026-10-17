@@ -11,13 +11,29 @@ using RetroX25.Desktop.ViewModels;
 
 namespace RetroX25.Desktop.Views;
 
+/// <summary>
+/// The PAD Client window (F10), a terminal for the X.3/X.28/X.29 PAD client.
+/// </summary>
 public partial class PADClientWindow : Window
 {
+    /// <summary>
+    /// Creates the window and loads its layout, with no view-model attached.
+    /// </summary>
     public PADClientWindow()
     {
         InitializeComponent();
     }
 
+    /// <summary>
+    /// Creates the window bound to <paramref name="viewModel"/>.
+    /// </summary>
+    /// <param name="viewModel">
+    /// The view-model the window binds to.
+    /// </param>
+    /// <remarks>
+    /// Every key press and every piece of typed text in the window goes straight to the
+    /// view-model, and the window takes keyboard focus as soon as it opens.
+    /// </remarks>
     public PADClientWindow(PADClientWindowViewModel viewModel) : this()
     {
         DataContext = viewModel;

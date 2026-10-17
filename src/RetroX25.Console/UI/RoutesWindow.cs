@@ -40,6 +40,25 @@ namespace RetroX25.Console.UI
 
         private List<RouteDisplayItem> _routeItems = new List<RouteDisplayItem>();
 
+        /// <summary>
+        /// Creates the modal routes window and loads the routing table from the runtime configuration.
+        /// </summary>
+        /// <remarks>
+        /// The window lists the configured routes sorted by priority, highest first, and shows the
+        /// details of the selected route. Under Route Testing the user enters an X.121 address and a
+        /// direction; Test Route matches the address against the pattern of every enabled route and
+        /// lists the matches, the highest priority marked as selected. When routing is disabled or no
+        /// routes are configured, the list says so instead. Close ends the modal run.
+        /// </remarks>
+        /// <param name="runtime">
+        /// The protocol runtime whose routing configuration is shown.
+        /// </param>
+        /// <param name="logger">
+        /// The logger that load and test errors are written to.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="runtime"/> or <paramref name="logger"/> is null.
+        /// </exception>
         public RoutesWindow(ProtocolRuntime runtime, ILogger logger) : base("X.25 Routes")
         {
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
@@ -427,15 +446,71 @@ namespace RetroX25.Console.UI
     /// </summary>
     public class RouteDisplayItem
     {
+        /// <summary>
+        /// Gets or sets the route name.
+        /// </summary>
         public string Name { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the X.121 address pattern of the route.
+        /// </summary>
+        /// <remarks>
+        /// The routes window tests addresses against it as a regular expression, ignoring case.
+        /// A pattern that is not a valid regular expression matches nothing.
+        /// </remarks>
         public string Pattern { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the transport type of the route, as text.
+        /// </summary>
         public string Type { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the destination the route sends calls to.
+        /// </summary>
         public string Destination { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the route priority; a higher number is listed and chosen first.
+        /// </summary>
         public int Priority { get; set; }
+
+        /// <summary>
+        /// Gets or sets the direction the route applies to: <c>Outbound</c>, <c>Inbound</c> or
+        /// <c>Bidirectional</c>.
+        /// </summary>
+        /// <remarks>
+        /// The routes window sets this to <c>Outbound</c> for every route. A <c>Bidirectional</c>
+        /// route matches a test in any direction.
+        /// </remarks>
         public string Direction { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets whether the route is enabled; only enabled routes take part in a route test.
+        /// </summary>
         public bool Enabled { get; set; }
+
+        /// <summary>
+        /// Gets or sets the free-text description of the route, or an empty string.
+        /// </summary>
         public string Description { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the number of backup destinations to show for the route.
+        /// </summary>
+        /// <remarks>
+        /// The routes window always sets this to 0, because the routing table has no backup
+        /// destinations.
+        /// </remarks>
         public int BackupCount { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the route also matches on a Call User Data pattern.
+        /// </summary>
+        /// <remarks>
+        /// The routes window always sets this to false, because the routing table has no Call User
+        /// Data patterns.
+        /// </remarks>
         public bool HasCudPattern { get; set; }
     }
 }

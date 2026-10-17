@@ -90,9 +90,24 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
     private string _statusText = "Ready";
 
     // Routing Tab ViewModels
+    /// <summary>
+    /// Gets the view-model behind the Serial Interfaces tab.
+    /// </summary>
     public SerialInterfacesTabViewModel SerialInterfacesTab { get; }
+
+    /// <summary>
+    /// Gets the view-model behind the XOT Interfaces tab.
+    /// </summary>
     public XotInterfacesTabViewModel XotInterfacesTab { get; }
+
+    /// <summary>
+    /// Gets the view-model behind the Known Hosts tab.
+    /// </summary>
     public KnownHostsTabViewModel KnownHostsTab { get; }
+
+    /// <summary>
+    /// Gets the view-model behind the Routing tab.
+    /// </summary>
     public RoutingTabViewModel RoutingTab { get; }
 
     /// <summary>

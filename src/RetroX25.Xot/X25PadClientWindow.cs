@@ -48,6 +48,19 @@ namespace RetroX25.Xot
         private long _bytesRx = 0;
         private bool _isConnected = false;
 
+        /// <summary>
+        /// Creates the full-screen PAD client window. No connection is made until the user starts one.
+        /// </summary>
+        /// <param name="logger">
+        /// Receives error messages when connecting, disconnecting or sending fails, and is passed on to the
+        /// XOT transport the window creates.
+        /// </param>
+        /// <param name="localAddress">
+        /// The local X.25 address; shown in the window title and used to name the XOT transport.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="logger"/> is null.
+        /// </exception>
         public X25PadClientWindow(ILogger logger, string localAddress = "12345") : base("X.25 PAD Client")
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));

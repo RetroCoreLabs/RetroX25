@@ -9,8 +9,18 @@ using Avalonia.Controls;
 
 namespace RetroX25.Desktop.Views;
 
+/// <summary>
+/// The main application window.
+/// </summary>
+/// <remarks>
+/// <see cref="App"/> creates it at startup and sets a <see cref="ViewModels.MainWindowViewModel"/>
+/// as its data context.
+/// </remarks>
 public partial class MainWindow : Window
 {
+    /// <summary>
+    /// Creates the window and loads its layout.
+    /// </summary>
     public MainWindow()
     {
         InitializeComponent();

@@ -35,6 +35,24 @@ public partial class RoutingTabViewModel : ViewModelWithLogger
     [ObservableProperty]
     private string _statusText = "";
 
+    /// <summary>
+    /// Creates the view-model and fills the list from the routing table in
+    /// <paramref name="config"/>.
+    /// </summary>
+    /// <param name="logger">
+    /// Logger for this view-model.
+    /// </param>
+    /// <param name="config">
+    /// The shared runtime configuration; add, edit and delete change its routing table in
+    /// place.
+    /// </param>
+    /// <param name="dialogService">
+    /// Service used for the delete confirmation and for error messages.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="logger"/>, <paramref name="config"/> or
+    /// <paramref name="dialogService"/> is null.
+    /// </exception>
     public RoutingTabViewModel(
         ILogger<RoutingTabViewModel> logger,
         RuntimeConfig config,
@@ -222,6 +240,7 @@ public partial class RoutingTabViewModel : ViewModelWithLogger
         StatusText = "Routes refreshed";
     }
 
+    /// <inheritdoc/>
     public override void Dispose()
     {
         Logger.LogInformation("RoutingTabViewModel disposed");
@@ -234,14 +253,52 @@ public partial class RoutingTabViewModel : ViewModelWithLogger
 /// </summary>
 public class RoutingTableDisplayItem
 {
+    /// <summary>
+    /// Gets or sets the position of this route in the configuration's routing table, used
+    /// to find the entry again on edit and delete.
+    /// </summary>
     public int Index { get; set; }
+
+    /// <summary>
+    /// Gets or sets the route name.
+    /// </summary>
     public string Name { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the X.121 address pattern the route matches, for example <c>100.*</c>.
+    /// </summary>
     public string X121AddressPattern { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the route type, as the text of its route type value.
+    /// </summary>
     public string Type { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the destination interface name (for an interface route) or the gateway
+    /// machine ID (for a gateway route).
+    /// </summary>
     public string Destination { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the route priority; a higher number is preferred when several routes
+    /// match.
+    /// </summary>
     public int Priority { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the route is enabled.
+    /// </summary>
     public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the free-text description of the route.
+    /// </summary>
     public string Description { get; set; } = "";
 
+    /// <summary>
+    /// Gets a one-line summary of the route: name, pattern, type, destination, priority, and
+    /// whether it is enabled.
+    /// </summary>
     public string DisplayText => $"{Name}: {X121AddressPattern} → {Type}/{Destination} (Pri:{Priority}) [{(Enabled ? "Enabled" : "Disabled")}]";
 }

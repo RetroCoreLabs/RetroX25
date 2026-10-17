@@ -24,8 +24,27 @@ namespace RetroX25.Console.UI
         private TextField _descriptionField = null!;
         private CheckBox _enabledCheckBox = null!;
 
+        /// <summary>
+        /// Gets the host entry built from the fields when the user presses OK.
+        /// </summary>
+        /// <value>
+        /// A new <see cref="KnownHostEntry"/> after OK with valid input, or null when the user cancels
+        /// or the dialog has not been closed with OK.
+        /// </value>
         public KnownHostEntry? Result { get; private set; }
 
+        /// <summary>
+        /// Creates the dialog for adding a new known host or editing an existing one.
+        /// </summary>
+        /// <remarks>
+        /// OK requires a host name, a machine ID and a Via value; when one is empty an error box is
+        /// shown and the dialog stays open.
+        /// </remarks>
+        /// <param name="existingHost">
+        /// The host whose values fill the fields, titled "Edit Known Host"; or null to start from
+        /// empty fields with Direct reachability and Enabled checked, titled "Add Known Host".
+        /// The entry itself is not changed; the edited values go into <see cref="Result"/>.
+        /// </param>
         public KnownHostEditDialog(KnownHostEntry? existingHost = null) : base(existingHost != null ? "Edit Known Host" : "Add Known Host")
         {
             Width = 65;

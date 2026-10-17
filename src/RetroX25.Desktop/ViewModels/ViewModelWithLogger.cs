@@ -16,6 +16,9 @@ namespace RetroX25.Desktop.ViewModels;
 /// </summary>
 public abstract class ViewModelWithLogger : ViewModelBase
 {
+    /// <summary>
+    /// The logger this view-model writes to; never null.
+    /// </summary>
     protected readonly ILogger Logger;
 
     /// <summary>

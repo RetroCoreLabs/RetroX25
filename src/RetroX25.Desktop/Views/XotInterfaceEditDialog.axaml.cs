@@ -11,8 +11,19 @@ using RetroX25.Desktop.ViewModels;
 
 namespace RetroX25.Desktop.Views;
 
+/// <summary>
+/// Dialog where the user adds or edits one XOT (X.25 over TCP) interface.
+/// </summary>
+/// <remarks>
+/// The caller sets the <see cref="XotInterfaceEditDialogViewModel"/> as the data context. OK
+/// closes the dialog with <c>true</c> only when the view-model has produced a result; Cancel
+/// closes it with <c>false</c>.
+/// </remarks>
 public partial class XotInterfaceEditDialog : Window
 {
+    /// <summary>
+    /// Creates the dialog and loads its layout.
+    /// </summary>
     public XotInterfaceEditDialog()
     {
         InitializeComponent();

@@ -41,6 +41,28 @@ public partial class SintranTadServerWindowViewModel : ViewModelWithLogger
     [ObservableProperty]
     private bool _canDisconnect = false;
 
+    /// <summary>
+    /// Creates the view-model, loads the current TAD sessions and starts refreshing them
+    /// every 2 seconds.
+    /// </summary>
+    /// <param name="logger">
+    /// Logger for this view-model.
+    /// </param>
+    /// <param name="runtimeService">
+    /// Service that gives access to the protocol runtime whose SINTRAN PVC server holds the
+    /// sessions.
+    /// </param>
+    /// <param name="dialogService">
+    /// Service used for messages when the user asks to disconnect a session.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="logger"/>, <paramref name="runtimeService"/> or
+    /// <paramref name="dialogService"/> is null.
+    /// </exception>
+    /// <remarks>
+    /// The first timed refresh runs 1 second after creation. Each refresh is posted to the UI
+    /// thread. Only handlers whose protocol is "TAD" are listed.
+    /// </remarks>
     public SintranTadServerWindowViewModel(
         ILogger<SintranTadServerWindowViewModel> logger,
         IRuntimeService runtimeService,
@@ -187,6 +209,9 @@ public partial class SintranTadServerWindowViewModel : ViewModelWithLogger
         }
     }
 
+    /// <summary>
+    /// Stops the 2-second refresh timer.
+    /// </summary>
     public override void Dispose()
     {
         _refreshTimer?.Dispose();
@@ -202,14 +227,53 @@ public partial class SintranTadServerWindowViewModel : ViewModelWithLogger
 /// </summary>
 public class SintranTadSessionDisplay
 {
+    /// <summary>
+    /// Gets or sets the X.25 logical channel number the session runs on.
+    /// </summary>
     public ushort LCN { get; set; }
+
+    /// <summary>
+    /// Gets or sets the terminal ID the SINTRAN PVC server gave this session.
+    /// </summary>
     public int TerminalId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the protocol name the session handler reports.
+    /// </summary>
     public string Protocol { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the status text the session handler reports.
+    /// </summary>
     public string Status { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the number of messages received on the session.
+    /// </summary>
     public int MessagesRx { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of messages sent on the session.
+    /// </summary>
     public int MessagesTx { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of bytes received on the session.
+    /// </summary>
     public long BytesRx { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of bytes sent on the session.
+    /// </summary>
     public long BytesTx { get; set; }
+
+    /// <summary>
+    /// Gets or sets the time of the last activity on the session, as the handler reports it.
+    /// </summary>
     public DateTime LastActivity { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the session handler reports the session as active.
+    /// </summary>
     public bool IsActive { get; set; }
 }

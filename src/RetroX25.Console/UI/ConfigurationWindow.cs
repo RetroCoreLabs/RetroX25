@@ -64,6 +64,23 @@ namespace RetroX25.Console.UI
         private Button _editHostButton = null!;
         private Button _deleteHostButton = null!;
 
+        /// <summary>
+        /// Creates the configuration window, builds its Common, Serial, XOT, TCP-LAPB and Hosts tabs,
+        /// and fills them from <paramref name="config"/>.
+        /// </summary>
+        /// <remarks>
+        /// The Save, Load and Reset buttons change <paramref name="config"/> in place. Save writes it as
+        /// indented camel-case JSON to <paramref name="configFilePath"/>; Load reads it back from there.
+        /// </remarks>
+        /// <param name="config">
+        /// The live runtime configuration that the window shows and edits.
+        /// </param>
+        /// <param name="configFilePath">
+        /// The JSON file that Save writes to and Load reads from.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="config"/> is null.
+        /// </exception>
         public ConfigurationWindow(RuntimeConfig config, string configFilePath = "x25config.json") : base("X.25 Configuration")
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));

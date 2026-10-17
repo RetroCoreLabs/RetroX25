@@ -28,6 +28,15 @@ namespace RetroX25.Xot
         private int _sentPacketCount = 0;
         private int _receivedPacketCount = 0;
 
+        /// <summary>
+        /// Creates the window in client mode, titled "XOT Test Client", and subscribes to the client's events.
+        /// </summary>
+        /// <param name="client">
+        /// The XOT test client whose sent and received packets the window shows.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="client"/> is null.
+        /// </exception>
         public XotTestWindow(XotTestClient client) : base("XOT Test Client")
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
@@ -37,6 +46,15 @@ namespace RetroX25.Xot
             SubscribeToClientEvents();
         }
 
+        /// <summary>
+        /// Creates the window in server mode, titled "XOT Test Server", and subscribes to the server's events.
+        /// </summary>
+        /// <param name="server">
+        /// The XOT test server whose sent and received packets the window shows.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="server"/> is null.
+        /// </exception>
         public XotTestWindow(XotTestServer server) : base("XOT Test Server")
         {
             _server = server ?? throw new ArgumentNullException(nameof(server));

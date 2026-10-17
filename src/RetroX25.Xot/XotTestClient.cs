@@ -24,14 +24,62 @@ namespace RetroX25.Xot
         private CancellationTokenSource? _cts;
         private bool _disposed;
 
+        /// <summary>
+        /// Raised on the receive thread for each complete XOT packet read from the server.
+        /// </summary>
+        /// <remarks>
+        /// The event data holds the whole packet, the 4-byte XOT header followed by the X.25 packet, with
+        /// direction <c>"RX"</c>. Packets with a non-zero version or a length over 4096 bytes are skipped and
+        /// reported through <see cref="StatusChanged"/> instead.
+        /// </remarks>
         public event EventHandler<XotDataEventArgs>? DataReceived;
+
+        /// <summary>
+        /// Raised after <see cref="SendPacket"/> has written a packet to the server.
+        /// </summary>
+        /// <remarks>
+        /// The event data holds the whole packet as sent, the 4-byte XOT header followed by the X.25 packet,
+        /// with direction <c>"TX"</c>.
+        /// </remarks>
         public event EventHandler<XotDataEventArgs>? DataSent;
+
+        /// <summary>
+        /// Raised with a short text line whenever the client has something to report, such as connecting,
+        /// connected, a timeout, a send or receive error, or a disconnect.
+        /// </summary>
         public event EventHandler<string>? StatusChanged;
+
+        /// <summary>
+        /// Raised when the connection ends, either through <see cref="Disconnect"/> or when the receive loop stops.
+        /// </summary>
+        /// <remarks>
+        /// A call to <see cref="Disconnect"/> while connected can raise it twice: once from
+        /// <see cref="Disconnect"/> itself and once from the receive loop as it exits.
+        /// </remarks>
         public event EventHandler? Disconnected;
 
+        /// <summary>
+        /// Whether the underlying TCP connection reports itself as connected.
+        /// </summary>
         public bool IsConnected => _tcpClient?.Connected ?? false;
+
+        /// <summary>
+        /// The server address in <c>host:port</c> form, as given to the constructor.
+        /// </summary>
         public string RemoteEndpoint => $"{_remoteHost}:{_remotePort}";
 
+        /// <summary>
+        /// Creates a client for the given XOT server. No connection is made until <see cref="Connect"/> is called.
+        /// </summary>
+        /// <param name="remoteHost">
+        /// The host name or IP address of the XOT server.
+        /// </param>
+        /// <param name="remotePort">
+        /// The TCP port of the XOT server.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="remoteHost"/> is null.
+        /// </exception>
         public XotTestClient(string remoteHost, int remotePort)
         {
             _remoteHost = remoteHost ?? throw new ArgumentNullException(nameof(remoteHost));
@@ -254,6 +302,13 @@ namespace RetroX25.Xot
             _tcpClient = null;
         }
 
+        /// <summary>
+        /// Closes the connection and releases the cancellation source. Calls after the first do nothing.
+        /// </summary>
+        /// <remarks>
+        /// Unlike <see cref="Disconnect"/>, this does not raise <see cref="StatusChanged"/> or
+        /// <see cref="Disconnected"/> itself.
+        /// </remarks>
         public void Dispose()
         {
             if (_disposed)
@@ -270,8 +325,19 @@ namespace RetroX25.Xot
     /// </summary>
     public class XotDataEventArgs : EventArgs
     {
+        /// <summary>
+        /// The whole XOT packet: the 4-byte XOT header followed by the X.25 packet.
+        /// </summary>
         public byte[] Data { get; set; } = Array.Empty<byte>();
+
+        /// <summary>
+        /// The local time the packet was sent or received, taken from <see cref="DateTime.Now"/>.
+        /// </summary>
         public DateTime Timestamp { get; set; }
+
+        /// <summary>
+        /// <c>"TX"</c> for a packet this side sent, <c>"RX"</c> for a packet this side received.
+        /// </summary>
         public string Direction { get; set; } = string.Empty; // "TX" or "RX"
     }
 }

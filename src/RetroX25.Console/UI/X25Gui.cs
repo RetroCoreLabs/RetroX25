@@ -28,6 +28,15 @@ using Terminal.Gui.Trees;
 
 namespace RetroX25.Console
 {
+    /// <summary>
+    /// The Terminal.Gui text-mode front end for a <see cref="ProtocolRuntime"/>: a main screen with
+    /// status, packet and log windows, and menus and function keys that open the other tool windows.
+    /// </summary>
+    /// <remarks>
+    /// The packet window is fed from the runtime's <c>HistoryItemAdded</c> event, keeps the last 100
+    /// HDLC, LAPB and X.25 frames, and decodes their LAPB and X.25 header fields into
+    /// <see cref="PacketInfo"/> objects for display and filtering.
+    /// </remarks>
     public class X25Gui
     {
         private Window _mainWindow = null!;
@@ -135,6 +144,27 @@ namespace RetroX25.Console
         // Packet numbering
         private int _nextPacketNumber = 0;
 
+        /// <summary>
+        /// Starts Terminal.Gui, builds the main screen, and runs the text-mode user interface until
+        /// the user quits.
+        /// </summary>
+        /// <remarks>
+        /// Before the main loop starts, the method subscribes to the runtime's history and statistics
+        /// events, to the X.25 layer's call, data, clear, reset and restart events, and to the log
+        /// entries of <paramref name="historyProvider"/>. An exception inside the user interface is
+        /// logged and ends the run instead of being thrown. When the run ends, for any reason, the
+        /// method disposes <paramref name="runtime"/> and shuts Terminal.Gui down.
+        /// </remarks>
+        /// <param name="runtime">
+        /// The protocol runtime to show and control. It is disposed when this method returns.
+        /// </param>
+        /// <param name="logger">
+        /// The logger for the user interface and its child windows; null is replaced by a logger that
+        /// discards everything.
+        /// </param>
+        /// <param name="historyProvider">
+        /// The logging provider whose entries are shown in the log window.
+        /// </param>
         public void Run(ProtocolRuntime runtime, Microsoft.Extensions.Logging.ILogger logger, HistoryLoggingProvider historyProvider)
         {
             // Initialize Terminal.GUI
@@ -4130,43 +4160,185 @@ namespace RetroX25.Console
     /// </summary>
     public class PacketInfo
     {
+        /// <summary>
+        /// Gets or sets the running number of the packet in the packet window, starting at 1.
+        /// </summary>
         public int PacketNumber { get; set; }
+
+        /// <summary>
+        /// Gets or sets the time the packet was recorded.
+        /// </summary>
         public DateTime Timestamp { get; set; }
+
+        /// <summary>
+        /// Gets or sets the packet kind shown in the packet list.
+        /// </summary>
+        /// <remarks>
+        /// It starts as the layer name of the history item (<c>HDLC</c>, <c>LAPB</c> or <c>X25</c>), or
+        /// a fixed tag such as <c>CALL</c>, <c>DATA</c> or <c>LOG</c>. When the frame is decoded as LAPB,
+        /// it is replaced by the frame name, such as <c>I-Frame</c>, <c>RR</c> or <c>SABM</c>.
+        /// </remarks>
         public string Type { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the direction of the packet: <c>TX</c> for sent, <c>RX</c> for received.
+        /// </summary>
         public string Direction { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the length of <see cref="Data"/> in bytes.
+        /// </summary>
         public ushort Length { get; set; }
+
+        /// <summary>
+        /// Gets or sets the packet bytes from the runtime history item, which carry no HDLC flags or
+        /// FCS; empty for packets made by the user interface itself.
+        /// </summary>
         public byte[] Data { get; set; } = Array.Empty<byte>();
+
+        /// <summary>
+        /// Gets or sets the one-line text description of the packet.
+        /// </summary>
         public string Description { get; set; } = "";
 
         // Layer 2 (LAPB) fields
+
+        /// <summary>
+        /// Gets or sets the LAPB control byte, the second byte of the frame.
+        /// </summary>
         public byte L2Control { get; set; }
+
+        /// <summary>
+        /// Gets or sets the LAPB address as text: <c>DCE</c> for address <c>0x01</c>, <c>DTE</c> for
+        /// <c>0x03</c>, otherwise the byte in hex.
+        /// </summary>
         public string L2Address { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the LAPB frame class: <c>I</c>, <c>S</c> or <c>U</c>; empty when the frame was
+        /// not decoded as LAPB.
+        /// </summary>
         public string L2Type { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the send sequence number N(S) of an I frame, modulo 8.
+        /// </summary>
         public byte L2NS { get; set; }
+
+        /// <summary>
+        /// Gets or sets the receive sequence number N(R) of an I or S frame, modulo 8.
+        /// </summary>
         public byte L2NR { get; set; }
+
+        /// <summary>
+        /// Gets or sets the poll/final bit, bit <c>0x10</c> of the control byte.
+        /// </summary>
         public bool L2PF { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the frame check sequence is shown as valid.
+        /// </summary>
+        /// <remarks>
+        /// The FCS is not checked here, because the HDLC layer removes it. The LAPB decode always sets
+        /// this to true; a packet that is not decoded as LAPB keeps the default of false.
+        /// </remarks>
         public bool L2FCSValid { get; set; }
+
+        /// <summary>
+        /// Gets or sets the frame check sequence value; the LAPB decode always sets it to 0.
+        /// </summary>
         public ushort L2FCS { get; set; }
 
         // Layer 3 (X.25) fields
+
+        /// <summary>
+        /// Gets or sets the X.25 packet type name decoded from the third X.25 byte, such as
+        /// <c>CALL-REQ</c>, <c>DATA</c> or <c>RR</c>, or that byte in hex when it is not known.
+        /// </summary>
         public string L3Type { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the full logical channel identifier: the low 3 bits of the first X.25 byte as
+        /// the group, followed by the second byte as the channel.
+        /// </summary>
+        /// <value>
+        /// The 11-bit channel identifier, or null when no X.25 header was decoded.
+        /// </value>
         public ushort? L3LCN { get; set; }
+
+        /// <summary>
+        /// Gets or sets the general format identifier as text. Nothing in this project sets it, so it
+        /// stays empty.
+        /// </summary>
         public string L3GFI { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the Q bit as decoded here: bit <c>0x40</c> of the first X.25 byte, or of the
+        /// fourth byte for a data packet.
+        /// </summary>
         public bool L3Q { get; set; }
+
+        /// <summary>
+        /// Gets or sets the D bit as decoded here: bit <c>0x20</c> of the first X.25 byte, or of the
+        /// fourth byte for a data packet.
+        /// </summary>
         public bool L3D { get; set; }
+
+        /// <summary>
+        /// Gets or sets the M bit as decoded here: bit <c>0x80</c> of the first X.25 byte, or of the
+        /// fourth byte for a data packet.
+        /// </summary>
         public bool L3M { get; set; }
+
+        /// <summary>
+        /// Gets or sets the cause code of a clear, reset or restart request.
+        /// </summary>
         public byte L3Cause { get; set; }
+
+        /// <summary>
+        /// Gets or sets the diagnostic code of a clear, reset or restart request.
+        /// </summary>
         public byte L3Diag { get; set; }
+
+        /// <summary>
+        /// Gets or sets the X.25 facilities as text, shown in the packet details when not empty.
+        /// Nothing in this project sets it.
+        /// </summary>
         public string L3Facilities { get; set; } = "";
 
         // Error tracking
+
+        /// <summary>
+        /// Gets or sets whether the packet is marked as an error.
+        /// </summary>
+        /// <remarks>
+        /// The LAPB decode always sets this to false, and nothing in this project sets it to true.
+        /// </remarks>
         public bool IsError { get; set; }
 
         // Relationship fields for two-line display
+
+        /// <summary>
+        /// Gets or sets the packet on another layer that belongs with this one, such as the LAPB frame
+        /// that carried an X.25 packet, so the two can be shown as a pair.
+        /// </summary>
+        /// <value>
+        /// The related packet, which points back to this one; or null when there is none.
+        /// </value>
         public PacketInfo? RelatedPacket { get; set; }
+
+        /// <summary>
+        /// Gets or sets the kind of link to <see cref="RelatedPacket"/>, as text taken from the
+        /// history item's relationship type; empty when there is no related packet.
+        /// </summary>
         public string RelationshipType { get; set; } = "";
 
         // Reference to business model for accessing flags
+
+        /// <summary>
+        /// Gets or sets the runtime history item this packet was built from, or null for packets
+        /// made by the user interface itself.
+        /// </summary>
         public HistoryItem? HistoryItem { get; set; }
     }
 }

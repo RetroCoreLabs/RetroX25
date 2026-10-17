@@ -84,6 +84,9 @@ namespace RetroX25.Monitor.Desktop.ViewModels
         /// Creates the view-model, optionally overriding how work is marshalled to the UI thread (tests pass a
         /// synchronous invoker).
         /// </summary>
+        /// <param name="switches">
+        /// The switch endpoints to choose from; stored as <see cref="Switches"/>, and the first one, if any, starts selected.
+        /// </param>
         /// <param name="uiInvoke">
         /// Marshals an action onto the UI thread; defaults to the Avalonia dispatcher.
         /// </param>

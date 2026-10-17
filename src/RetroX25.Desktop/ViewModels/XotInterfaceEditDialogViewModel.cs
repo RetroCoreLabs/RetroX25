@@ -63,6 +63,22 @@ public partial class XotInterfaceEditDialogViewModel : ObservableObject
     /// </summary>
     public XotInterfaceConfig? Result { get; private set; }
 
+    /// <summary>
+    /// Creates the dialog view-model and fills its fields from <paramref name="existing"/>.
+    /// </summary>
+    /// <param name="logger">
+    /// Logger for this view-model.
+    /// </param>
+    /// <param name="existing">
+    /// The interface whose values fill the fields, or null to start from the field defaults.
+    /// </param>
+    /// <param name="isNew">
+    /// True when the dialog adds a new interface, false when it edits one. The value is
+    /// stored, but nothing in this view-model reads it.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="logger"/> is null.
+    /// </exception>
     public XotInterfaceEditDialogViewModel(ILogger logger, XotInterfaceConfig? existing, bool isNew)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

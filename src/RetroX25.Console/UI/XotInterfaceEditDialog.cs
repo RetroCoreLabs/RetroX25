@@ -27,8 +27,28 @@ namespace RetroX25.Console.UI
         private CheckBox _isServerCheckBox = null!;
         private TextField _descriptionField = null!;
 
+        /// <summary>
+        /// Gets the XOT interface settings built from the fields when the user presses OK.
+        /// </summary>
+        /// <value>
+        /// A new <see cref="XotInterfaceConfig"/> after OK with valid input, or null when the user
+        /// cancels or the dialog has not been closed with OK.
+        /// </value>
         public XotInterfaceConfig? Result { get; private set; }
 
+        /// <summary>
+        /// Creates the dialog for adding a new XOT (X.25 over TCP) interface or editing an existing one.
+        /// </summary>
+        /// <remarks>
+        /// OK requires an interface name, local and remote ports from 1 to 65535, a remote machine ID,
+        /// and a remote IP address unless Server Mode is checked; when one is missing or wrong an error
+        /// box is shown and the dialog stays open.
+        /// </remarks>
+        /// <param name="interfaceConfig">
+        /// The interface whose values fill the fields, titled "Edit XOT Interface"; or null to start
+        /// from XOT0 in client mode with local and remote port 1998, titled "Add XOT Interface".
+        /// The object itself is not changed; the edited values go into <see cref="Result"/>.
+        /// </param>
         public XotInterfaceEditDialog(XotInterfaceConfig? interfaceConfig)
             : base(interfaceConfig == null ? "Add XOT Interface" : "Edit XOT Interface", 70, 14)
         {

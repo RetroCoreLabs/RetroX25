@@ -35,6 +35,24 @@ public partial class SerialInterfacesTabViewModel : ViewModelWithLogger
     [ObservableProperty]
     private string _statusText = "";
 
+    /// <summary>
+    /// Creates the view-model and fills the list from the serial interfaces in
+    /// <paramref name="config"/>.
+    /// </summary>
+    /// <param name="logger">
+    /// Logger for this view-model.
+    /// </param>
+    /// <param name="config">
+    /// The shared runtime configuration; add, edit and delete change its serial interface
+    /// list in place.
+    /// </param>
+    /// <param name="dialogService">
+    /// Service used for the delete confirmation and for error messages.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="logger"/>, <paramref name="config"/> or
+    /// <paramref name="dialogService"/> is null.
+    /// </exception>
     public SerialInterfacesTabViewModel(
         ILogger<SerialInterfacesTabViewModel> logger,
         RuntimeConfig config,
@@ -220,6 +238,7 @@ public partial class SerialInterfacesTabViewModel : ViewModelWithLogger
         StatusText = "Serial interfaces refreshed";
     }
 
+    /// <inheritdoc/>
     public override void Dispose()
     {
         Logger.LogInformation("SerialInterfacesTabViewModel disposed");
@@ -232,13 +251,46 @@ public partial class SerialInterfacesTabViewModel : ViewModelWithLogger
 /// </summary>
 public class SerialInterfaceDisplayItem
 {
+    /// <summary>
+    /// Gets or sets the position of this interface in the configuration's serial interface
+    /// list, used to find the entry again on edit and delete.
+    /// </summary>
     public int Index { get; set; }
+
+    /// <summary>
+    /// Gets or sets the interface name.
+    /// </summary>
     public string Name { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the serial port name, for example <c>COM1</c>.
+    /// </summary>
     public string PortName { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the serial port speed in baud.
+    /// </summary>
     public int BaudRate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the machine ID of the remote machine directly connected through this
+    /// interface.
+    /// </summary>
     public string RemoteMachineId { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets whether the interface is enabled.
+    /// </summary>
     public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the free-text description of the interface.
+    /// </summary>
     public string Description { get; set; } = "";
 
+    /// <summary>
+    /// Gets a one-line summary of the interface: name, port, baud rate, remote machine ID,
+    /// and whether it is enabled.
+    /// </summary>
     public string DisplayText => $"{Name} - {PortName} @ {BaudRate} baud → {RemoteMachineId} [{(Enabled ? "Enabled" : "Disabled")}]";
 }

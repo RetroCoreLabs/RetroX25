@@ -350,16 +350,92 @@ namespace RetroX25.Xot
     /// </summary>
     public class RoutingTableInfo
     {
+        /// <summary>
+        /// The complete packet that was passed to <see cref="SintranRoutingDecoder.DecodeRoutingResponse"/>.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="SintranRoutingDecoder.FormatRoutingTable"/> prints it as a hex dump.
+        /// </remarks>
         public byte[] RawData { get; set; } = Array.Empty<byte>();
+
+        /// <summary>
+        /// The time the packet was decoded, taken from <see cref="DateTime.UtcNow"/>.
+        /// </summary>
         public DateTime ReceivedTime { get; set; }
+
+        /// <summary>
+        /// Whether the decode succeeded.
+        /// </summary>
+        /// <remarks>
+        /// Starts as true. For a routing protocol frame it is copied from the frame parser's own result,
+        /// and it is set to false when decoding throws an exception, in which case
+        /// <see cref="ErrorMessage"/> holds the reason.
+        /// </remarks>
         public bool IsValid { get; set; } = true;
+
+        /// <summary>
+        /// A text form of <see cref="StatusByte"/>.
+        /// </summary>
+        /// <remarks>
+        /// The decoder sets <c>"Success"</c> when the first payload byte is <c>0xFF</c> and <c>"Error"</c> when it
+        /// is <c>0x01</c>. Any other value, or no payload at all, leaves it at <c>"Unknown"</c>.
+        /// </remarks>
         public string Status { get; set; } = "Unknown";
+
+        /// <summary>
+        /// The first byte of the routing response payload, as read by the decoder.
+        /// </summary>
         public byte StatusByte { get; set; }
+
+        /// <summary>
+        /// The protocol id byte of the routing protocol frame.
+        /// </summary>
+        /// <remarks>
+        /// Set only when the packet is recognised as a SINTRAN routing protocol frame; it stays 0 for the
+        /// legacy X.25 payload path.
+        /// </remarks>
         public byte ProtocolId { get; set; }
+
+        /// <summary>
+        /// The source node number of the routing protocol frame.
+        /// </summary>
+        /// <remarks>
+        /// Set only when the packet is recognised as a SINTRAN routing protocol frame; it stays 0 for the
+        /// legacy X.25 payload path.
+        /// </remarks>
         public byte SourceNode { get; set; }
+
+        /// <summary>
+        /// The destination node number of the routing protocol frame.
+        /// </summary>
+        /// <remarks>
+        /// Set only when the packet is recognised as a SINTRAN routing protocol frame; it stays 0 for the
+        /// legacy X.25 payload path.
+        /// </remarks>
         public byte DestinationNode { get; set; }
+
+        /// <summary>
+        /// The message of the exception that stopped the decode, or an empty string when none was thrown.
+        /// </summary>
         public string ErrorMessage { get; set; } = "";
+
+        /// <summary>
+        /// The entries the decoder picked out of the payload.
+        /// </summary>
+        /// <remarks>
+        /// After the status byte, the decoder reads the payload as 16-bit big-endian values, two bytes at a
+        /// time, and adds an entry for each value from 100 to 999. This is a guess at the format, not a
+        /// decoded layout; the code's own comments call it a heuristic.
+        /// </remarks>
         public List<RoutingEntry> Entries { get; set; } = new List<RoutingEntry>();
+
+        /// <summary>
+        /// Free-text notes added during decoding.
+        /// </summary>
+        /// <remarks>
+        /// When no entries are found in a payload longer than one byte, the decoder adds one note holding
+        /// the payload bytes after the status byte in hex.
+        /// </remarks>
         public List<string> Notes { get; set; } = new List<string>();
     }
 
@@ -368,9 +444,35 @@ namespace RetroX25.Xot
     /// </summary>
     public class RoutingEntry
     {
+        /// <summary>
+        /// The 16-bit big-endian value read from the payload.
+        /// </summary>
+        /// <remarks>
+        /// The decoder only creates entries for values from 100 to 999; <see cref="Type"/> is chosen from
+        /// this value's range.
+        /// </remarks>
         public ushort Address { get; set; }
+
+        /// <summary>
+        /// The kind of entry, chosen from the range of <see cref="Address"/>.
+        /// </summary>
         public RoutingEntryType Type { get; set; }
+
+        /// <summary>
+        /// The byte offset in the routing response payload where <see cref="Address"/> starts.
+        /// </summary>
+        /// <remarks>
+        /// The offset counts from the start of the payload, where offset 0 is the status byte, not from the
+        /// start of <see cref="RoutingTableInfo.RawData"/>.
+        /// </remarks>
         public int Offset { get; set; }
+
+        /// <summary>
+        /// A free-text description of the entry.
+        /// </summary>
+        /// <remarks>
+        /// The decoder does not set it, so it stays empty.
+        /// </remarks>
         public string Description { get; set; } = "";
     }
 
@@ -379,10 +481,40 @@ namespace RetroX25.Xot
     /// </summary>
     public enum RoutingEntryType
     {
+        /// <summary>
+        /// An address that falls in no other range; the decoder gives this to values from 300 to 999.
+        /// </summary>
         Unknown,
+
+        /// <summary>
+        /// An address from 100 to 199, which the decoder treats as a node.
+        /// </summary>
         Node,
+
+        /// <summary>
+        /// An address from 200 to 299, which the decoder treats as a service.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="SintranRoutingDecoder.FormatRoutingTable"/> prints 200 as PAD, 201 as TAD, 202 as XMSG,
+        /// 203 as FILE, and any other value as Service followed by the number.
+        /// </remarks>
         Service,
+
+        /// <summary>
+        /// An address below 10, which the decoder treats as an interface.
+        /// </summary>
+        /// <remarks>
+        /// The decoder only creates entries for values from 100 to 999, so it never produces this type today.
+        /// </remarks>
         Interface,
+
+        /// <summary>
+        /// A route entry.
+        /// </summary>
+        /// <remarks>
+        /// The decoder never assigns this value, and <see cref="SintranRoutingDecoder.FormatRoutingTable"/>
+        /// prints such an entry in its Other group.
+        /// </remarks>
         Route
     }
 }

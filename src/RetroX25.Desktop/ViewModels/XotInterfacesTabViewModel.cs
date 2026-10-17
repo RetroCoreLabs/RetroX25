@@ -35,6 +35,24 @@ public partial class XotInterfacesTabViewModel : ViewModelWithLogger
     [ObservableProperty]
     private string _statusText = "";
 
+    /// <summary>
+    /// Creates the view-model and fills the list from the XOT interfaces in
+    /// <paramref name="config"/>.
+    /// </summary>
+    /// <param name="logger">
+    /// Logger for this view-model.
+    /// </param>
+    /// <param name="config">
+    /// The shared runtime configuration; add, edit and delete change its XOT interface list
+    /// in place.
+    /// </param>
+    /// <param name="dialogService">
+    /// Service used for the delete confirmation and for error messages.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="logger"/>, <paramref name="config"/> or
+    /// <paramref name="dialogService"/> is null.
+    /// </exception>
     public XotInterfacesTabViewModel(
         ILogger<XotInterfacesTabViewModel> logger,
         RuntimeConfig config,
@@ -225,6 +243,7 @@ public partial class XotInterfacesTabViewModel : ViewModelWithLogger
         StatusText = "XOT interfaces refreshed";
     }
 
+    /// <inheritdoc/>
     public override void Dispose()
     {
         Logger.LogInformation("XotInterfacesTabViewModel disposed");
@@ -237,16 +256,61 @@ public partial class XotInterfacesTabViewModel : ViewModelWithLogger
 /// </summary>
 public class XotInterfaceDisplayItem
 {
+    /// <summary>
+    /// Gets or sets the position of this interface in the configuration's XOT interface
+    /// list, used to find the entry again on edit and delete.
+    /// </summary>
     public int Index { get; set; }
+
+    /// <summary>
+    /// Gets or sets the interface name.
+    /// </summary>
     public string Name { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the XOT mode as text, "Client" or "Server".
+    /// </summary>
     public string Mode { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the remote IP address used in client mode; empty when none is set.
+    /// </summary>
     public string RemoteIPAddress { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the remote TCP port used in client mode.
+    /// </summary>
     public int RemotePort { get; set; }
+
+    /// <summary>
+    /// Gets or sets the local TCP port listened on in server mode.
+    /// </summary>
     public int LocalPort { get; set; }
+
+    /// <summary>
+    /// Gets or sets the machine ID of the remote X.25 machine reached through this
+    /// interface.
+    /// </summary>
     public string RemoteMachineId { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets whether the interface is enabled.
+    /// </summary>
     public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the free-text description of the interface.
+    /// </summary>
     public string Description { get; set; } = "";
 
+    /// <summary>
+    /// Gets a one-line summary of the interface.
+    /// </summary>
+    /// <remarks>
+    /// In client mode it shows the remote address and port; in any other mode it shows the
+    /// local port. Both forms include the name, mode, remote machine ID and whether the
+    /// interface is enabled.
+    /// </remarks>
     public string DisplayText => Mode == "Client"
         ? $"{Name} - {Mode} → {RemoteIPAddress}:{RemotePort} (Machine {RemoteMachineId}) [{(Enabled ? "Enabled" : "Disabled")}]"
         : $"{Name} - {Mode} port {LocalPort} (Machine {RemoteMachineId}) [{(Enabled ? "Enabled" : "Disabled")}]";

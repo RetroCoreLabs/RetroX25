@@ -35,6 +35,24 @@ public partial class KnownHostsTabViewModel : ViewModelWithLogger
     [ObservableProperty]
     private string _statusText = "";
 
+    /// <summary>
+    /// Creates the view-model and fills the list from the known hosts in
+    /// <paramref name="config"/>.
+    /// </summary>
+    /// <param name="logger">
+    /// Logger for this view-model.
+    /// </param>
+    /// <param name="config">
+    /// The shared runtime configuration; add, edit and delete change its known host list in
+    /// place.
+    /// </param>
+    /// <param name="dialogService">
+    /// Service used for the delete confirmation and for error messages.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="logger"/>, <paramref name="config"/> or
+    /// <paramref name="dialogService"/> is null.
+    /// </exception>
     public KnownHostsTabViewModel(
         ILogger<KnownHostsTabViewModel> logger,
         RuntimeConfig config,
@@ -220,6 +238,7 @@ public partial class KnownHostsTabViewModel : ViewModelWithLogger
         StatusText = "Known hosts refreshed";
     }
 
+    /// <inheritdoc/>
     public override void Dispose()
     {
         Logger.LogInformation("KnownHostsTabViewModel disposed");
@@ -232,13 +251,47 @@ public partial class KnownHostsTabViewModel : ViewModelWithLogger
 /// </summary>
 public class KnownHostDisplayItem
 {
+    /// <summary>
+    /// Gets or sets the position of this host in the configuration's known host list, used
+    /// to find the entry again on edit and delete.
+    /// </summary>
     public int Index { get; set; }
+
+    /// <summary>
+    /// Gets or sets the host name.
+    /// </summary>
     public string Name { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the host's machine ID.
+    /// </summary>
     public string MachineId { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets how the host is reached, as the text of its reachability value (for
+    /// example "Direct").
+    /// </summary>
     public string Reachability { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the interface name (for a direct host) or the gateway machine ID (for a
+    /// host reached through a gateway).
+    /// </summary>
     public string Via { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets whether the host entry is enabled.
+    /// </summary>
     public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the free-text description of the host.
+    /// </summary>
     public string Description { get; set; } = "";
 
+    /// <summary>
+    /// Gets a one-line summary of the host: name, machine ID, reachability, via, and
+    /// whether it is enabled.
+    /// </summary>
     public string DisplayText => $"{Name} (Machine {MachineId}) - {Reachability} via {Via} [{(Enabled ? "Enabled" : "Disabled")}]";
 }

@@ -23,7 +23,23 @@ namespace RetroX25.Console.UI
         private readonly ILogger _logger;
         private readonly PadClient _padClient;
 
+        /// <summary>
+        /// Gets the number given to this window when it was opened.
+        /// </summary>
+        /// <value>
+        /// The number shown in the title, also used in the PAD client name <c>TestPAD_n</c> and its
+        /// local address <c>10n</c>.
+        /// </value>
         public int WindowNumber { get; private set; }
+
+        /// <summary>
+        /// Raised when the user closes the window with F9 or the Exit button, after the PAD client
+        /// has been disconnected and disposed.
+        /// </summary>
+        /// <remarks>
+        /// Hides the <see cref="Window"/> event of the same name. The main window uses it to drop this
+        /// window from its list of open PAD test windows.
+        /// </remarks>
         public new event EventHandler? Closed;
 
         // UI Controls
@@ -32,6 +48,26 @@ namespace RetroX25.Console.UI
         private Label _statusLabel = null!;
         private ListView _x3ParametersListView = null!;
 
+        /// <summary>
+        /// Creates the PAD test window, creates its own PAD client from the runtime and starts it.
+        /// </summary>
+        /// <remarks>
+        /// The window shows a console for the PAD session, a status line and the current X.3
+        /// parameters. The PAD client lives as long as the window and is disposed when the window
+        /// closes.
+        /// </remarks>
+        /// <param name="runtime">
+        /// The protocol runtime that creates the PAD client.
+        /// </param>
+        /// <param name="logger">
+        /// The logger for this window.
+        /// </param>
+        /// <param name="windowNumber">
+        /// The number for this window; see <see cref="WindowNumber"/>.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="runtime"/> or <paramref name="logger"/> is null.
+        /// </exception>
         public PadTestWindow(ProtocolRuntime runtime, ILogger logger, int windowNumber = 1)
         {
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
@@ -75,6 +111,20 @@ namespace RetroX25.Console.UI
             _padClient.Start();
         }
 
+        /// <summary>
+        /// Sends a key press to the PAD client as a character, or closes the window on F9.
+        /// </summary>
+        /// <remarks>
+        /// Enter is sent as CR followed by LF. Ctrl+A to Ctrl+Z are sent as the control codes
+        /// <c>0x01</c> to <c>0x1A</c>. ESC is passed on like any other key, since the PAD uses it as
+        /// its escape character.
+        /// </remarks>
+        /// <param name="keyEvent">
+        /// The key that was pressed.
+        /// </param>
+        /// <returns>
+        /// True when the key was handled; the window takes every key while the PAD client exists.
+        /// </returns>
         public override bool ProcessKey(KeyEvent keyEvent)
         {
             return HandleKeyPress(keyEvent);

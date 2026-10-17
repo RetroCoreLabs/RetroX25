@@ -17,6 +17,25 @@ namespace RetroX25.Desktop.Converters;
 /// </summary>
 public class IntEqualsConverter : IValueConverter
 {
+    /// <summary>
+    /// Tells whether the bound value equals the converter parameter as integers.
+    /// </summary>
+    /// <param name="value">
+    /// The bound value, an int or text that parses as one.
+    /// </param>
+    /// <param name="targetType">
+    /// The type the binding target expects; not used.
+    /// </param>
+    /// <param name="parameter">
+    /// The integer to compare with, an int or text that parses as one.
+    /// </param>
+    /// <param name="culture">
+    /// The culture of the binding; not used.
+    /// </param>
+    /// <returns>
+    /// True when both values are integers and equal. False when they differ, when either is
+    /// null, or when either does not parse as an integer.
+    /// </returns>
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value == null || parameter == null)
@@ -39,6 +58,27 @@ public class IntEqualsConverter : IValueConverter
         return valueInt == paramInt;
     }
 
+    /// <summary>
+    /// Not supported; this converter only works one way.
+    /// </summary>
+    /// <param name="value">
+    /// The value from the binding target; not used.
+    /// </param>
+    /// <param name="targetType">
+    /// The type the source expects; not used.
+    /// </param>
+    /// <param name="parameter">
+    /// The converter parameter; not used.
+    /// </param>
+    /// <param name="culture">
+    /// The culture of the binding; not used.
+    /// </param>
+    /// <returns>
+    /// Never returns.
+    /// </returns>
+    /// <exception cref="NotImplementedException">
+    /// Always thrown.
+    /// </exception>
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException("IntEqualsConverter does not support ConvertBack");

@@ -12,10 +12,29 @@ using Avalonia.Data.Converters;
 namespace RetroX25.Desktop.Converters;
 
 /// <summary>
-/// Converts boolean to text (Collapsed/Expanded).
+/// Converts boolean to button text (Expand/Collapse).
 /// </summary>
 public class BoolToTextConverter : IValueConverter
 {
+    /// <summary>
+    /// Turns a "collapsed" flag into the text for the button that toggles it.
+    /// </summary>
+    /// <param name="value">
+    /// The bound value, true when the section is collapsed.
+    /// </param>
+    /// <param name="targetType">
+    /// The type the binding target expects; not used.
+    /// </param>
+    /// <param name="parameter">
+    /// The converter parameter; not used.
+    /// </param>
+    /// <param name="culture">
+    /// The culture of the binding; not used.
+    /// </param>
+    /// <returns>
+    /// "Expand" when <paramref name="value"/> is true or is not a bool, and "Collapse" when it
+    /// is false.
+    /// </returns>
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is bool isCollapsed)
@@ -25,6 +44,27 @@ public class BoolToTextConverter : IValueConverter
         return "Expand";
     }
 
+    /// <summary>
+    /// Not supported; this converter only works one way.
+    /// </summary>
+    /// <param name="value">
+    /// The value from the binding target; not used.
+    /// </param>
+    /// <param name="targetType">
+    /// The type the source expects; not used.
+    /// </param>
+    /// <param name="parameter">
+    /// The converter parameter; not used.
+    /// </param>
+    /// <param name="culture">
+    /// The culture of the binding; not used.
+    /// </param>
+    /// <returns>
+    /// Never returns.
+    /// </returns>
+    /// <exception cref="NotImplementedException">
+    /// Always thrown.
+    /// </exception>
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();

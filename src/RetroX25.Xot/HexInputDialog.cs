@@ -20,9 +20,27 @@ namespace RetroX25.Xot
         private Label _previewLabel = null!;
         private Button _sendButton = null!;
 
+        /// <summary>
+        /// The packet bytes parsed from the hex text when the user pressed Send, or null if the dialog was
+        /// cancelled or closed without a valid packet.
+        /// </summary>
+        /// <remarks>
+        /// The dialog only accepts packets of at least 4 bytes.
+        /// </remarks>
         public byte[]? PacketData { get; private set; }
+
+        /// <summary>
+        /// True when the user pressed Send with valid hex data and <see cref="PacketData"/> holds the packet.
+        /// </summary>
+        /// <remarks>
+        /// The dialog does not send anything itself; the caller reads this flag and sends the packet.
+        /// </remarks>
         public bool WasSent { get; private set; }
 
+        /// <summary>
+        /// Creates the 70 by 18 "Custom Hex Packet" dialog with a hex input field, a live preview, and Send and
+        /// Cancel buttons.
+        /// </summary>
         public HexInputDialog() : base("Custom Hex Packet", 70, 18)
         {
             CreateControls();

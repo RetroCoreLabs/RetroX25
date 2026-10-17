@@ -42,6 +42,24 @@ namespace RetroX25.Console.UI
         private List<LocalTadSessionInfo> _connectedClients = new List<LocalTadSessionInfo>();
         private System.Threading.Timer? _refreshTimer;
 
+        /// <summary>
+        /// Creates the local TAD server window and starts a timer that refreshes it every two seconds.
+        /// </summary>
+        /// <remarks>
+        /// The window lists the PAD sessions held by the runtime's built-in <see cref="LocalTadProtocol"/>
+        /// and shows the details and X.3 parameters of the selected session. Disconnect Selected closes
+        /// that session; Refresh updates the list at once; Exit or ESC stops the timer and closes the
+        /// window.
+        /// </remarks>
+        /// <param name="runtime">
+        /// The protocol runtime whose local TAD protocol is shown.
+        /// </param>
+        /// <param name="logger">
+        /// The logger for this window.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="runtime"/> or <paramref name="logger"/> is null.
+        /// </exception>
         public TadServerWindow(ProtocolRuntime runtime, ILogger logger) : base("Local TAD Server - Built-in Address 200")
         {
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));

@@ -40,6 +40,25 @@ namespace RetroX25.Console.UI
         private List<SintranTadSessionDisplay> _activeSessions = new List<SintranTadSessionDisplay>();
         private System.Threading.Timer? _refreshTimer;
 
+        /// <summary>
+        /// Creates the SINTRAN TAD server window and starts a timer that refreshes it every two seconds.
+        /// </summary>
+        /// <remarks>
+        /// The window lists the TAD sessions held by the runtime's SINTRAN PVC server, each with its
+        /// logical channel and terminal ID, and shows the details of the selected session. Refresh
+        /// updates the list at once; Exit or ESC stops the timer and closes the window. The
+        /// Disconnect Selected button only logs the request and refreshes the list; it does not close
+        /// the session.
+        /// </remarks>
+        /// <param name="runtime">
+        /// The protocol runtime whose SINTRAN PVC server is shown.
+        /// </param>
+        /// <param name="logger">
+        /// The logger for this window.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="runtime"/> or <paramref name="logger"/> is null.
+        /// </exception>
         public SintranTadServerWindow(ProtocolRuntime runtime, ILogger logger) : base("SINTRAN TAD Server - Addresses 100, 101, 102")
         {
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));

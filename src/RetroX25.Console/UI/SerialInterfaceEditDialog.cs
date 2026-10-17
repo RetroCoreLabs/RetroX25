@@ -29,8 +29,29 @@ namespace RetroX25.Console.UI
         private TextField _remoteMachineIdField = null!;
         private TextField _descriptionField = null!;
 
+        /// <summary>
+        /// Gets the serial interface settings built from the fields when the user presses OK.
+        /// </summary>
+        /// <value>
+        /// A new <see cref="SerialInterfaceConfig"/> after OK with valid input, or null when the user
+        /// cancels or the dialog has not been closed with OK.
+        /// </value>
         public SerialInterfaceConfig? Result { get; private set; }
 
+        /// <summary>
+        /// Creates the dialog for adding a new serial interface or editing an existing one.
+        /// </summary>
+        /// <remarks>
+        /// OK requires an interface name, a port name, a baud rate above zero, 5 to 8 data bits and a
+        /// remote machine ID; when one is missing or wrong an error box is shown and the dialog stays
+        /// open.
+        /// </remarks>
+        /// <param name="interfaceConfig">
+        /// The interface whose values fill the fields, titled "Edit Serial Interface"; or null to start
+        /// from Serial0 on COM1 at 19200 baud, 8 data bits, no parity, one stop bit, titled
+        /// "Add Serial Interface". The object itself is not changed; the edited values go into
+        /// <see cref="Result"/>.
+        /// </param>
         public SerialInterfaceEditDialog(SerialInterfaceConfig? interfaceConfig)
             : base(interfaceConfig == null ? "Add Serial Interface" : "Edit Serial Interface", 70, 18)
         {

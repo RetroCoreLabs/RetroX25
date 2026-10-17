@@ -9,8 +9,14 @@ using Avalonia.Controls;
 
 namespace RetroX25.Desktop.Views;
 
+/// <summary>
+/// The Routing tab of the Configuration window, which lists the X.25 routing table entries.
+/// </summary>
 public partial class RoutingTab : UserControl
 {
+    /// <summary>
+    /// Creates the tab and loads its layout.
+    /// </summary>
     public RoutingTab()
     {
         InitializeComponent();

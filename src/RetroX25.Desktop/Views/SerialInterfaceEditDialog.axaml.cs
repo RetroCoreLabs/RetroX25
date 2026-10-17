@@ -11,8 +11,19 @@ using RetroX25.Desktop.ViewModels;
 
 namespace RetroX25.Desktop.Views;
 
+/// <summary>
+/// Dialog where the user adds or edits one serial interface.
+/// </summary>
+/// <remarks>
+/// The caller sets the <see cref="SerialInterfaceEditDialogViewModel"/> as the data context.
+/// OK closes the dialog with <c>true</c> only when the view-model has produced a result;
+/// Cancel closes it with <c>false</c>.
+/// </remarks>
 public partial class SerialInterfaceEditDialog : Window
 {
+    /// <summary>
+    /// Creates the dialog and loads its layout.
+    /// </summary>
     public SerialInterfaceEditDialog()
     {
         InitializeComponent();

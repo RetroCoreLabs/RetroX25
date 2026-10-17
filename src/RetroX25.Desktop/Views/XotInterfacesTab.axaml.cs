@@ -9,8 +9,15 @@ using Avalonia.Controls;
 
 namespace RetroX25.Desktop.Views;
 
+/// <summary>
+/// The XOT Interfaces tab of the Configuration window, which lists the XOT (X.25 over TCP)
+/// interfaces.
+/// </summary>
 public partial class XotInterfacesTab : UserControl
 {
+    /// <summary>
+    /// Creates the tab and loads its layout.
+    /// </summary>
     public XotInterfacesTab()
     {
         InitializeComponent();

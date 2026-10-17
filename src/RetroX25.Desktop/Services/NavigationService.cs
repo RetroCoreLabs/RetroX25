@@ -18,6 +18,11 @@ public class NavigationService : INavigationService
 {
     private readonly List<Window> _openWindows = new();
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The window is added to the open-window list the first time it is passed in, and is
+    /// removed from the list again when it closes.
+    /// </remarks>
     public void OpenWindow(Window window)
     {
         if (!_openWindows.Contains(window))
@@ -29,12 +34,26 @@ public class NavigationService : INavigationService
         window.Show();
     }
 
+    /// <inheritdoc/>
     public void CloseWindow(Window window)
     {
         window.Close();
         _openWindows.Remove(window);
     }
 
+    /// <summary>
+    /// Shows <paramref name="window"/> as a modal dialog over <paramref name="parent"/>.
+    /// </summary>
+    /// <param name="window">
+    /// The window to show.
+    /// </param>
+    /// <param name="parent">
+    /// The window the dialog blocks. When it is null, <paramref name="window"/> is shown as an
+    /// ordinary, non-modal window and the task finishes at once.
+    /// </param>
+    /// <returns>
+    /// A task that finishes when the modal dialog closes.
+    /// </returns>
     public async Task ShowDialog(Window window, Window? parent = null)
     {
         if (parent != null)
@@ -47,11 +66,17 @@ public class NavigationService : INavigationService
         }
     }
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Only windows opened through <see cref="OpenWindow"/> are listed. The list is a copy, so
+    /// changing it does not change the service.
+    /// </remarks>
     public List<Window> GetOpenWindows()
     {
         return new List<Window>(_openWindows);
     }
 
+    /// <inheritdoc/>
     public void BringToFront(Window window)
     {
         window.Activate();

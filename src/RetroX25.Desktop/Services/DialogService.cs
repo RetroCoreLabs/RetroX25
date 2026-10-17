@@ -30,24 +30,28 @@ public class DialogService : IDialogService
         return null;
     }
 
+    /// <inheritdoc/>
     public void ShowInfo(string title, string message)
     {
         var msgBox = MessageBoxManager.GetMessageBoxStandard(title, message, ButtonEnum.Ok, Icon.Info);
         msgBox.ShowAsync();
     }
 
+    /// <inheritdoc/>
     public void ShowWarning(string title, string message)
     {
         var msgBox = MessageBoxManager.GetMessageBoxStandard(title, message, ButtonEnum.Ok, Icon.Warning);
         msgBox.ShowAsync();
     }
 
+    /// <inheritdoc/>
     public void ShowError(string title, string message)
     {
         var msgBox = MessageBoxManager.GetMessageBoxStandard(title, message, ButtonEnum.Ok, Icon.Error);
         msgBox.ShowAsync();
     }
 
+    /// <inheritdoc/>
     public async Task<bool> ShowConfirmation(string title, string message)
     {
         var msgBox = MessageBoxManager.GetMessageBoxStandard(title, message, ButtonEnum.YesNo, Icon.Question);
@@ -55,6 +59,11 @@ public class DialogService : IDialogService
         return result == ButtonResult.Yes;
     }
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The picker is shown over the main window. When there is no main window the result is
+    /// null and no picker is shown.
+    /// </remarks>
     public async Task<string?> ShowOpenFileDialog(string title, string? filters = null)
     {
         var mainWindow = GetMainWindow();
@@ -76,6 +85,11 @@ public class DialogService : IDialogService
         return result.Count > 0 ? result[0].Path.LocalPath : null;
     }
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The picker is shown over the main window. When there is no main window the result is
+    /// null and no picker is shown.
+    /// </remarks>
     public async Task<string?> ShowSaveFileDialog(string title, string? defaultFileName = null, string? filters = null)
     {
         var mainWindow = GetMainWindow();

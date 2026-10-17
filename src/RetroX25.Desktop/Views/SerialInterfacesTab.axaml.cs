@@ -9,8 +9,15 @@ using Avalonia.Controls;
 
 namespace RetroX25.Desktop.Views;
 
+/// <summary>
+/// The Serial Interfaces tab of the Configuration window, which lists the serial port
+/// interfaces.
+/// </summary>
 public partial class SerialInterfacesTab : UserControl
 {
+    /// <summary>
+    /// Creates the tab and loads its layout.
+    /// </summary>
     public SerialInterfacesTab()
     {
         InitializeComponent();

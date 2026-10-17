@@ -59,6 +59,27 @@ public partial class SimulateReceiveWindowViewModel : ViewModelWithLogger
     [ObservableProperty]
     private string _injectionStatus = "Ready";
 
+    /// <summary>
+    /// Creates the view-model, fills the device list and the built-in packet libraries.
+    /// </summary>
+    /// <param name="logger">
+    /// Logger for this view-model.
+    /// </param>
+    /// <param name="runtimeService">
+    /// Service that gives access to the protocol runtime the test data is injected into.
+    /// </param>
+    /// <param name="dialogService">
+    /// Service used for warning and error messages.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="logger"/>, <paramref name="runtimeService"/> or
+    /// <paramref name="dialogService"/> is null.
+    /// </exception>
+    /// <remarks>
+    /// The device list holds the enabled serial and XOT interfaces from the runtime
+    /// configuration plus "Router Direct", with the first one selected. When the runtime has
+    /// not been initialized the list holds only "(Runtime not started)".
+    /// </remarks>
     public SimulateReceiveWindowViewModel(
         ILogger<SimulateReceiveWindowViewModel> logger,
         IRuntimeService runtimeService,

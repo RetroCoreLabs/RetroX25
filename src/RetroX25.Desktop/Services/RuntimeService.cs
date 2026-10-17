@@ -20,15 +20,37 @@ public class RuntimeService : IRuntimeService
     private readonly ILogger<RuntimeService> _logger;
     private ProtocolRuntime? _runtime;
 
+    /// <inheritdoc/>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <see cref="Initialize"/> has not been called, or the runtime has been
+    /// disposed.
+    /// </exception>
     public ProtocolRuntime Runtime => _runtime ?? throw new InvalidOperationException("Runtime not initialized. Call Initialize() first.");
 
+    /// <summary>
+    /// Gets whether a runtime exists, that is, <see cref="Initialize"/> has been called and
+    /// <see cref="Dispose"/> has not been called since.
+    /// </summary>
     public bool IsRunning => _runtime != null;
 
+    /// <summary>
+    /// Creates the service with no runtime yet; call <see cref="Initialize"/> to create one.
+    /// </summary>
+    /// <param name="logger">
+    /// Logger for the service, also passed to the runtime it creates.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="logger"/> is null.
+    /// </exception>
     public RuntimeService(ILogger<RuntimeService> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// When a runtime already exists, it is disposed first and a new one is created.
+    /// </remarks>
     public void Initialize(RuntimeConfig config)
     {
         if (_runtime != null)
@@ -42,6 +64,10 @@ public class RuntimeService : IRuntimeService
         _logger.LogInformation("ProtocolRuntime initialized successfully");
     }
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Does nothing when there is no runtime. Afterwards <see cref="IsRunning"/> is false.
+    /// </remarks>
     public void Dispose()
     {
         if (_runtime != null)

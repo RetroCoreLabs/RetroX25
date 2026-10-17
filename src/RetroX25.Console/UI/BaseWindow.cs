@@ -18,7 +18,20 @@ namespace RetroX25.Console.UI
     /// </summary>
     public abstract class BaseWindow : Window
     {
+        /// <summary>
+        /// The protocol runtime this window reads its state from and sends its commands to.
+        /// </summary>
+        /// <remarks>
+        /// Set once by the constructor and never null.
+        /// </remarks>
         protected readonly ProtocolRuntime _runtime;
+
+        /// <summary>
+        /// The logger this window writes its messages to, including errors caught by <see cref="SafeInvoke"/>.
+        /// </summary>
+        /// <remarks>
+        /// Set once by the constructor and never null.
+        /// </remarks>
         protected readonly ILogger _logger;
 
         /// <summary>

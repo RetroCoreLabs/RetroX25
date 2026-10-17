@@ -835,6 +835,11 @@ public partial class InterfaceStatusViewModel : ObservableObject
     /// Formatted display strings
     /// </summary>
     public string RxBytesFormatted => FormatBytes(RxBytes);
+
+    /// <summary>
+    /// Gets the transmitted byte count as display text, in B, KB or MB (KB and MB with two
+    /// decimals, using 1024 bytes per KB).
+    /// </summary>
     public string TxBytesFormatted => FormatBytes(TxBytes);
 
     /// <summary>

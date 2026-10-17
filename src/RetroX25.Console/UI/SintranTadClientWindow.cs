@@ -25,7 +25,22 @@ namespace RetroX25.Console.UI
         private readonly ILogger _logger;
         private SintranTadClient? _tadClient;
 
+        /// <summary>
+        /// Gets the number given to this window when it was opened.
+        /// </summary>
+        /// <value>
+        /// The number shown in the title and used in the TAD client name <c>TADClient_n</c>.
+        /// </value>
         public int WindowNumber { get; private set; }
+
+        /// <summary>
+        /// Raised when the user closes the window with F9 or the Exit button, after any TAD client
+        /// has been disconnected and disposed.
+        /// </summary>
+        /// <remarks>
+        /// Hides the <see cref="Window"/> event of the same name. The main window uses it to drop this
+        /// window from its list of open SINTRAN TAD client windows.
+        /// </remarks>
         public new event EventHandler? Closed;
 
         // UI Controls
@@ -37,6 +52,26 @@ namespace RetroX25.Console.UI
         private Label _statusLabel = null!;
         private Label _sessionInfoLabel = null!;
 
+        /// <summary>
+        /// Creates the SINTRAN TAD client window in the disconnected state.
+        /// </summary>
+        /// <remarks>
+        /// The user types a remote address and presses Connect; the window then creates a
+        /// <see cref="SintranTadClient"/> and connects it. While connected, typed keys are sent to the
+        /// remote TAD server and its output is shown in the console area.
+        /// </remarks>
+        /// <param name="runtime">
+        /// The protocol runtime the TAD client connects through.
+        /// </param>
+        /// <param name="logger">
+        /// The logger handed to the TAD client.
+        /// </param>
+        /// <param name="windowNumber">
+        /// The number for this window; see <see cref="WindowNumber"/>.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="runtime"/> or <paramref name="logger"/> is null.
+        /// </exception>
         public SintranTadClientWindow(ProtocolRuntime runtime, ILogger logger, int windowNumber = 1)
         {
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
@@ -62,6 +97,20 @@ namespace RetroX25.Console.UI
             };
         }
 
+        /// <summary>
+        /// Sends a key press to the connected TAD server, or closes the window on F9.
+        /// </summary>
+        /// <remarks>
+        /// Enter is sent as CR LF. Ctrl+A to Ctrl+Z are sent as the control codes <c>0x01</c> to
+        /// <c>0x1A</c>. Other characters are sent and also echoed locally into the console area.
+        /// </remarks>
+        /// <param name="keyEvent">
+        /// The key that was pressed.
+        /// </param>
+        /// <returns>
+        /// True when the key was F9 or was sent to the server; false when no TAD client is connected,
+        /// so the key gets its normal handling.
+        /// </returns>
         public override bool ProcessKey(KeyEvent keyEvent)
         {
             return HandleKeyPress(keyEvent);

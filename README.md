@@ -7,7 +7,7 @@ tools — built on the `RetroIO.Protocols.X25.*` packages.
 [![release](https://img.shields.io/github/v/release/RetroCoreLabs/RetroX25)](https://github.com/RetroCoreLabs/RetroX25/releases)
 [![licence](https://img.shields.io/github/license/RetroCoreLabs/RetroX25)](LICENSE)
 [![downloads](https://img.shields.io/github/downloads/RetroCoreLabs/RetroX25/total)](https://github.com/RetroCoreLabs/RetroX25/releases)
-[Applications](#the-ten-applications) · [Prerequisites](#prerequisites) · [The demo network](#the-demo-network) · [About X.25](#about-x25)
+[Applications](#the-ten-applications) · [Prerequisites](#prerequisites) · [The demo network](#the-demo-network) · [About X.25](#about-x25) · [API reference](https://retrocorelabs.github.io/retrox25/)
 
 <!-- A 5-15 second recording: the switch running, a call placed from x25pad, the packets
      appearing in x25monitor. Under 10 MB. Uncomment when the capture exists.
@@ -72,7 +72,7 @@ No tagged release yet, so the release and download badges above are empty until 
 | P2 | PowerShell 7+ | `build.ps1`, `demo.ps1` | `$PSVersionTable.PSVersion` |
 | P3 | **RetroIO built and packed to the local feed** (`../localfeed`, beside the repositories) | Restore | `dir ..\localfeed` shows `0.1.0-local.*` |
 | P4 | `.\src\build.ps1` run | Testing the published exes | `dir src\publish\win-x64\*.exe` lists ten |
-| P5 | TCP ports 2200-2203, 2210, 9101-9103, 4001-4003 free | The demo network | `netstat -ano \| findstr "2200 2201 9101 4001"` |
+| P5 | TCP ports 2200-2203, 2210, 9101-9103, 4001-4003 free, and not reserved by Windows | The demo network | `netstat -ano \| findstr "2200 2201 9101 4001"`; reserved ranges: see [the demo README](src/demo/README.md) |
 | P6 | A Windows desktop session | `RetroX25.exe`, `x25monitor` | Two of the ten are Avalonia apps |
 | P7 | A terminal | The console tools | Any modern terminal |
 | P8 | WSL with `x25emu` built | Cross-environment tests only | `wsl -e bash -c 'cd ~/repos/os/x25emu && make -s'` |

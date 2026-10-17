@@ -39,8 +39,33 @@ namespace RetroX25.Console.UI
         // Protocol mode
         private RadioGroup _protocolModeGroup = null!;
 
+        /// <summary>
+        /// Gets the TCP-LAPB interface settings built from the fields when the user presses OK.
+        /// </summary>
+        /// <value>
+        /// A new <see cref="TcpLapbInterfaceConfig"/> after OK with valid input, or null when the user
+        /// cancels or the dialog has not been closed with OK.
+        /// </value>
         public TcpLapbInterfaceConfig? Result { get; private set; }
 
+        /// <summary>
+        /// Creates the dialog for adding a new TCP-LAPB interface or editing an existing one,
+        /// including its LAPB timers, window size and protocol mode.
+        /// </summary>
+        /// <remarks>
+        /// OK checks the input and shows an error box, leaving the dialog open, when any rule fails:
+        ///  - the interface name and remote machine ID are filled in.
+        ///  - the port is from 1 to 65535.
+        ///  - an IP address is given unless Server Mode is checked.
+        ///  - the window size K is from 1 to 7 and N2 is at least 1.
+        ///  - T1 is at least 100 ms, T2 is no more than half of T1, and T3 is 0 or greater than T1.
+        /// </remarks>
+        /// <param name="interfaceConfig">
+        /// The interface whose values fill the fields, titled "Edit TCP-LAPB Interface"; or null to
+        /// start from TcpLapb0 in server mode on 127.0.0.1 port 5555, K 7, T1 3000 ms, T2 1500 ms,
+        /// T3 off, N2 10, X.25 only, titled "Add TCP-LAPB Interface". The object itself is not changed;
+        /// the edited values go into <see cref="Result"/>.
+        /// </param>
         public TcpLapbInterfaceEditDialog(TcpLapbInterfaceConfig? interfaceConfig)
             : base(interfaceConfig == null ? "Add TCP-LAPB Interface" : "Edit TCP-LAPB Interface", 75, 22)
         {

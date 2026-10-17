@@ -40,6 +40,23 @@ namespace RetroX25.Console.UI
         private List<ILink> _links = new List<ILink>();
         private int _selectedLinkIndex = -1;
 
+        /// <summary>
+        /// Creates the link status window and starts its refresh timer.
+        /// </summary>
+        /// <remarks>
+        /// The window lists every link the runtime knows, with a details pane for the selected one.
+        /// The Start and Stop buttons start or stop the selected link; LAPB Connect and LAPB Disconnect
+        /// act only when the selected link is a <see cref="TcpLapbLink"/>.
+        /// </remarks>
+        /// <param name="runtime">
+        /// The protocol runtime whose links are listed and controlled.
+        /// </param>
+        /// <param name="logger">
+        /// The logger that refresh errors are written to.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="runtime"/> or <paramref name="logger"/> is null.
+        /// </exception>
         public LinkStatusWindow(ProtocolRuntime runtime, ILogger logger)
             : base("Link Status Monitor (Ctrl+L)", runtime, logger)
         {
@@ -176,6 +193,14 @@ namespace RetroX25.Console.UI
             }
         }
 
+        /// <summary>
+        /// Reads all links and the link manager totals from the runtime and redraws the summary,
+        /// the link list and the details of the selected link.
+        /// </summary>
+        /// <remarks>
+        /// Each list line shows <c>*</c> for an active link, <c>!</c> for a link in error, and the LAPB
+        /// state when the link has one. An exception is logged and the old display is kept.
+        /// </remarks>
         protected override void OnRefresh()
         {
             try

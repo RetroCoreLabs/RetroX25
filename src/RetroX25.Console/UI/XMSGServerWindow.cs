@@ -42,6 +42,22 @@ namespace RetroX25.Console.UI
         private List<XMSGSessionInfo> _activeSessions = new List<XMSGSessionInfo>();
         private int _selectedSessionIndex = -1;
 
+        /// <summary>
+        /// Creates the local XMSG server window and starts its refresh timer.
+        /// </summary>
+        /// <remarks>
+        /// The window lists the sessions held by the runtime's built-in <see cref="LocalXMSGProtocol"/>
+        /// with their logical channel, port, addresses and state, counts them per service port, and
+        /// shows the details of the selected session. Disconnect Session and Clear All Sessions ask
+        /// for confirmation and then clear the call on the session's logical channel. View Services
+        /// shows a fixed text describing the service ports.
+        /// </remarks>
+        /// <param name="runtime">
+        /// The protocol runtime whose local XMSG protocol is shown.
+        /// </param>
+        /// <param name="logger">
+        /// The logger that refresh and disconnect errors are written to.
+        /// </param>
         public XMSGServerWindow(ProtocolRuntime runtime, ILogger logger) : base("Local XMSG Server - COSMOS File Services", runtime, logger)
         {
             _localXmsgProtocol = runtime.GetLocalXMSGProtocol();
@@ -122,6 +138,14 @@ namespace RetroX25.Console.UI
             _sessionListView.SelectedItemChanged += OnSessionSelectionChanged;
         }
 
+        /// <summary>
+        /// Reads the session list from the local XMSG protocol and redraws the session list and the
+        /// per-service session counts.
+        /// </summary>
+        /// <remarks>
+        /// Sessions on port <c>0x1000</c> count as File, <c>0x1001</c> as RPC, <c>0x1002</c> as Monitor,
+        /// and every other port as Other. Errors are logged and the old display is kept.
+        /// </remarks>
         protected override void OnRefresh()
         {
             UpdateSessionList();

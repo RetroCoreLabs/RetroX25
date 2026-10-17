@@ -54,6 +54,27 @@ public partial class SintranTadClientWindowViewModel : ViewModelWithLogger
     [ObservableProperty]
     private bool _canDisconnect = false;
 
+    /// <summary>
+    /// Creates the view-model for one TAD client window and writes the opening help text to
+    /// its console.
+    /// </summary>
+    /// <param name="logger">
+    /// Logger for this view-model; it is also handed to the TAD client created on connect.
+    /// </param>
+    /// <param name="runtimeService">
+    /// Service that gives access to the protocol runtime the TAD client calls through.
+    /// </param>
+    /// <param name="dialogService">
+    /// Service used for connection error messages.
+    /// </param>
+    /// <param name="windowNumber">
+    /// The number of this client window. It appears in the window title and in the client
+    /// ID, which is "TadClient" followed by the number.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="logger"/>, <paramref name="runtimeService"/> or
+    /// <paramref name="dialogService"/> is null.
+    /// </exception>
     public SintranTadClientWindowViewModel(
         ILogger<SintranTadClientWindowViewModel> logger,
         IRuntimeService runtimeService,
@@ -265,6 +286,14 @@ public partial class SintranTadClientWindowViewModel : ViewModelWithLogger
         ConsoleText = _consoleBuffer.ToString();
     }
 
+    /// <summary>
+    /// Releases the TAD client, if there is one, after removing this view-model's event
+    /// handlers from it.
+    /// </summary>
+    /// <remarks>
+    /// Unlike the Disconnect command, this does not call the client's own disconnect first;
+    /// it disposes the client directly.
+    /// </remarks>
     public override void Dispose()
     {
         if (_tadClient != null)

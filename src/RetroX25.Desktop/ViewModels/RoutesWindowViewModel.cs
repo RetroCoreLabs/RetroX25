@@ -41,6 +41,23 @@ public partial class RoutesWindowViewModel : ViewModelWithLogger
     [ObservableProperty]
     private string _testResults = "";
 
+    /// <summary>
+    /// Creates the view-model and loads the routing table from the running protocol
+    /// runtime's configuration.
+    /// </summary>
+    /// <param name="logger">
+    /// Logger for this view-model.
+    /// </param>
+    /// <param name="runtimeService">
+    /// Service that gives access to the protocol runtime whose routes are shown.
+    /// </param>
+    /// <param name="dialogService">
+    /// Service used to show an error when the routes cannot be loaded.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="logger"/>, <paramref name="runtimeService"/> or
+    /// <paramref name="dialogService"/> is null.
+    /// </exception>
     public RoutesWindowViewModel(
         ILogger<RoutesWindowViewModel> logger,
         IRuntimeService runtimeService,
@@ -226,6 +243,7 @@ public partial class RoutesWindowViewModel : ViewModelWithLogger
         }
     }
 
+    /// <inheritdoc/>
     public override void Dispose()
     {
         Logger.LogInformation("RoutesWindowViewModel disposed");
@@ -238,11 +256,42 @@ public partial class RoutesWindowViewModel : ViewModelWithLogger
 /// </summary>
 public class RouteDisplayItem
 {
+    /// <summary>
+    /// Gets or sets the route name.
+    /// </summary>
     public string Name { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the X.121 address pattern of the route; the route test treats it as a
+    /// regular expression.
+    /// </summary>
     public string Pattern { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the route type, as the text of its route type value.
+    /// </summary>
     public string Type { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the destination interface name (for an interface route) or the gateway
+    /// machine ID (for a gateway route).
+    /// </summary>
     public string Destination { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the route priority; the route test picks the matching route with the
+    /// highest number.
+    /// </summary>
     public int Priority { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the route is enabled; disabled routes are skipped by the route
+    /// test.
+    /// </summary>
     public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the free-text description of the route; empty when it has none.
+    /// </summary>
     public string Description { get; set; } = "";
 }

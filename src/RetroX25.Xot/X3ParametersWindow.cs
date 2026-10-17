@@ -23,8 +23,21 @@ namespace RetroX25.Xot
         private readonly Dictionary<byte, TextField> _paramFields = new Dictionary<byte, TextField>();
         private bool _wasModified = false;
 
+        /// <summary>
+        /// True once the user has applied at least one parameter value that differs from the value it replaced.
+        /// </summary>
         public bool WasModified => _wasModified;
 
+        /// <summary>
+        /// Creates the dialog showing the current values of X.3 parameters 1 to 22 from
+        /// <paramref name="x3Protocol"/>.
+        /// </summary>
+        /// <param name="x3Protocol">
+        /// The X.3 parameter set to show; values the user applies are written back into it.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="x3Protocol"/> is null.
+        /// </exception>
         public X3ParametersWindow(X3 x3Protocol) : base("X.3 PAD Parameters", 80, 28)
         {
             _x3Protocol = x3Protocol ?? throw new ArgumentNullException(nameof(x3Protocol));

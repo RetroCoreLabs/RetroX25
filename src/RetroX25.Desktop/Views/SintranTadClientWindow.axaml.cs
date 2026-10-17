@@ -11,13 +11,28 @@ using RetroX25.Desktop.ViewModels;
 
 namespace RetroX25.Desktop.Views;
 
+/// <summary>
+/// The SINTRAN TAD Client window, a terminal that connects to a remote SINTRAN TAD server.
+/// </summary>
 public partial class SintranTadClientWindow : Window
 {
+    /// <summary>
+    /// Creates the window and loads its layout, with no view-model attached.
+    /// </summary>
     public SintranTadClientWindow()
     {
         InitializeComponent();
     }
 
+    /// <summary>
+    /// Creates the window bound to <paramref name="viewModel"/>.
+    /// </summary>
+    /// <param name="viewModel">
+    /// The view-model the window binds to.
+    /// </param>
+    /// <remarks>
+    /// Pressing Enter in the input box runs the view-model's send-input command.
+    /// </remarks>
     public SintranTadClientWindow(SintranTadClientWindowViewModel viewModel) : this()
     {
         DataContext = viewModel;
