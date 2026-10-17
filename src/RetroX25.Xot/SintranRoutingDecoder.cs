@@ -179,7 +179,8 @@ namespace RetroX25.Xot
             sb.AppendLine("═══════════════════════════════════════");
             sb.AppendLine();
 
-            sb.AppendLine($"Received: {info.ReceivedTime:yyyy-MM-dd HH:mm:ss.fff}");
+            // ReceivedTime is taken from DateTime.UtcNow, so the text says UTC.
+            sb.AppendLine($"Received: {info.ReceivedTime:yyyy-MM-dd HH:mm:ss.fff} UTC");
             sb.AppendLine($"Status: {info.Status}");
             sb.AppendLine($"Source Node: {info.SourceNode}");
             sb.AppendLine($"Destination Node: {info.DestinationNode}");

@@ -13,26 +13,32 @@ using System.Threading;
 namespace RetroX25.Xot
 {
     /// <summary>
-    /// Lightweight XOT server for testing (RFC 1613)
+    /// Lightweight XOT server for testing (RFC 1613).
     /// </summary>
+    /// <remarks>
+    /// The server serves one client at a time. The socket, the framing and the receive thread of that
+    /// client belong to <see cref="XotConnection"/>; this class listens, accepts, sends, and turns the
+    /// connection's events into the ones the test window listens to.
+    /// </remarks>
     public class XotTestServer : IDisposable
     {
         private readonly int _listenPort;
+        private readonly object _gate = new object();
         private TcpListener? _listener;
-        private TcpClient? _client;
-        private NetworkStream? _stream;
+        private XotConnection? _connection;
         private Thread? _acceptThread;
-        private Thread? _receiveThread;
         private CancellationTokenSource? _cts;
         private bool _disposed;
+        private volatile bool _stopping;
 
         /// <summary>
         /// Raised on the receive thread for each complete XOT packet read from the connected client.
         /// </summary>
         /// <remarks>
         /// The event data holds the whole packet, the 4-byte XOT header followed by the X.25 packet, with
-        /// direction <c>"RX"</c>. Packets with a non-zero version or a length over 4096 bytes are skipped and
-        /// reported through <see cref="StatusChanged"/> instead.
+        /// direction <c>"RX"</c>. A packet with a version other than 0 or an illegal length breaks the XOT
+        /// framing, so RFC 1613 requires the connection to be closed: the reason is reported through
+        /// <see cref="StatusChanged"/> and <see cref="ClientDisconnected"/> follows.
         /// </remarks>
         public event EventHandler<XotDataEventArgs>? DataReceived;
 
@@ -60,13 +66,11 @@ namespace RetroX25.Xot
         public event EventHandler<string>? ClientConnected;
 
         /// <summary>
-        /// Raised when the server closes the current client connection after a send failure or when its
-        /// receive loop ends.
+        /// Raised exactly once for each accepted client when that client's connection ends: the client
+        /// closed it, the XOT framing broke, a read or write failed, or a send failed.
         /// </summary>
         /// <remarks>
-        /// It is raised only if <see cref="HasClient"/> is still true at that moment, so a connection whose
-        /// TCP state already reads as disconnected is cleaned up without it. <see cref="Stop"/> closes the
-        /// client directly and does not raise it itself.
+        /// It is not raised while <see cref="Stop"/> or <see cref="Dispose"/> closes the client.
         /// </remarks>
         public event EventHandler? ClientDisconnected;
 
@@ -76,17 +80,38 @@ namespace RetroX25.Xot
         public bool IsListening { get; private set; }
 
         /// <summary>
-        /// Whether a client is connected, as reported by its TCP connection.
+        /// Whether a client is connected: its connection is open and nothing has ended it.
         /// </summary>
         /// <remarks>
         /// The server serves one client at a time and closes any other client that connects while this is true.
         /// </remarks>
-        public bool HasClient => _client?.Connected ?? false;
+        public bool HasClient => _connection?.IsOpen ?? false;
 
         /// <summary>
         /// The listen address in <c>0.0.0.0:port</c> form; the server listens on all local addresses.
         /// </summary>
         public string ListenEndpoint => $"0.0.0.0:{_listenPort}";
+
+        /// <summary>
+        /// The TCP port the server is listening on. When the constructor was given port 0, this is the
+        /// port the operating system chose.
+        /// </summary>
+        /// <value>
+        /// The port in use, or the port given to the constructor while the server is not listening.
+        /// </value>
+        public int ListenPort
+        {
+            get
+            {
+                TcpListener? listener = _listener;
+                if (IsListening && listener != null)
+                {
+                    return ((IPEndPoint)listener.LocalEndpoint).Port;
+                }
+
+                return _listenPort;
+            }
+        }
 
         /// <summary>
         /// The remote endpoint of the connected client, or null when no client is connected.
@@ -97,7 +122,8 @@ namespace RetroX25.Xot
         /// Creates a server for the given port. Nothing listens until <see cref="Start"/> is called.
         /// </summary>
         /// <param name="listenPort">
-        /// The TCP port to listen on.
+        /// The TCP port to listen on; 0 lets the operating system choose, and <see cref="ListenPort"/>
+        /// then tells which.
         /// </param>
         public XotTestServer(int listenPort)
         {
@@ -105,24 +131,31 @@ namespace RetroX25.Xot
         }
 
         /// <summary>
-        /// Start listening for connections
+        /// Starts listening and accepting clients.
         /// </summary>
+        /// <returns>
+        /// <see langword="true"/> when listening, or when it already was; <see langword="false"/> when
+        /// the port could not be opened, which is reported through <see cref="StatusChanged"/>.
+        /// </returns>
         public bool Start()
         {
             if (IsListening)
+            {
                 return true;
+            }
 
             try
             {
+                _stopping = false;
                 _listener = new TcpListener(IPAddress.Any, _listenPort);
                 _listener.Start();
 
                 IsListening = true;
-                StatusChanged?.Invoke(this, $"Server listening on port {_listenPort}");
+                StatusChanged?.Invoke(this, $"Server listening on port {ListenPort}");
 
-                // Start accept thread
                 _cts = new CancellationTokenSource();
-                _acceptThread = new Thread(() => AcceptLoop(_cts.Token))
+                CancellationToken token = _cts.Token;
+                _acceptThread = new Thread(() => AcceptLoop(token))
                 {
                     IsBackground = true,
                     Name = "XOT Server Accept"
@@ -133,44 +166,58 @@ namespace RetroX25.Xot
             }
             catch (Exception ex)
             {
+                // A port that is taken, reserved or not allowed is reported and Start returns false.
                 StatusChanged?.Invoke(this, $"Failed to start server: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>
-        /// Stop server and close all connections
+        /// Stops listening and closes the connected client, if any. <see cref="ClientDisconnected"/>
+        /// is not raised for that client.
         /// </summary>
         public void Stop()
         {
             if (!IsListening)
+            {
                 return;
+            }
 
             StatusChanged?.Invoke(this, "Stopping server...");
 
+            _stopping = true;
             IsListening = false;
             _cts?.Cancel();
 
             try
             {
                 _listener?.Stop();
-                _client?.Close();
-                _stream?.Close();
             }
-            catch
+            catch (SocketException)
             {
-                // Ignore cleanup errors
+                // The listener socket was already closed, which is what Stop is asking for.
             }
+
+            _connection?.Close();
 
             StatusChanged?.Invoke(this, "Server stopped");
         }
 
         /// <summary>
-        /// Send X.25 packet to connected client
+        /// Wraps an X.25 packet in the XOT header and sends it to the connected client.
         /// </summary>
+        /// <param name="x25Packet">
+        /// The X.25 packet, with no XOT header. XOT carries legal X.25 packet lengths only, 3 to 4096
+        /// bytes; anything else is refused here instead of being sent for the client to close on.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> when the packet was written; otherwise the reason is reported through
+        /// <see cref="StatusChanged"/>.
+        /// </returns>
         public bool SendPacket(byte[] x25Packet)
         {
-            if (!HasClient || _stream == null)
+            XotConnection? connection = _connection;
+            if (connection == null || !connection.IsOpen)
             {
                 StatusChanged?.Invoke(this, "No client connected");
                 return false;
@@ -182,46 +229,30 @@ namespace RetroX25.Xot
                 return false;
             }
 
-            try
+            if (!connection.TrySend(x25Packet, out byte[]? xotPacket, out string? error))
             {
-                // Create XOT packet (4-byte header + X.25 packet)
-                byte[] xotPacket = XotPacketFormatter.CreateXotPacket(x25Packet);
-
-                // Send to client
-                _stream.Write(xotPacket, 0, xotPacket.Length);
-                _stream.Flush();
-
-                // Fire DataSent event
-                DataSent?.Invoke(this, new XotDataEventArgs
-                {
-                    Data = xotPacket,
-                    Timestamp = DateTime.Now,
-                    Direction = "TX"
-                });
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                StatusChanged?.Invoke(this, $"Send failed: {ex.Message}");
-                CloseClientConnection();
+                StatusChanged?.Invoke(this, $"Send failed: {error}");
                 return false;
             }
+
+            DataSent?.Invoke(this, new XotDataEventArgs
+            {
+                Data = xotPacket!,
+                Timestamp = DateTime.Now,
+                Direction = "TX"
+            });
+
+            return true;
         }
 
-        /// <summary>
-        /// Accept incoming client connections
-        /// </summary>
         private void AcceptLoop(CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested && IsListening && _listener != null)
             {
                 try
                 {
-                    // Accept client (blocking call)
                     TcpClient client = _listener.AcceptTcpClient();
 
-                    // If we already have a client, reject the new one
                     if (HasClient)
                     {
                         StatusChanged?.Invoke(this, "Rejected additional client (already have connection)");
@@ -229,28 +260,26 @@ namespace RetroX25.Xot
                         continue;
                     }
 
-                    // Accept this client
-                    _client = client;
-                    _stream = _client.GetStream();
-                    ClientEndpoint = _client.Client.RemoteEndPoint?.ToString();
+                    XotConnection connection = new XotConnection(client, "server");
+                    connection.PacketReceived += packet => OnPacketReceived(packet);
+                    connection.Closed += (reason, detail) => OnClosed(connection, reason, detail);
 
-                    StatusChanged?.Invoke(this, $"Client connected: {ClientEndpoint}");
-                    ClientConnected?.Invoke(this, ClientEndpoint ?? "unknown");
-
-                    // Start receive thread for this client
-                    _receiveThread = new Thread(() => ReceiveLoop(cancellationToken))
+                    lock (_gate)
                     {
-                        IsBackground = true,
-                        Name = "XOT Server Receive"
-                    };
-                    _receiveThread.Start();
+                        _connection = connection;
+                        ClientEndpoint = connection.RemoteEndpoint;
+                    }
+
+                    StatusChanged?.Invoke(this, $"Client connected: {connection.RemoteEndpoint}");
+                    ClientConnected?.Invoke(this, connection.RemoteEndpoint);
+                    connection.Start();
                 }
                 catch (ObjectDisposedException)
                 {
-                    // Listener was stopped
+                    // The listener was stopped.
                     break;
                 }
-                catch (Exception ex)
+                catch (SocketException ex)
                 {
                     if (!cancellationToken.IsCancellationRequested)
                     {
@@ -260,122 +289,44 @@ namespace RetroX25.Xot
             }
         }
 
-        /// <summary>
-        /// Receive data from connected client
-        /// </summary>
-        private void ReceiveLoop(CancellationToken cancellationToken)
+        private void OnPacketReceived(byte[] xotPacket)
         {
-            byte[] headerBuffer = new byte[4];
-            byte[] dataBuffer = new byte[4096];
-
-            while (!cancellationToken.IsCancellationRequested && _stream != null && HasClient)
+            DataReceived?.Invoke(this, new XotDataEventArgs
             {
-                try
-                {
-                    // Read XOT header (4 bytes: version + length)
-                    int bytesRead = ReadExact(_stream, headerBuffer, 0, 4);
-                    if (bytesRead == 0)
-                        break; // Connection closed
-
-                    // Parse header
-                    int version = (headerBuffer[0] << 8) | headerBuffer[1];
-                    int length = (headerBuffer[2] << 8) | headerBuffer[3];
-
-                    // Validate
-                    if (version != 0)
-                    {
-                        StatusChanged?.Invoke(this, $"Invalid XOT version: {version}");
-                        continue;
-                    }
-
-                    if (length > 4096)
-                    {
-                        StatusChanged?.Invoke(this, $"Packet too large: {length} bytes");
-                        continue;
-                    }
-
-                    // Read X.25 packet
-                    if (length > 0)
-                    {
-                        bytesRead = ReadExact(_stream, dataBuffer, 0, length);
-                        if (bytesRead == 0)
-                            break;
-
-                        // Reconstruct full XOT packet for display
-                        byte[] xotPacket = new byte[4 + length];
-                        Array.Copy(headerBuffer, 0, xotPacket, 0, 4);
-                        Array.Copy(dataBuffer, 0, xotPacket, 4, length);
-
-                        // Fire DataReceived event
-                        DataReceived?.Invoke(this, new XotDataEventArgs
-                        {
-                            Data = xotPacket,
-                            Timestamp = DateTime.Now,
-                            Direction = "RX"
-                        });
-                    }
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Stream disposed, exit gracefully
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    if (!cancellationToken.IsCancellationRequested)
-                    {
-                        StatusChanged?.Invoke(this, $"Receive error: {ex.Message}");
-                    }
-                    break;
-                }
-            }
-
-            // Client disconnected
-            CloseClientConnection();
+                Data = xotPacket,
+                Timestamp = DateTime.Now,
+                Direction = "RX"
+            });
         }
 
-        /// <summary>
-        /// Close current client connection
-        /// </summary>
-        private void CloseClientConnection()
+        private void OnClosed(XotConnection connection, XotCloseReason reason, string detail)
         {
-            if (!HasClient)
+            string endpoint = connection.RemoteEndpoint;
+            lock (_gate)
+            {
+                if (_connection == connection)
+                {
+                    _connection = null;
+                    ClientEndpoint = null;
+                }
+            }
+
+            if (_stopping || _disposed)
+            {
                 return;
-
-            try
-            {
-                _stream?.Close();
-                _client?.Close();
-            }
-            catch
-            {
-                // Ignore cleanup errors
             }
 
-            string endpoint = ClientEndpoint ?? "unknown";
-            ClientEndpoint = null;
-            _stream = null;
-            _client = null;
+            if (reason == XotCloseReason.FramingFailed)
+            {
+                StatusChanged?.Invoke(this, $"Closed client {endpoint}: {detail}");
+            }
+            else if (reason == XotCloseReason.Error)
+            {
+                StatusChanged?.Invoke(this, $"Receive error: {detail}");
+            }
 
             StatusChanged?.Invoke(this, $"Client disconnected: {endpoint}");
             ClientDisconnected?.Invoke(this, EventArgs.Empty);
-        }
-
-        /// <summary>
-        /// Read exact number of bytes from stream
-        /// </summary>
-        private int ReadExact(NetworkStream stream, byte[] buffer, int offset, int count)
-        {
-            int totalRead = 0;
-            while (totalRead < count)
-            {
-                int bytesRead = stream.Read(buffer, offset + totalRead, count - totalRead);
-                if (bytesRead == 0)
-                    return totalRead; // Connection closed
-
-                totalRead += bytesRead;
-            }
-            return totalRead;
         }
 
         /// <summary>
@@ -385,7 +336,9 @@ namespace RetroX25.Xot
         public void Dispose()
         {
             if (_disposed)
+            {
                 return;
+            }
 
             _disposed = true;
             Stop();

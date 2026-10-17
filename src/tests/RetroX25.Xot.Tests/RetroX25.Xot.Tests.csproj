@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>RetroX25.Xot.Tests</AssemblyName>
+    <RootNamespace>RetroX25.Xot.Tests</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="NUnit.Analyzers" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Referenced for XotConnection, XotTestClient, XotTestServer and PredefinedPackets; the app's Main is not run. -->
+    <ProjectReference Include="..\..\RetroX25.Xot\RetroX25.Xot.csproj" />
+  </ItemGroup>
+
+</Project>

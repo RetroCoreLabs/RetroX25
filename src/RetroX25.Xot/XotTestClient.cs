@@ -7,21 +7,22 @@
 
 using System;
 using System.Net.Sockets;
-using System.Threading;
 
 namespace RetroX25.Xot
 {
     /// <summary>
-    /// Lightweight XOT client for testing (RFC 1613)
+    /// Lightweight XOT client for testing (RFC 1613).
     /// </summary>
+    /// <remarks>
+    /// The socket, the framing and the receive thread belong to <see cref="XotConnection"/>; this class
+    /// connects, sends, and turns the connection's events into the ones the test window listens to.
+    /// </remarks>
     public class XotTestClient : IDisposable
     {
         private readonly string _remoteHost;
         private readonly int _remotePort;
-        private TcpClient? _tcpClient;
-        private NetworkStream? _stream;
-        private Thread? _receiveThread;
-        private CancellationTokenSource? _cts;
+        private readonly object _gate = new object();
+        private XotConnection? _connection;
         private bool _disposed;
 
         /// <summary>
@@ -29,8 +30,9 @@ namespace RetroX25.Xot
         /// </summary>
         /// <remarks>
         /// The event data holds the whole packet, the 4-byte XOT header followed by the X.25 packet, with
-        /// direction <c>"RX"</c>. Packets with a non-zero version or a length over 4096 bytes are skipped and
-        /// reported through <see cref="StatusChanged"/> instead.
+        /// direction <c>"RX"</c>. A packet with a version other than 0 or an illegal length breaks the XOT
+        /// framing, so RFC 1613 requires the connection to be closed: the reason is reported through
+        /// <see cref="StatusChanged"/> and <see cref="Disconnected"/> follows.
         /// </remarks>
         public event EventHandler<XotDataEventArgs>? DataReceived;
 
@@ -50,18 +52,18 @@ namespace RetroX25.Xot
         public event EventHandler<string>? StatusChanged;
 
         /// <summary>
-        /// Raised when the connection ends, either through <see cref="Disconnect"/> or when the receive loop stops.
+        /// Raised exactly once when a connection ends: after <see cref="Disconnect"/>, when the server
+        /// closes it, when the XOT framing breaks, or when a read or write on the socket fails.
         /// </summary>
         /// <remarks>
-        /// A call to <see cref="Disconnect"/> while connected can raise it twice: once from
-        /// <see cref="Disconnect"/> itself and once from the receive loop as it exits.
+        /// It is not raised by <see cref="Dispose"/>.
         /// </remarks>
         public event EventHandler? Disconnected;
 
         /// <summary>
-        /// Whether the underlying TCP connection reports itself as connected.
+        /// Whether a connection is open: <see cref="Connect"/> succeeded and nothing has ended it since.
         /// </summary>
-        public bool IsConnected => _tcpClient?.Connected ?? false;
+        public bool IsConnected => _connection?.IsOpen ?? false;
 
         /// <summary>
         /// The server address in <c>host:port</c> form, as given to the constructor.
@@ -87,57 +89,76 @@ namespace RetroX25.Xot
         }
 
         /// <summary>
-        /// Connect to remote XOT server
+        /// Connects to the XOT server and starts reading from it.
         /// </summary>
+        /// <param name="timeoutMs">
+        /// How long to wait for the TCP connection, in milliseconds.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> when connected, or when a connection is already open;
+        /// <see langword="false"/> on a timeout or a connection failure, which is reported through
+        /// <see cref="StatusChanged"/>.
+        /// </returns>
         public bool Connect(int timeoutMs = 30000)
         {
             if (IsConnected)
+            {
                 return true;
+            }
 
+            TcpClient? tcp = null;
             try
             {
                 StatusChanged?.Invoke(this, $"Connecting to {_remoteHost}:{_remotePort}...");
 
-                _tcpClient = new TcpClient();
-                var connectResult = _tcpClient.BeginConnect(_remoteHost, _remotePort, null, null);
-                var success = connectResult.AsyncWaitHandle.WaitOne(timeoutMs);
-
-                if (!success)
+                tcp = new TcpClient();
+                IAsyncResult connectResult = tcp.BeginConnect(_remoteHost, _remotePort, null, null);
+                if (!connectResult.AsyncWaitHandle.WaitOne(timeoutMs))
                 {
                     StatusChanged?.Invoke(this, "Connection timeout");
-                    _tcpClient?.Close();
+                    tcp.Close();
                     return false;
                 }
 
-                _tcpClient.EndConnect(connectResult);
-                _stream = _tcpClient.GetStream();
+                tcp.EndConnect(connectResult);
 
-                // Start receive thread
-                _cts = new CancellationTokenSource();
-                _receiveThread = new Thread(() => ReceiveLoop(_cts.Token))
+                XotConnection connection = new XotConnection(tcp, "client");
+                connection.PacketReceived += packet => OnPacketReceived(packet);
+                connection.Closed += (reason, detail) => OnClosed(connection, reason, detail);
+                lock (_gate)
                 {
-                    IsBackground = true,
-                    Name = "XOT Client Receive"
-                };
-                _receiveThread.Start();
+                    _connection = connection;
+                }
 
+                connection.Start();
                 StatusChanged?.Invoke(this, $"Connected to {_remoteHost}:{_remotePort}");
                 return true;
             }
             catch (Exception ex)
             {
+                // Any failure to connect (an unknown host, a refused connection, a bad port) is reported
+                // to the window and the connect call returns false; none of them is an error in this class.
                 StatusChanged?.Invoke(this, $"Connection failed: {ex.Message}");
-                Cleanup();
+                tcp?.Close();
                 return false;
             }
         }
 
         /// <summary>
-        /// Send X.25 packet wrapped in XOT header
+        /// Wraps an X.25 packet in the XOT header and sends it to the server.
         /// </summary>
+        /// <param name="x25Packet">
+        /// The X.25 packet, with no XOT header. XOT carries legal X.25 packet lengths only, 3 to 4096
+        /// bytes; anything else is refused here instead of being sent for the server to close on.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> when the packet was written; otherwise the reason is reported through
+        /// <see cref="StatusChanged"/>.
+        /// </returns>
         public bool SendPacket(byte[] x25Packet)
         {
-            if (!IsConnected || _stream == null)
+            XotConnection? connection = _connection;
+            if (connection == null || !connection.IsOpen)
             {
                 StatusChanged?.Invoke(this, "Not connected");
                 return false;
@@ -149,179 +170,102 @@ namespace RetroX25.Xot
                 return false;
             }
 
-            try
+            if (!connection.TrySend(x25Packet, out byte[]? xotPacket, out string? error))
             {
-                // Create XOT packet (4-byte header + X.25 packet)
-                byte[] xotPacket = XotPacketFormatter.CreateXotPacket(x25Packet);
-
-                // Send to server
-                _stream.Write(xotPacket, 0, xotPacket.Length);
-                _stream.Flush();
-
-                // Fire DataSent event
-                DataSent?.Invoke(this, new XotDataEventArgs
-                {
-                    Data = xotPacket,
-                    Timestamp = DateTime.Now,
-                    Direction = "TX"
-                });
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                StatusChanged?.Invoke(this, $"Send failed: {ex.Message}");
-                Disconnect();
+                StatusChanged?.Invoke(this, $"Send failed: {error}");
                 return false;
             }
+
+            DataSent?.Invoke(this, new XotDataEventArgs
+            {
+                Data = xotPacket!,
+                Timestamp = DateTime.Now,
+                Direction = "TX"
+            });
+
+            return true;
         }
 
         /// <summary>
-        /// Disconnect from server
+        /// Closes the connection to the server, if one is open. <see cref="Disconnected"/> follows.
         /// </summary>
         public void Disconnect()
         {
-            if (!IsConnected)
+            XotConnection? connection = _connection;
+            if (connection == null || !connection.IsOpen)
+            {
                 return;
+            }
 
             StatusChanged?.Invoke(this, "Disconnecting...");
-            Cleanup();
-            StatusChanged?.Invoke(this, "Disconnected");
+            connection.Close();
+        }
+
+        private void OnPacketReceived(byte[] xotPacket)
+        {
+            DataReceived?.Invoke(this, new XotDataEventArgs
+            {
+                Data = xotPacket,
+                Timestamp = DateTime.Now,
+                Direction = "RX"
+            });
+        }
+
+        private void OnClosed(XotConnection connection, XotCloseReason reason, string detail)
+        {
+            lock (_gate)
+            {
+                if (_connection == connection)
+                {
+                    _connection = null;
+                }
+            }
+
+            if (_disposed)
+            {
+                return;
+            }
+
+            switch (reason)
+            {
+                case XotCloseReason.ClosedLocally:
+                    StatusChanged?.Invoke(this, "Disconnected");
+                    break;
+                case XotCloseReason.ClosedByRemote:
+                    StatusChanged?.Invoke(this, "Connection closed by remote host");
+                    break;
+                case XotCloseReason.FramingFailed:
+                    StatusChanged?.Invoke(this, $"Closed: {detail}");
+                    break;
+                default:
+                    StatusChanged?.Invoke(this, $"Receive error: {detail}");
+                    break;
+            }
+
             Disconnected?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
-        /// Background receive loop
-        /// </summary>
-        private void ReceiveLoop(CancellationToken cancellationToken)
-        {
-            byte[] headerBuffer = new byte[4];
-            byte[] dataBuffer = new byte[4096];
-
-            while (!cancellationToken.IsCancellationRequested && _stream != null && IsConnected)
-            {
-                try
-                {
-                    // Read XOT header (4 bytes: version + length)
-                    int bytesRead = ReadExact(_stream, headerBuffer, 0, 4);
-                    if (bytesRead == 0)
-                        break; // Connection closed
-
-                    // Parse header
-                    int version = (headerBuffer[0] << 8) | headerBuffer[1];
-                    int length = (headerBuffer[2] << 8) | headerBuffer[3];
-
-                    // Validate
-                    if (version != 0)
-                    {
-                        StatusChanged?.Invoke(this, $"Invalid XOT version: {version}");
-                        continue;
-                    }
-
-                    if (length > 4096)
-                    {
-                        StatusChanged?.Invoke(this, $"Packet too large: {length} bytes");
-                        continue;
-                    }
-
-                    // Read X.25 packet
-                    if (length > 0)
-                    {
-                        bytesRead = ReadExact(_stream, dataBuffer, 0, length);
-                        if (bytesRead == 0)
-                            break;
-
-                        // Reconstruct full XOT packet for display
-                        byte[] xotPacket = new byte[4 + length];
-                        Array.Copy(headerBuffer, 0, xotPacket, 0, 4);
-                        Array.Copy(dataBuffer, 0, xotPacket, 4, length);
-
-                        // Fire DataReceived event
-                        DataReceived?.Invoke(this, new XotDataEventArgs
-                        {
-                            Data = xotPacket,
-                            Timestamp = DateTime.Now,
-                            Direction = "RX"
-                        });
-                    }
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Stream disposed, exit gracefully
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    if (!cancellationToken.IsCancellationRequested)
-                    {
-                        StatusChanged?.Invoke(this, $"Receive error: {ex.Message}");
-                    }
-                    break;
-                }
-            }
-
-            // Connection closed
-            StatusChanged?.Invoke(this, "Connection closed by remote host");
-            Disconnected?.Invoke(this, EventArgs.Empty);
-        }
-
-        /// <summary>
-        /// Read exact number of bytes from stream
-        /// </summary>
-        private int ReadExact(NetworkStream stream, byte[] buffer, int offset, int count)
-        {
-            int totalRead = 0;
-            while (totalRead < count)
-            {
-                int bytesRead = stream.Read(buffer, offset + totalRead, count - totalRead);
-                if (bytesRead == 0)
-                    return totalRead; // Connection closed
-
-                totalRead += bytesRead;
-            }
-            return totalRead;
-        }
-
-        /// <summary>
-        /// Cleanup resources
-        /// </summary>
-        private void Cleanup()
-        {
-            try
-            {
-                _cts?.Cancel();
-                _stream?.Close();
-                _tcpClient?.Close();
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
-
-            _stream = null;
-            _tcpClient = null;
-        }
-
-        /// <summary>
-        /// Closes the connection and releases the cancellation source. Calls after the first do nothing.
+        /// Closes the connection and releases it. Calls after the first do nothing.
         /// </summary>
         /// <remarks>
         /// Unlike <see cref="Disconnect"/>, this does not raise <see cref="StatusChanged"/> or
-        /// <see cref="Disconnected"/> itself.
+        /// <see cref="Disconnected"/>.
         /// </remarks>
         public void Dispose()
         {
             if (_disposed)
+            {
                 return;
+            }
 
             _disposed = true;
-            Cleanup();
-            _cts?.Dispose();
+            _connection?.Close();
         }
     }
 
     /// <summary>
-    /// Event args for XOT data events
+    /// Event data for the XOT test client and server data events.
     /// </summary>
     public class XotDataEventArgs : EventArgs
     {
@@ -338,6 +282,6 @@ namespace RetroX25.Xot
         /// <summary>
         /// <c>"TX"</c> for a packet this side sent, <c>"RX"</c> for a packet this side received.
         /// </summary>
-        public string Direction { get; set; } = string.Empty; // "TX" or "RX"
+        public string Direction { get; set; } = string.Empty;
     }
 }

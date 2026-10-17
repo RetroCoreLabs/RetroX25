@@ -7,12 +7,18 @@
 
 using System;
 using System.Text;
+using RetroIO.Protocols.X25.Models;
 
 namespace RetroX25.Xot
 {
     /// <summary>
-    /// Utilities for formatting and displaying XOT packets
+    /// Formats XOT and X.25 packets for display: hex dumps, ASCII, the XOT header, and building or
+    /// taking apart an XOT packet.
     /// </summary>
+    /// <remarks>
+    /// What kind of X.25 packet something is, and where its user data starts, is decided by
+    /// <see cref="X25PacketParser"/> in RetroIO. This class does not read X.25 header bits itself.
+    /// </remarks>
     public static class XotPacketFormatter
     {
         /// <summary>
@@ -66,13 +72,18 @@ namespace RetroX25.Xot
             sb.AppendLine($"[{timestamp:HH:mm:ss.fff}] {direction} {x25Packet.Length} bytes - {packetType}");
             sb.AppendLine($"  Hex: {FormatHexDump(x25Packet)}");
 
-            // If it's a data packet, also show ASCII
-            if (x25Packet.Length > 4 && (x25Packet[3] & 0x01) == 0)
+            // A data packet also shows its user data as text. The parser says where the data starts, so
+            // the offset is not worked out here a second time.
+            if (x25Packet.Length >= 3)
             {
-                string ascii = FormatAscii(x25Packet, 4, x25Packet.Length - 4);
-                if (!string.IsNullOrEmpty(ascii))
+                X25PacketInfo info = X25PacketParser.ParsePacket(x25Packet);
+                if (info.PacketType == X25PacketType.Data && info.UserData.Length > 0)
                 {
-                    sb.AppendLine($"  ASCII: {ascii}");
+                    string ascii = FormatAscii(x25Packet, x25Packet.Length - info.UserData.Length, info.UserData.Length);
+                    if (!string.IsNullOrEmpty(ascii))
+                    {
+                        sb.AppendLine($"  ASCII: {ascii}");
+                    }
                 }
             }
 
