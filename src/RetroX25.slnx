@@ -12,6 +12,8 @@
     <Project Path="RetroX25.Xot/RetroX25.Xot.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/RetroX25.Console.Tests/RetroX25.Console.Tests.csproj" />
+    <Project Path="tests/RetroX25.Xot.Tests/RetroX25.Xot.Tests.csproj" />
     <Project Path="tests/RetroX25.Monitor.Desktop.Tests/RetroX25.Monitor.Desktop.Tests.csproj" />
     <Project Path="tests/RetroX25.Desktop.Tests/RetroX25.Desktop.Tests.csproj" />
     <Project Path="tests/RetroX25.Tests/RetroX25.Tests.csproj" />
