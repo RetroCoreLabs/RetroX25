@@ -23,13 +23,22 @@
   "build": {
     "content": [
       { "files": [ "api/**.yml", "api/index.md" ] },
-      { "files": [ "*.md", "toc.yml" ] }
+      { "files": [ "*.md", "toc.yml" ] },
+      {
+        "files": [ "RetroX25.*/README.md", "demo/README.md" ],
+        "exclude": [ "**/obj/**", "**/bin/**" ],
+        "src": "..",
+        "dest": "apps"
+      }
     ],
+    "resource": [ { "files": [ "images/**" ] } ],
     "output": "_site",
     "globalMetadata": {
+      "_appLogoPath": "images/RetroX25.png",
+      "_appFaviconPath": "images/RetroX25.ico",
       "_appName": "RetroX25",
       "_appTitle": "RetroX25 API reference",
-      "_appFooter": "Copyright (c) 1985-2026 Ronny Hansen - MIT License - RetroCore Labs",
+      "_appFooter": "Copyright (c) 1985-2026 Ronny Hansen - MIT License - RetroCore Labs - <a href=\"https://github.com/RetroCoreLabs/RetroX25\">GitHub</a>",
       "_enableSearch": true,
       "_disableContribution": false,
       "_gitContribute": {

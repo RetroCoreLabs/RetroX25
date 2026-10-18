@@ -22,7 +22,12 @@ them.
  - `docfx.json`: scans every `RetroX25.*/*.csproj` (the tests are not included) and writes
    YAML metadata into `api/`, then renders the site into `_site/`.
  - `index.md`: the landing page.
- - `toc.yml`: top-level navigation.
+ - `toc.yml`: top-level navigation (header menu). Generated from the tracked application READMEs
+   by `gen_toc.py`; run `python src/docfx/gen_toc.py` after adding or renaming one. CI runs it
+   with `--check`.
+ - `images/`: the site logo and tab icon (the desktop application's icon).
+ - the application READMEs (`RetroX25.*/README.md`, `demo/README.md`) are published as articles
+   under `apps/`.
  - `api/index.md`: the API reference landing page.
 
 `_site/` and `api/*.yml` are generated and git-ignored.

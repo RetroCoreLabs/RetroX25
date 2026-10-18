@@ -57,10 +57,13 @@ jobs:
           # runner image having done so.
           "$env:USERPROFILE\.dotnet\tools" >> $env:GITHUB_PATH
 
+      - name: Check the navigation is current
+        run: python src/docfx/gen_toc.py --check
+
       # DocFX restores and compiles every application itself to read the XML comments.
       - name: Build site
         working-directory: src
-        run: docfx docfx/docfx.json
+        run: docfx docfx/docfx.json --warningsAsErrors
 
       - uses: actions/upload-pages-artifact@v5
         with:
