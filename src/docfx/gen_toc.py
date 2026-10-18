@@ -58,6 +58,8 @@ def build():
         "- name: API Reference",
         "  href: api/",
         "  topicHref: api/index.md",
+        "- name: RetroCore Labs",
+        "  href: https://retrocorelabs.github.io/",
         "- name: GitHub",
         "  href: %s" % REPO_URL,
         "",
