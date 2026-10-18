@@ -46,7 +46,7 @@
         "branch": "main"
       }
     },
-    "template": [ "default", "modern" ],
+    "template": [ "default", "modern", "template" ],
     "postProcessors": [ "ExtractSearchIndex" ],
     "keepFileLink": false,
     "disableGitFeatures": false

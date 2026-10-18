@@ -34,4 +34,4 @@ them.
 
 ## Live site
 
-<https://retrocorelabs.github.io/retrox25/>
+<https://retrocorelabs.github.io/RetroX25/>

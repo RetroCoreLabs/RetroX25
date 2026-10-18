@@ -7,7 +7,7 @@ tools — built on the `RetroIO.Protocols.X25.*` packages.
 [![release](https://img.shields.io/github/v/release/RetroCoreLabs/RetroX25)](https://github.com/RetroCoreLabs/RetroX25/releases)
 [![licence](https://img.shields.io/github/license/RetroCoreLabs/RetroX25)](LICENSE)
 [![downloads](https://img.shields.io/github/downloads/RetroCoreLabs/RetroX25/total)](https://github.com/RetroCoreLabs/RetroX25/releases)
-[Applications](#the-ten-applications) · [Prerequisites](#prerequisites) · [The demo network](#the-demo-network) · [About X.25](#about-x25) · [API reference](https://retrocorelabs.github.io/retrox25/)
+[Applications](#the-ten-applications) · [Prerequisites](#prerequisites) · [The demo network](#the-demo-network) · [About X.25](#about-x25) · [API reference](https://retrocorelabs.github.io/RetroX25/)
 
 <!-- A 5-15 second recording: the switch running, a call placed from x25pad, the packets
      appearing in x25monitor. Under 10 MB. Uncomment when the capture exists.
