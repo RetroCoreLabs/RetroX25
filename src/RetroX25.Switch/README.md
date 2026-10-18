@@ -67,9 +67,10 @@ INI. `src\demo\switch-a.ini` is the fullest example.
 Defaults follow the switch configuration specification: window size **2**, packet size **128**, LCI base **1**,
 count **16**, TCP port **1998**. A file shorter than you expect is not necessarily incomplete.
 
-A port accepts calls only on the logical channels it declares (`lci_base`, `lci_count`). A call on any other channel
-is answered with a diagnostic and fails. `x25traffic` declares 2048 channels and starts from the highest, so the
-demo's access port sets `lci_count = 2048`.
+A port carries as many calls at once as it has logical channels (`lci_base`, `lci_count`). XOT gives every call its
+own TCP connection (RFC 1613 section 5) and the channel number a peer puts on the wire has no meaning, so the switch
+numbers each call from the port's own range and the peer's number is not used as it is. `x25traffic` in call-storm
+mode holds up to 2048 calls open together, so the demo's access port sets `lci_count = 2048`.
 
 ## Where it sits
 
