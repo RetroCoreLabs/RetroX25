@@ -668,19 +668,28 @@ TAD> QUIT
 
 `QUIT` clears the call normally (R1's log shows a Clear and a Clear Confirm, no Reset).
 
-**Two defects remain, seen on the same run** (a code audit of RetroIO, 2026-11-10, points at the first as
-the cause of both; the link is not proven):
+**Two defects were seen on that run, and both are fixed (checked 2026-11-10 from R1).** A stray `~` appeared
+before the banner, and typed characters showed twice (`HELP HELP`, `hello cisco 42co 42`). The cause was that
+the TAD built its own X.25 packets and the runtime re-sent only their data, so the TAD's X.29 SET (the
+`~` is 0x7E, the value of X.3 parameter 3) went out without the Q bit and the router printed it as text and
+kept its own echo on. The TAD now hands the runtime plain "send this data, with these Q/M/D bits" requests,
+and the XOT circuit's one packet engine builds the packets. With that build, from R1:
 
-1. A stray `~` appears before the banner. `~` is 0x7E, the value of X.3 parameter 3 in the TAD's X.29 SET
-   message. That message must go out with the Q bit set. The path the TAD uses on an XOT circuit
-   (`ForwardOldLayerPacketToEndpoint` in `ProtocolRuntime`) calls the send with no Q bit and no M bit,
-   so the SET arrives as ordinary text.
-2. Typed characters show twice (`HELP HELP`). The same SET was meant to switch the router's local echo off;
-   if the router never took it as a SET, it keeps echoing and the TAD echoes too. This explanation is a
-   guess from the evidence, not tested.
+```
+R1#pad 23430200
+Trying 23430200...Open
+*** X.25 TAD Loopback Echo Service ***
+...
+TAD> HELP
+*** X.25 TAD Server Help ***
+...
+TAD> hello cisco 42
+Echo: hello cisco 42
+```
 
-The first run of the old build showed Q and M set on the wire (`Data (12) Q`, `Data (131) M`); the current
-build was not traced with `debug x25 xot`. Do that before fixing.
+No `~`, each typed line shown once, and `QUIT` ends the call. A unit test
+(`TadOverXotQBitTests`) calls the TAD over a real XOT connection and checks the SET has the Q bit, the banner
+has no stray bytes and the long banner carries the M bit. `debug x25 xot` was not switched on for the router run.
 
 ### The window fault seen first, and why it is gone
 
