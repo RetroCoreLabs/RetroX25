@@ -45,6 +45,9 @@ namespace RetroX25.Traffic
         private static volatile bool _running = true;
         private static bool _callMode;
 
+        // Call user data put in every Call Request (null = none). Set with -u.
+        private static byte[]? _callUserData;
+
         /// <summary>
         /// Program entry point.
         /// </summary>
@@ -94,6 +97,19 @@ namespace RetroX25.Traffic
                         break;
                     case "-C":
                         callMode = true;
+                        break;
+                    case "-u":
+                        // Call user data as hex, for example 01000000 = the X.29 PAD marker a Cisco PAD wants.
+                        if (i + 1 >= args.Length) { return Usage(); }
+                        try
+                        {
+                            _callUserData = Convert.FromHexString(args[++i]);
+                        }
+                        catch (FormatException)
+                        {
+                            Console.Error.WriteLine("-u needs an even number of hex digits, for example 01000000");
+                            return 1;
+                        }
                         break;
                     case "-v":
                         verbosity++;
@@ -189,7 +205,7 @@ namespace RetroX25.Traffic
             });
 
             Console.WriteLine($"Calling {called}...");
-            X25Vc? vc = client.CallWait(called, 5000);
+            X25Vc? vc = client.CallWait(called, 5000, _callUserData);
             if (vc == null)
             {
                 Console.Error.WriteLine("Call failed");
@@ -243,13 +259,37 @@ namespace RetroX25.Traffic
                 }
             }
 
+            // The send speed is measured up to the last packet sent.
+            double sendSeconds = sw.Elapsed.TotalSeconds;
+
+            // Echoes are still on their way when the last packet leaves. Reporting now counts them as
+            // lost: a run at full speed showed 68% "delivery" for that reason alone. Wait until
+            // everything sent has come back, or until nothing has arrived for one second (the peer
+            // does not echo, or packets really were lost). Skipped when the circuit already cleared or
+            // the user pressed Ctrl-C.
+            if (_running)
+            {
+                long lastSeen = Interlocked.Read(ref _recvPkts);
+                long lastChangeMs = sw.ElapsedMilliseconds;
+                while (_running && lastSeen < sent && sw.ElapsedMilliseconds - lastChangeMs < 1000)
+                {
+                    Thread.Sleep(5);
+                    long now = Interlocked.Read(ref _recvPkts);
+                    if (now != lastSeen)
+                    {
+                        lastSeen = now;
+                        lastChangeMs = sw.ElapsedMilliseconds;
+                    }
+                }
+            }
+
             double elapsed = sw.Elapsed.TotalSeconds;
             long recvPkts = Interlocked.Read(ref _recvPkts);
             long recvBytes = Interlocked.Read(ref _recvBytes);
 
             Console.WriteLine("\n=== Stream Results ===");
-            Console.WriteLine($"Duration:  {elapsed:F2} seconds");
-            Console.WriteLine($"Sent:      {sent} pkts, {sentBytes} bytes ({KbitPerSec(sentBytes, elapsed):F0} Kbit/s)");
+            Console.WriteLine($"Duration:  {elapsed:F2} seconds ({sendSeconds:F2} sending, the rest waiting for echoes)");
+            Console.WriteLine($"Sent:      {sent} pkts, {sentBytes} bytes ({KbitPerSec(sentBytes, sendSeconds):F0} Kbit/s)");
             Console.WriteLine($"Received:  {recvPkts} pkts, {recvBytes} bytes ({KbitPerSec(recvBytes, elapsed):F0} Kbit/s)");
             if (sent > 0)
             {
@@ -310,7 +350,7 @@ namespace RetroX25.Traffic
             // Phase 1: open circuits (paced to the call-setup rate).
             for (int i = 0; i < numCalls && _running; i++)
             {
-                X25Vc? vc = client.Call(called);
+                X25Vc? vc = client.Call(called, _callUserData);
                 if (vc == null)
                 {
                     failed++;
@@ -438,6 +478,7 @@ namespace RetroX25.Traffic
                 "    -p pkts    Packets per call (default 3)\n" +
                 "  Common:\n" +
                 "    -s size    Packet size (default 128)\n" +
+                "    -u hex     Call user data in hex (01000000 = PAD marker, needed to call a Cisco PAD)\n" +
                 "    -v         Verbose");
             return 1;
         }

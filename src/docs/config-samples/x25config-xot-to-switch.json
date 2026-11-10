@@ -1,0 +1,77 @@
+{
+  "SerialPort": "NONE",
+  "BaudRate": 19200,
+  "HistoryCapacity": 500,
+
+  "Lapb": {
+    "IsDCE": true,
+    "T1Timeout": "00:00:03",
+    "T2Timeout": "00:00:00.200",
+    "T3Timeout": "00:00:00",
+    "MaxRetries": 5,
+    "WindowSize": 7,
+    "Modulo": 8
+  },
+
+  "X25": {
+    "LocalMachineId": "99990002",
+    "T20Timeout": "00:00:30",
+    "T21Timeout": "00:03:00",
+    "T22Timeout": "00:00:30",
+    "T23Timeout": "00:03:00",
+    "MaxRetries": 3,
+    "WindowSize": 2,
+    "PacketSize": 128,
+    "Modulo": 8
+  },
+
+  "Routing": {
+    "Enabled": true,
+    "SerialInterfaces": [],
+    "XotInterfaces": [
+      {
+        "Name": "XOT_ToSwitch",
+        "Enabled": true,
+        "Mode": "Client",
+        "RemoteIPAddress": "127.0.0.1",
+        "RemotePort": 2200,
+        "RemoteMachineId": "23500000",
+        "TcpKeepalive": true,
+        "KeepAliveIntervalSeconds": 30,
+        "ProtocolMode": "X25Only",
+        "Description": "XOT client to the RetroX25 switch, caller port 0 (switch-cisco.ini)"
+      }
+    ],
+    "TcpLapbInterfaces": [],
+    "RoutingTable": [
+      {
+        "Name": "ToSwitch_2350",
+        "X121AddressPattern": "2350.*",
+        "Type": "Interface",
+        "Destination": "XOT_ToSwitch",
+        "Priority": 100,
+        "Enabled": true,
+        "Description": "Echo service and other 2350 addresses, through the switch"
+      },
+      {
+        "Name": "ToSwitch_2360",
+        "X121AddressPattern": "2360.*",
+        "Type": "Interface",
+        "Destination": "XOT_ToSwitch",
+        "Priority": 100,
+        "Enabled": true,
+        "Description": "The Cisco routers (R1 23600001, R2 23600002), through the switch"
+      }
+    ],
+    "KnownHosts": []
+  },
+
+  "Timers": {
+    "CentralTimerManagement": true
+  },
+
+  "Logging": {
+    "EnableFileLogging": false,
+    "LogLevel": "Debug"
+  }
+}

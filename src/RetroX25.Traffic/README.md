@@ -51,7 +51,7 @@ x25traffic -x host:port -d address [options]
 
   Stream mode (default):  -n count (0=infinite)   -r rate pkts/sec (0=max)
   Call storm mode (-C):   -C   -n calls   -r calls/sec   -p pkts per call (default 3)
-  Common:                 -s size (default 128)   -v
+  Common:                 -s size (default 128)   -u hex   -v
 ```
 
 | Option | Meaning |
@@ -63,6 +63,7 @@ x25traffic -x host:port -d address [options]
 | `-r rate` | Per second. `0` = as fast as possible |
 | `-p pkts` | Packets per call in storm mode. Default 3 |
 | `-s size` | Packet size. Default 128 |
+| `-u hex` | Call user data to put in every Call Request, as hex digits. Default none. `-u 01000000` is the X.29 PAD marker; a Cisco router's PAD refuses a call without it. A PAD answers with echoes and prompts, so the delivery percentage means nothing against one; use the echo service for that |
 | `-v` | Verbose |
 
 ```powershell
