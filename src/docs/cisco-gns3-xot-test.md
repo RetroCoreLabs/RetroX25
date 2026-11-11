@@ -249,7 +249,8 @@ Everything is on the PC except the routers. Three terminals, from `src`:
    (`-q` = quiet, a plain echo. **Needed for the burst test:** without it the echo service greets every
    caller, which is one packet the traffic tool did not send, so it would count one more packet back than
    it sent. For typing at it from a PAD, start it without `-q`: it then says "Welcome to the echo server.
-   Type exit to leave." and hangs up when you type `exit` or press Ctrl-D.)
+   Type exit to leave." and ends the call when you type `exit` or press Ctrl-D. It also turns every CR you
+   type into CR LF, so a router's line-mode PAD does not draw each echo over the previous line.)
 3. A burst test: `dotnet RetroX25.Traffic\bin\Debug\net10.0\x25traffic.dll -x 127.0.0.1:2200 -d 23500001 -n 50000 -r 0`
 
 Pass: the last lines say `Delivery: 100.0%`, in a few seconds. If it hangs, you have an old RetroIO
@@ -360,6 +361,17 @@ the switch log with `-v -v` showed the same bytes on port 3 and port 1.) Then le
 
 In the switch log you should see `Port 1: incoming call 23600001 -> 23500001`, then `Port 3: call accepted`.
 
+**Leaving with `exit` (checked on R1, 2026-11-11).** Without `-q`, type `exit` and Enter. The echo service
+answers `Goodbye.` and then sends an X.29 "invitation to clear": a data packet with the Q-bit set holding
+one byte, `0x01` (X.29 section 3.2.1). The router's PAD shows the goodbye first and then clears the call
+itself; R1 prints `[Connection to 23500001 closed by foreign host]`. In `debug x25 xot`: Goodbye is
+`PS 2`, the invitation is `PS 3` with `Q`, and the router's `Clear` follows 4 ms later. **Why not just
+clear?** The echo service used to send the goodbye and clear at once. On the wire the goodbye
+arrived before the clear, yet the router never showed it (measured; I did not find out why the PAD
+drops it, X.25 section 4.5 only says data before a clear may be discarded). A 500 ms wait before the clear
+also made it show, but a delay is not a fix. The echo service now waits for the router to acknowledge the invitation and
+clears the call itself only if the router has not cleared within 2 seconds.
+
 **A2. R2 calls the echo service, through R1.** On R2:
 
 ```
@@ -388,8 +400,9 @@ Trying 23500001...Open
 ```
 
 Type a line and press Enter: the same bytes come back from the echo service (checked: the switch log shows
-`telnet test line` plus CR going out on port 3 and coming back on port 1). On screen you may see the line only
-once, because the echoed copy is drawn over the one you typed.
+`telnet test line` plus CR going out on port 3 and coming back on port 1). With `-q` (a plain echo) you may see the
+line only once, because the echoed copy is drawn over the one you typed. Without `-q` the echo service adds
+the line feed, so each echo is on its own line.
 
 Leave the call with Ctrl-^ then `x` (this works over telnet; checked). You are back at `R1>` and the call is
 still open; `show x25 vc` shows it, for example `23600001 connected to 23500001 PAD <--> XOT 192.168.1.180,1998`

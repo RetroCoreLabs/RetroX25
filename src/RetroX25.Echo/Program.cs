@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using RetroIO.Protocols.X25.Client;
@@ -129,6 +130,10 @@ namespace RetroX25.Echo
             ConcurrentQueue<EchoItem> pending = new ConcurrentQueue<EchoItem>();
             long dropped = 0;
 
+            // Per circuit: true when the last byte echoed was a CR that was turned into CR LF, so a
+            // following LF is not echoed a second time.
+            ConcurrentDictionary<X25Vc, bool> afterCr = new ConcurrentDictionary<X25Vc, bool>();
+
             // Text typed so far on each circuit, kept to spot the exit command.
             ConcurrentDictionary<X25Vc, System.Text.StringBuilder> lines = new ConcurrentDictionary<X25Vc, System.Text.StringBuilder>();
 
@@ -168,8 +173,20 @@ namespace RetroX25.Echo
                     return;
                 }
 
-                byte[] copy = new byte[length];
-                Buffer.BlockCopy(data, 0, copy, 0, length);
+                byte[] copy;
+                if (quiet || qBit)
+                {
+                    // A plain echo, byte for byte (and never touch an X.29 control message).
+                    copy = new byte[length];
+                    Buffer.BlockCopy(data, 0, copy, 0, length);
+                }
+                else
+                {
+                    afterCr.TryGetValue(vc, out bool previousWasCr);
+                    copy = EchoForTerminal(data, length, ref previousWasCr);
+                    afterCr[vc] = previousWasCr;
+                }
+
                 pending.Enqueue(new EchoItem(vc, copy, qBit));
 
                 if (quiet)
@@ -201,7 +218,11 @@ namespace RetroX25.Echo
 
                     if (leave)
                     {
-                        pending.Enqueue(new EchoItem(vc, System.Text.Encoding.ASCII.GetBytes("\r\nGoodbye.\r\n"), false, true));
+                        pending.Enqueue(new EchoItem(vc, System.Text.Encoding.ASCII.GetBytes("\r\nGoodbye.\r\n"), false));
+                        // X.29 section 3.2.1: the invitation to clear asks the PAD to clear the call after it
+                        // has delivered all earlier data to the terminal. It is a Q-bit packet holding the
+                        // single octet 0x01 (X.29 4.4.3). The echo clears itself only if the peer does not.
+                        pending.Enqueue(new EchoItem(vc, new byte[] { 0x01 }, true, true));
                         lines.TryRemove(vc, out _);
                         return;
                     }
@@ -226,8 +247,21 @@ namespace RetroX25.Echo
                         idle = 0;
                         if (next.Close && next.Vc.Connected)
                         {
-                            log.LogInformation("Echo: caller typed exit, clearing the call");
-                            client.Clear(next.Vc);
+                            // X.25 section 4.5: data sent just before a clear may be discarded by the
+                            // network, so the goodbye is given time to be acknowledged by the peer's
+                            // packet layer first (its P(R) reaching our V(S)), not a fixed delay.
+                            bool acknowledged = client.WaitForAcknowledgement(next.Vc, 2000);
+                            // Give the PAD time to show the goodbye and clear the call itself.
+                            Stopwatch wait = Stopwatch.StartNew();
+                            while (next.Vc.Connected && wait.ElapsedMilliseconds < 2000)
+                            {
+                                Thread.Sleep(10);
+                            }
+                            log.LogInformation("Echo: caller typed exit (invitation acknowledged: {Acknowledged}, peer cleared: {PeerCleared})", acknowledged, !next.Vc.Connected);
+                            if (next.Vc.Connected)
+                            {
+                                client.Clear(next.Vc);
+                            }
                         }
                     }
                     else if (++idle < 2000)
@@ -252,6 +286,7 @@ namespace RetroX25.Echo
             client.SetOnClear((c, vc, cause, diag) =>
             {
                 lines.TryRemove(vc, out _);
+                afterCr.TryRemove(vc, out _);
                 log.LogInformation("Echo: Call cleared (cause={Cause:X2} diag={Diag:X2})", cause, diag);
             });
 
@@ -286,6 +321,57 @@ namespace RetroX25.Echo
         }
 
         /// <summary>
+        /// Builds the echo of a typed packet for a person at a terminal: every CR goes back as CR LF,
+        /// so the next echoed line starts on its own row instead of drawing over this one.
+        /// </summary>
+        /// <remarks>
+        /// A PAD in line mode, such as a Cisco router's, ends a typed line with a bare CR. Echoed
+        /// byte for byte, that CR returns the cursor to the start of the same row and the next echo
+        /// overwrites the line. An LF that directly follows a CR (in the same packet or the next one) is
+        /// part of the same line end and is not echoed again.
+        /// </remarks>
+        /// <param name="data">
+        /// The packet's user data.
+        /// </param>
+        /// <param name="length">
+        /// Number of valid bytes in <paramref name="data"/>.
+        /// </param>
+        /// <param name="previousWasCr">
+        /// True on entry when the last byte of the circuit's previous packet was a CR that was turned
+        /// into CR LF; set on exit for the next packet.
+        /// </param>
+        internal static byte[] EchoForTerminal(byte[] data, int length, ref bool previousWasCr)
+        {
+            byte[] result = new byte[length * 2];
+            int n = 0;
+
+            for (int i = 0; i < length; i++)
+            {
+                byte b = data[i];
+                if (b == 0x0A && previousWasCr)
+                {
+                    previousWasCr = false;
+                    continue;
+                }
+
+                result[n++] = b;
+                if (b == 0x0D)
+                {
+                    result[n++] = 0x0A;
+                    previousWasCr = true;
+                }
+                else
+                {
+                    previousWasCr = false;
+                }
+            }
+
+            byte[] echo = new byte[n];
+            Buffer.BlockCopy(result, 0, echo, 0, n);
+            return echo;
+        }
+
+        /// <summary>
         /// Prints usage to standard error and returns the error exit code.
         /// </summary>
         /// <returns>
@@ -296,7 +382,7 @@ namespace RetroX25.Echo
             Console.Error.WriteLine("Usage: x25echo [-x host:port] [-a address] [-q] [-v]");
             Console.Error.WriteLine("  -x host:port  XOT switch to connect to (default 127.0.0.1:2006)");
             Console.Error.WriteLine("  -a address    Local X.121 address to answer on (default 23420001)");
-            Console.Error.WriteLine("  -q            Quiet: no welcome text and no exit command, only a plain echo");
+            Console.Error.WriteLine("  -q            Quiet: no welcome text, no exit command and no CR to CR LF change, only a plain byte-for-byte echo");
             Console.Error.WriteLine("                (use for x25traffic runs, which count every packet they get back)");
             Console.Error.WriteLine("  -v            Verbose (repeat for more)");
             return 1;
