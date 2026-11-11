@@ -534,6 +534,13 @@ It prints a line every 2 seconds: packets sent and received. What to look for: t
 in step; the call does not clear (the tool stops by itself if the call clears); the switch log shows
 no `clear`, `reset` or `connection down` lines.
 
+**Many calls at once (call storm), checked 2026-11-11.** `x25traffic -C -n 2000 -r 0 -p 3` opens 2000 calls on one
+connection. The caller port of `demo/switch-cisco.ini` has 64 channels (`lci_count = 64`), so 64 connect and the
+other 1936 are cleared by the switch with cause 5 (network congestion, X.25 Table 5-7). The tool prints
+`2000 VCs (64 connected, 1936 refused, 0 unanswered, 0 failed to send)` in about 0.25 seconds. Raise
+`lci_count` to connect more at once. Before the fix the switch answered the call that did not fit with a
+Diagnostic, which a caller does not take as an answer, so those calls hung and the run took 77 seconds.
+
 **Many short calls, over and over** (finds leaks that one long call cannot):
 
 ```powershell

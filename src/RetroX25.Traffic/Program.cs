@@ -41,6 +41,13 @@ namespace RetroX25.Traffic
         // Storm connect counter, updated from the connected callback.
         private static long _stormConnects;
 
+        // Storm: calls the network cleared before they were ever accepted (refused), counted from the
+        // clear callback, and how many of each clearing cause. A call counts as refused when it
+        // never connected; a clear of a call that had connected is not a refusal.
+        private static long _stormRefused;
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<X25Vc, bool> _stormConnected = new System.Collections.Concurrent.ConcurrentDictionary<X25Vc, bool>();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<byte, int> _stormRefusalCauses = new System.Collections.Concurrent.ConcurrentDictionary<byte, int>();
+
         // Run flag toggled by Ctrl+C and by stream-mode clear.
         private static volatile bool _running = true;
         private static bool _callMode;
@@ -329,7 +336,23 @@ namespace RetroX25.Traffic
             if (numCalls <= 0) { numCalls = 1000; }
             if (numCalls > MaxStormVcs) { numCalls = MaxStormVcs; }
 
-            client.SetOnConnected((c, vc) => Interlocked.Increment(ref _stormConnects));
+            client.SetOnConnected((c, vc) =>
+            {
+                _stormConnected[vc] = true;
+                Interlocked.Increment(ref _stormConnects);
+            });
+
+            // A call the network clears before accepting it is a refusal. The call is not left out
+            // of the totals: it used to be neither "connected" nor "failed", so a switch that was
+            // out of channels looked like a run with a few calls missing.
+            client.SetOnClear((c, vc, cause, diag) =>
+            {
+                if (!_stormConnected.ContainsKey(vc))
+                {
+                    Interlocked.Increment(ref _stormRefused);
+                    _stormRefusalCauses.AddOrUpdate(cause, 1, (k, n) => n + 1);
+                }
+            });
 
             byte[] payload = new byte[pktSize];
             for (int i = 0; i < pktSize; i++)
@@ -373,15 +396,21 @@ namespace RetroX25.Traffic
                 }
             }
 
-            // Wait for outstanding connects (up to ~5s).
-            for (int w = 0; w < 5000 && Interlocked.Read(ref _stormConnects) < opened; w++)
+            // Wait up to 5 seconds until every call has been answered, either accepted or refused.
+            // The wait is measured with a stopwatch: a loop of 5000 Thread.Sleep(1) lasted about 77
+            // seconds on Windows, where Sleep(1) is a 15 ms tick.
+            Stopwatch answerWait = Stopwatch.StartNew();
+            while (answerWait.ElapsedMilliseconds < 5000
+                   && Interlocked.Read(ref _stormConnects) + Interlocked.Read(ref _stormRefused) < opened)
             {
                 Thread.Sleep(1);
             }
 
             double phase1Sec = total.Elapsed.TotalSeconds;
             long connected = Interlocked.Read(ref _stormConnects);
-            Console.WriteLine($"\n  Opened: {opened} VCs ({connected} connected, {failed} failed) in {phase1Sec:F2} sec");
+            long refused = Interlocked.Read(ref _stormRefused);
+            long unanswered = Math.Max(0, opened - connected - refused);
+            Console.WriteLine($"\n  Opened: {opened} VCs ({connected} connected, {refused} refused, {unanswered} unanswered, {failed} failed to send) in {phase1Sec:F2} sec");
 
             // Phase 2: send on every connected circuit.
             Console.WriteLine($"  Sending {pktsPerCall} packets on each VC...");
@@ -432,7 +461,12 @@ namespace RetroX25.Traffic
             double totalSec = total.Elapsed.TotalSeconds;
 
             Console.WriteLine("\n=== Call Storm Results ===");
-            Console.WriteLine($"VCs opened:    {opened} ({connected} connected, {failed} failed)");
+            Console.WriteLine($"VCs opened:    {opened} ({connected} connected, {refused} refused, {unanswered} unanswered, {failed} failed to send)");
+            foreach (System.Collections.Generic.KeyValuePair<byte, int> cause in _stormRefusalCauses)
+            {
+                Console.WriteLine($"Refused:       {cause.Value} with clearing cause {cause.Key} (0x{cause.Key:X2})");
+            }
+
             Console.WriteLine($"Setup time:    {phase1Sec:F2} sec ({(phase1Sec > 0 ? opened / phase1Sec : 0):F0} calls/sec)");
             Console.WriteLine($"Data sent:     {totalPkts} packets, {totalBytes} bytes ({KbitPerSec(totalBytes, phase2Sec):F0} Kbit/s)");
             Console.WriteLine($"Teardown:      {phase3Sec:F2} sec ({(phase3Sec > 0 ? cleared / phase3Sec : 0):F0} clears/sec)");
