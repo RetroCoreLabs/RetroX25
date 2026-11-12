@@ -803,7 +803,7 @@ The Desktop app (`RetroX25.exe`) can run the switch inside itself, so no `x25swi
 Start it with `docs\config-samples\x25config-embedded-switch.json` (it names `demo\switch-desktop.ini`, which has
 the same ports as `switch-cisco.ini` plus a dial-out port to the app's own XOT listener on 1999 for calls to the TAD).
 
-R1 needs the TAD route once: `x25 route ^2343 xot 192.168.1.180`.
+R1 needs the TAD route once: `x25 route ^2343 xot 192.168.1.180`. On the bench R1 it is added and saved with `write memory` (checked 2026-11-12: `show running-config | include x25 route` lists it).
 
 Checked against the real R1 with only the Desktop code running (headless UI test `Live_DesktopAloneWithItsOwnSwitch_CallsR1_AndIsCalledByR1`):
 
