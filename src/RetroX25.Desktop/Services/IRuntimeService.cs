@@ -5,6 +5,7 @@
 // RetroX25 - Accessing yesterday's X.25 networks with today's standards
 //
 
+using System;
 using RetroIO.Protocols.X25;
 using RetroIO.Protocols.X25.Runtime;
 
@@ -37,6 +38,25 @@ public interface IRuntimeService
     /// The runtime configuration.
     /// </param>
     void Initialize(RuntimeConfig config);
+
+    /// <summary>
+    /// Raised after <see cref="Restart"/> has replaced the runtime with a new one.
+    /// </summary>
+    /// <remarks>
+    /// Everything that holds the old runtime (status views, PAD clients, server windows) is holding
+    /// a disposed engine at this point and must let go of it and, if it still wants one, take the
+    /// new <see cref="Runtime"/>.
+    /// </remarks>
+    event EventHandler? RuntimeRestarted;
+
+    /// <summary>
+    /// Stops the running runtime and starts a new one on a configuration, so the new settings take
+    /// effect: its interfaces, routes and timers are the ones in <paramref name="config"/>.
+    /// </summary>
+    /// <param name="config">
+    /// The configuration the new runtime runs on.
+    /// </param>
+    void Restart(RuntimeConfig config);
 
     /// <summary>
     /// Disposes the runtime, if there is one. Afterwards <see cref="IsRunning"/> is false.

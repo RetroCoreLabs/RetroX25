@@ -796,3 +796,32 @@ Use `clear logging` first to start from an empty buffer.
 - The Windows PC's address comes from DHCP. If it changes, change `x25 route ^2350 xot ...` on R1.
 - `x25traffic` against a Cisco PAD proves call set-up and data flow only. For delivery rates use the
   echo service.
+
+## 12. The Desktop app alone (built-in switch), checked 2026-11-12
+
+The Desktop app (`RetroX25.exe`) can run the switch inside itself, so no `x25switch` and no `x25echo` is needed.
+Start it with `docs\config-samples\x25config-embedded-switch.json` (it names `demo\switch-desktop.ini`, which has
+the same ports as `switch-cisco.ini` plus a dial-out port to the app's own XOT listener on 1999 for calls to the TAD).
+
+R1 needs the TAD route once: `x25 route ^2343 xot 192.168.1.180`.
+
+Checked against the real R1 with only the Desktop code running (headless UI test `Live_DesktopAloneWithItsOwnSwitch_CallsR1_AndIsCalledByR1`):
+
+| Direction | Result |
+|---|---|
+| PAD window: `CALL 23600001` | `COM`, then `R1>`; `show clock` answered; Ctrl+P, `CLEAR` gives `CLEARED` and `PAD>` |
+| R1: `pad 23430200` | TAD banner and `TAD>` prompt; typed lines echoed; `QUIT` ends the call |
+
+Notes learned on the way:
+- Cisco keeps its TCP connection to the PC open after a call ends. Do not wait for it to close.
+- A dialling trunk port in the switch only places calls once its spare connection is up. The app therefore starts its
+  own listener first and the switch second.
+- Switch ports and routes in the `.ini` must be numbered without gaps (`port.0`, `port.1`, `port.2`, `port.3`):
+  a port number is its position, so `port.4` after `port.2` is port 3 and a route to port 4 gets cause 13.
+- X.28: `COM` means the call is connected. The PAD prints it only when the far end accepts. A call that cannot be
+  placed prints a `CLR` line, a call cleared by the far end prints `CLR`, and `PAD>` returns.
+- The main window shows each XOT link as `Connected`, `Listening`, `Far end answers` or `NOT REACHABLE: reason`, and a
+  `Switch:` line for the built-in switch.
+
+Opt-in live tests (skipped unless named): `Live_PadWindowCallsR1_ThroughTheRealSwitch` (needs `x25switch` with
+`demo\switch-cisco.ini` running), `Live_R1CallsTheTad_InTheDesktopRuntime` (needs R1 to call while it runs) and the one above.

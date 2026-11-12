@@ -68,8 +68,22 @@ which is what you need when the machine on the other end wants to call *you*.
 | **SINTRAN TAD Client / Server** | Both ends of SINTRAN terminal access |
 | **Simulate Receive** | Inject a frame with no peer present |
 
-Configuration changes **survive a restart** — that is part of what the configuration tabs are for, and worth
-checking after any change to them.
+### Starting on a configuration file
+
+The app starts on built-in defaults (a serial port that is switched off, and the built-in TAD server). To start
+on a file, name it on the command line, as with the text-mode console:
+
+```
+RetroX25.exe docs\config-samples\x25config-xot-to-switch.json
+```
+
+A file that is missing or not a configuration stops the app with a message naming the file. It does not fall back
+to the defaults, because a window that looks right and sends calls nowhere is worse than an error.
+
+**Tools → Configuration → Load...** reads a file into the Configuration window, and **Apply** then restarts the
+X.25 engine on those settings. The PAD, TAD and other windows that were open belonged to the old engine and are
+closed by the restart; open them again from the Windows menu. The settings are **not saved between runs**: the
+next start is on the defaults, or on the file named on the command line.
 
 ## How the windows relate to the stack
 
@@ -143,3 +157,34 @@ sequenceDiagram
   `RetroIO.Protocols.X25.Runtime` (`RetroIO/src/RetroIO.Protocols.X25.Runtime/README.md`) and
   `RetroIO.Protocols.X25` (`RetroIO/src/RetroIO.Protocols.X25/README.md`).
 - Tests: `src/tests/RetroX25.Desktop.Tests`.
+
+## One program is enough: the built-in switch
+
+The Desktop app can run an X.25 switch inside itself, so it needs no other program to reach a router.
+It is a setting in the configuration file, not a separate program:
+
+```
+RetroX25.exe docs\config-samples\x25config-embedded-switch.json
+```
+
+The file has an `EmbeddedSwitch` section (`Enabled`, and `ConfigFile`, the switch `.ini` file; a relative
+path is taken from the folder of the JSON file). The `.ini` is the same format the `x25switch` program reads
+(sample: `demo\switch-desktop.ini`). Without the section, the app uses no built-in switch and works with an
+external `x25switch` (sample: `docs\config-samples\x25config-xot-to-switch.json`).
+
+With the built-in switch on:
+- a PAD call to `23600001` goes from the app through its switch to the Cisco router;
+- the router calls `23430200` (the app's TAD) through the same switch;
+- do not run the `x25switch` program on the same PC at the same time: both listen on TCP 1998.
+
+Without a switch at all, `docs\config-samples\x25config-tad-callback.json` listens on 1998 and answers the
+TAD address directly.
+
+## Is the link working?
+
+The main window says it in plain words:
+- **Switch:** line: built in and running (ports, calls), built in and NOT running (with the reason, for
+  example a port already in use), or none built in.
+- Each XOT line: `Connected (TCP up)`, `Listening, N connection(s) open`, `Far end answers (no call placed
+  yet)` or `NOT REACHABLE: <reason>`. A client link only opens its TCP connection at the first call, so the
+  app tests the far end every few seconds; a dead switch or router shows before a call fails.

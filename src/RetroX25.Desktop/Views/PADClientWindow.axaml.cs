@@ -7,6 +7,7 @@
 
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Threading;
 using RetroX25.Desktop.ViewModels;
 
 namespace RetroX25.Desktop.Views;
@@ -42,6 +43,19 @@ public partial class PADClientWindow : Window
         // All keypresses are sent immediately to the PAD client
         this.KeyDown += (sender, e) =>
         {
+            // Ctrl+C copies the marked console text. With nothing marked it stays the terminal's
+            // break key, as before.
+            if (e.Key == Key.C && (e.KeyModifiers & KeyModifiers.Control) != 0)
+            {
+                SelectableTextBlock? box = this.FindControl<SelectableTextBlock>("ConsoleBox");
+                if (box != null && !string.IsNullOrEmpty(box.SelectedText))
+                {
+                    box.Copy();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
             viewModel.HandleKeyDown(e);
         };
 
@@ -50,6 +64,24 @@ public partial class PADClientWindow : Window
             if (!string.IsNullOrEmpty(e.Text))
             {
                 viewModel.HandleTextInput(e.Text);
+            }
+        };
+
+        // Follow the output: when new text arrives and the view was at the bottom, scroll to the new
+        // bottom. The check is made as the text changes, before the layout grows, so it compares the
+        // old extent. A person who has scrolled up to read is not pulled back down.
+        viewModel.PropertyChanged += (sender, e) =>
+        {
+            if (e.PropertyName != nameof(PADClientWindowViewModel.ConsoleText))
+            {
+                return;
+            }
+
+            ScrollViewer scroll = this.FindControl<ScrollViewer>("ConsoleScroll")!;
+            bool atBottom = scroll.Offset.Y + scroll.Viewport.Height >= scroll.Extent.Height - 2;
+            if (atBottom)
+            {
+                Dispatcher.UIThread.Post(() => scroll.ScrollToEnd(), DispatcherPriority.Background);
             }
         };
 

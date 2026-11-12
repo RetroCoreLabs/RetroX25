@@ -101,6 +101,7 @@
                             <Run Text=" | Gateway: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                             <Run Text="{Binding DefaultGateway}" FontWeight="SemiBold"/>
                         </TextBlock>
+                        <TextBlock Text="{Binding SwitchStatus}" FontSize="11" FontWeight="SemiBold"/>
                     </StackPanel>
                 </Border>
 
@@ -130,7 +131,7 @@
                                                 <Run Text="{Binding Details}"/>
                                                 <Run Text=" ["/>
                                                 <Run Text="{Binding Status}" FontWeight="SemiBold"/>
-                                                <Run Text="] â†’ Machine "/>
+                                                <Run Text="] → Machine "/>
                                                 <Run Text="{Binding RemoteMachineId}" FontWeight="SemiBold"/>
                                             </TextBlock>
 
@@ -196,7 +197,7 @@
 
                         <!-- HDLC Breakdown -->
                         <TextBlock FontSize="11" Margin="20,0,0,0">
-                            <Run Text="â”œâ”€ LAPB: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="├─ LAPB: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                             <Run Text="RX: "/>
                             <Run Text="{Binding HdlcLapbRxFrames}"/>
                             <Run Text=" | TX: "/>
@@ -204,7 +205,7 @@
                         </TextBlock>
 
                         <TextBlock FontSize="11" Margin="20,0,0,0">
-                            <Run Text="â”œâ”€ X.25: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="├─ X.25: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                             <Run Text="RX: "/>
                             <Run Text="{Binding HdlcX25RxFrames}"/>
                             <Run Text=" | TX: "/>
@@ -212,7 +213,7 @@
                         </TextBlock>
 
                         <TextBlock FontSize="11" Margin="20,0,0,0">
-                            <Run Text="â””â”€ Other: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Run Text="└─ Other: " Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                             <Run Text="RX: "/>
                             <Run Text="{Binding HdlcOtherRxFrames}"/>
                             <Run Text=" | TX: "/>

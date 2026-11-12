@@ -212,6 +212,7 @@ public partial class MainWindowViewModel : ViewModelWithLogger
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 
         IsRuntimeInitialized = _runtimeService.IsRunning;
+        _runtimeService.RuntimeRestarted += OnRuntimeRestarted;
 
         if (IsRuntimeInitialized)
         {
@@ -240,10 +241,50 @@ public partial class MainWindowViewModel : ViewModelWithLogger
     }
 
     /// <summary>
+    /// The runtime was replaced (the Configuration window's Apply): close the windows that hold the
+    /// old engine and attach this window to the new one.
+    /// </summary>
+    /// <remarks>
+    /// A PAD, TAD or packet window holds a call, a subscription or a history reader of the engine
+    /// that was just disposed, and cannot be moved to the new one, so it is closed; open it again
+    /// for a view of the new engine. The main window and the Configuration window (which is what
+    /// asked for the restart) stay.
+    /// </remarks>
+    private void OnRuntimeRestarted(object? sender, EventArgs e)
+    {
+        System.Collections.Generic.List<Avalonia.Controls.Window> open = _navigationService.GetOpenWindows();
+        for (int i = 0; i < open.Count; i++)
+        {
+            Avalonia.Controls.Window window = open[i];
+            if (window is not RetroX25.Desktop.Views.MainWindow && window is not RetroX25.Desktop.Views.ConfigurationWindow)
+            {
+                _navigationService.CloseWindow(window);
+            }
+        }
+
+        IsRuntimeInitialized = _runtimeService.IsRunning;
+        if (IsRuntimeInitialized)
+        {
+            SubscribeToRuntimeEvents();
+            PopulateInterfaces();
+            UpdateHostInformation();
+            UpdateRoutingStatistics();
+            UpdateStatus();
+        }
+
+        Logger.LogInformation("Main window attached to the restarted runtime");
+    }
+
+    /// <summary>
     /// Handle statistics updates from ProtocolRuntime.
     /// </summary>
     private void OnStatisticsUpdated(object? sender, StatisticsSnapshot stats)
     {
+        if (_serviceProvider.GetService(typeof(EmbeddedSwitchService)) is EmbeddedSwitchService embedded)
+        {
+            SwitchStatus = embedded.Describe();
+        }
+
         UpdateStatus(stats);
     }
 
@@ -309,6 +350,124 @@ public partial class MainWindowViewModel : ViewModelWithLogger
     }
 
     /// <summary>
+    /// Says in plain words what state an XOT link is really in.
+    /// </summary>
+    /// <param name="details">
+    /// The interface's detail text, which ends in (Client) or (Server).
+    /// </param>
+    /// <param name="status">
+    /// The transport's own status word, such as Active. For a client, Active only means ready: the
+    /// TCP connection is made at the first call.
+    /// </param>
+    /// <param name="connections">
+    /// The number of open TCP connections.
+    /// </param>
+    /// <param name="probe">
+    /// The result of the last quick connection test of the far end of a client link: null when it has not
+    /// been tested yet, an empty string when the far end answered, otherwise the reason it did not.
+    /// </param>
+    /// <returns>The text for the interface line.</returns>
+    internal static string DescribeXotLink(string details, string status, int connections, string? probe = null)
+    {
+        if (status != "Active")
+        {
+            return status;
+        }
+
+        if (details.EndsWith("(Server)", StringComparison.Ordinal))
+        {
+            return connections > 0
+                ? $"Listening, {connections} connection(s) open"
+                : "Listening, nobody connected";
+        }
+
+        if (connections > 0)
+        {
+            return $"Connected (TCP up, {connections})";
+        }
+
+        // No TCP connection yet (a client link connects at the first call): say what a quick
+        // connection test to the far end found, so a dead switch or router shows before a call fails.
+        if (probe == null)
+        {
+            return "Checking the far end...";
+        }
+
+        return probe.Length == 0
+            ? "Far end answers (no call placed yet)"
+            : "NOT REACHABLE: " + probe;
+    }
+
+    // Result of the last far-end test per client link: "" = answers, text = why not. Missing = not tested yet.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _probeResults = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _probeRunning = new();
+
+    /// <summary>
+    /// Starts a background connection test of a client link's far end, unless one is already running.
+    /// The result is used the next time the link's line is built.
+    /// </summary>
+    private void StartProbe(InterfaceStatusViewModel link)
+    {
+        string details = link.Details;
+        int colon = details.IndexOf(':');
+        int space = details.IndexOf(' ');
+        if (colon <= 0 || space <= colon || !int.TryParse(details.AsSpan(colon + 1, space - colon - 1), out int port))
+        {
+            return;
+        }
+
+        string host = details.Substring(0, colon);
+        string name = link.Name;
+        if (!_probeRunning.TryAdd(name, true))
+        {
+            return;
+        }
+
+        _ = System.Threading.Tasks.Task.Run(async () =>
+        {
+            string? reason = await XotLinkProbe.CheckAsync(host, port, 1500).ConfigureAwait(false);
+            _probeResults[name] = reason ?? "";
+            _probeRunning.TryRemove(name, out _);
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => RefreshXotLine(link));
+        });
+    }
+
+    /// <summary>
+    /// Tests the far end of every client link again and rebuilds every XOT line now, without waiting
+    /// for the next statistics update.
+    /// </summary>
+    public void RefreshLinksNow()
+    {
+        for (int i = 0; i < Interfaces.Count; i++)
+        {
+            InterfaceStatusViewModel link = Interfaces[i];
+            if (link.Type == "XOT" && link.Details.EndsWith("(Client)", StringComparison.Ordinal))
+            {
+                StartProbe(link);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds one XOT link's status line from the transport and the last far-end test.
+    /// </summary>
+    private void RefreshXotLine(InterfaceStatusViewModel link)
+    {
+        if (link.Transport == null)
+        {
+            return;
+        }
+
+        var stats = link.Transport.GetStatistics();
+        _probeResults.TryGetValue(link.Name, out string? probe);
+        link.Status = DescribeXotLink(link.Details, stats.CurrentStatus.ToString(), stats.ActiveConnections, probe);
+    }
+
+    /// <summary>The built-in switch's state in plain words, or why there is none.</summary>
+    [ObservableProperty]
+    private string _switchStatus = "";
+
+    /// <summary>
     /// Update individual interface statistics from transport layer
     /// </summary>
     private void UpdateInterfaceStatistics(StatisticsSnapshot stats)
@@ -322,7 +481,21 @@ public partial class MainWindowViewModel : ViewModelWithLogger
                 var transportStats = interfaceVm.Transport.GetStatistics();
                 interfaceVm.RxBytes = transportStats.BytesReceived;
                 interfaceVm.TxBytes = transportStats.BytesTransmitted;
-                interfaceVm.Status = transportStats.CurrentStatus.ToString();
+                if (interfaceVm.Type == "XOT")
+                {
+                    // Test the far end of a client link again each time the statistics update, so a switch
+                    // or router that goes away (or comes back) shows within a few seconds.
+                    if (interfaceVm.Details.EndsWith("(Client)", StringComparison.Ordinal))
+                    {
+                        StartProbe(interfaceVm);
+                    }
+
+                    RefreshXotLine(interfaceVm);
+                }
+                else
+                {
+                    interfaceVm.Status = transportStats.CurrentStatus.ToString();
+                }
 
                 // For serial interfaces, update LAPB state
                 if (interfaceVm.Type == "Serial")
@@ -542,6 +715,8 @@ public partial class MainWindowViewModel : ViewModelWithLogger
     /// </summary>
     public override void Dispose()
     {
+        _runtimeService.RuntimeRestarted -= OnRuntimeRestarted;
+
         if (IsRuntimeInitialized)
         {
             var runtime = _runtimeService.Runtime;
@@ -609,12 +784,14 @@ public partial class MainWindowViewModel : ViewModelWithLogger
                 ? $"{xotConfig.RemoteIPAddress}:{xotConfig.RemotePort} (Client)"
                 : $":{xotConfig.LocalPort} (Server)";
 
-            Interfaces.Add(new InterfaceStatusViewModel
+            InterfaceStatusViewModel xotLine = new InterfaceStatusViewModel
             {
                 Name = xotConfig.Name,
                 Type = "XOT",
                 Details = details,
-                Status = transportFound && transport != null ? transport.Status.ToString() : "Not Started",
+                Status = transportFound && transport != null
+                    ? DescribeXotLink(details, transport.Status.ToString(), 0)
+                    : "Not Started",
                 RemoteMachineId = xotConfig.RemoteMachineId,
                 Enabled = xotConfig.Enabled,
                 RxBytes = 0,
@@ -624,8 +801,17 @@ public partial class MainWindowViewModel : ViewModelWithLogger
                 LapbAutoConnect = false,
                 LapbState = "N/A",
                 Transport = transport
-            });
+            };
+            Interfaces.Add(xotLine);
+            if (xotConfig.Mode == XotMode.Client)
+            {
+                StartProbe(xotLine);
+            }
         }
+
+        SwitchStatus = _serviceProvider.GetService(typeof(EmbeddedSwitchService)) is EmbeddedSwitchService embedded
+            ? embedded.Describe()
+            : "";
     }
 
     /// <summary>

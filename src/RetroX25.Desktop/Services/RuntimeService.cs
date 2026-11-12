@@ -65,6 +65,23 @@ public class RuntimeService : IRuntimeService
     }
 
     /// <inheritdoc/>
+    public event EventHandler? RuntimeRestarted;
+
+    /// <inheritdoc/>
+    public void Restart(RuntimeConfig config)
+    {
+        if (config == null)
+        {
+            throw new ArgumentNullException(nameof(config));
+        }
+
+        _logger.LogInformation("Restarting ProtocolRuntime on a new configuration");
+        Dispose();
+        Initialize(config);
+        RuntimeRestarted?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <inheritdoc/>
     /// <remarks>
     /// Does nothing when there is no runtime. Afterwards <see cref="IsRunning"/> is false.
     /// </remarks>

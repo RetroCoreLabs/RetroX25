@@ -116,8 +116,9 @@ namespace RetroX25.Console.UI
         /// </summary>
         /// <remarks>
         /// Enter is sent as CR followed by LF. Ctrl+A to Ctrl+Z are sent as the control codes
-        /// <c>0x01</c> to <c>0x1A</c>. ESC is passed on like any other key, since the PAD uses it as
-        /// its escape character.
+        /// <c>0x01</c> to <c>0x1A</c>, so Ctrl+P is the DLE (0x10) that X.3 parameter 1 makes the PAD's
+        /// escape character: in a call it returns to command mode for CLEAR, STAT and so on. ESC is passed
+        /// on like any other key.
         /// </remarks>
         /// <param name="keyEvent">
         /// The key that was pressed.
@@ -135,7 +136,7 @@ namespace RetroX25.Console.UI
         /// </summary>
         private bool HandleKeyPress(KeyEvent keyEvent)
         {
-            // Only handle F9 for exit (ESC is now used as PAD escape character)
+            // Only handle F9 for exit (the PAD escape character is Ctrl+P, DLE 0x10, X.3 parameter 1)
             if (keyEvent.Key == Key.F9)
             {
                 OnExit();
@@ -152,9 +153,9 @@ namespace RetroX25.Console.UI
             // X.3 Parameter 3 (DATA_FORWARDING) triggers on CR (0x0D) for data forwarding
             if (keyEvent.Key == Key.Enter)
             {
-                // Send CR+LF sequence per ITU-T X.28 specification
-                _padClient.OnKey('\r'); // CR (0x0D) - triggers data forwarding
-                _padClient.OnKey('\n'); // LF (0x0A) - completes line ending
+                // CR only (ITU-T X.28 4.15): a terminal sends 0/13, and the PAD adds any LF itself
+                // (X.3 parameter 13). CR also triggers data forwarding.
+                _padClient.OnKey('\r');
             }
             else
             {
@@ -220,8 +221,8 @@ namespace RetroX25.Console.UI
             // Help text for commands
             Add(new Label("X.28 commands: CALL <address>, STAT, CLEAR, PAR?, SET <param>:<value>")
             { X = 1, Y = 30, Width = 75 });
-            Add(new Label("Press Enter to send. Connected chars forwarded per X.3 parameters")
-            { X = 1, Y = 31, Width = 75 });
+            Add(new Label("In a call, text goes to the far side. Press Ctrl+P (PAD escape, X.3 par. 1) for commands.")
+            { X = 1, Y = 31, Width = 90 });
         }
 
         private void SetupEventHandlers()

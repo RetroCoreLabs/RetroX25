@@ -220,11 +220,11 @@ public partial class PADClientWindowViewModel : ViewModelWithLogger
     {
         try
         {
-            // Handle Enter key - send CR+LF per ITU-T X.28
+            // Enter sends CR only. X.28 4.15: a terminal sends 0/13 (CR); the PAD inserts any LF itself,
+            // as X.3 parameter 13 says. CR LF made the far side see a second, empty line.
             if (e.Key == Key.Enter || e.Key == Key.Return)
             {
                 _padClient.OnKey('\r'); // CR (0x0D)
-                _padClient.OnKey('\n'); // LF (0x0A)
                 e.Handled = true;
                 return;
             }

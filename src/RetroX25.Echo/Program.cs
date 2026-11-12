@@ -187,7 +187,17 @@ namespace RetroX25.Echo
                     afterCr[vc] = previousWasCr;
                 }
 
-                pending.Enqueue(new EchoItem(vc, copy, qBit));
+                // Nothing to send back: the LF of a CR LF pair that arrived as its own packet. X25Layer.SendData
+                // refuses an empty packet for ever, so queueing it would block the sender thread on it.
+                // Longer than one packet (every CR grew by an LF): send it in packets of at most 128 octets,
+                // the negotiated size, since a longer block is refused for ever too.
+                for (int offset = 0; offset < copy.Length; offset += 128)
+                {
+                    int piece = Math.Min(128, copy.Length - offset);
+                    byte[] part = new byte[piece];
+                    Buffer.BlockCopy(copy, offset, part, 0, piece);
+                    pending.Enqueue(new EchoItem(vc, part, qBit));
+                }
 
                 if (quiet)
                 {

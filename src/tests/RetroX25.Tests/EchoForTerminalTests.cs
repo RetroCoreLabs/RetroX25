@@ -55,6 +55,16 @@ namespace RetroX25.Tests
         }
 
         [Test]
+        public void AnLfPacketAfterACr_GivesNothingToSend()
+        {
+            // The console PAD sends CR and LF as two packets. The empty result must not be queued as a
+            // packet: X25Layer.SendData refuses an empty packet for ever, which blocked the echo's sender.
+            bool afterCr = true;
+            byte[] data = new byte[] { 0x0A };
+            Assert.That(Program.EchoForTerminal(data, data.Length, ref afterCr), Is.Empty);
+        }
+
+        [Test]
         public void ALoneLf_IsEchoedUnchanged()
         {
             bool afterCr = false;

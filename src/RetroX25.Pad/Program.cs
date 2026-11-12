@@ -154,9 +154,10 @@ namespace RetroX25.Pad
 
                 if (key.Key == ConsoleKey.Enter)
                 {
-                    // Enter sends CR+LF (X.28 line handling).
+                    // Enter sends CR only. X.28 4.15: a start-stop terminal sends 0/13 (CR) and the PAD
+                    // inserts any LF itself, as X.3 parameter 13 says. Sending CR LF made the far side see
+                    // a second, empty line (a second prompt on a Cisco router).
                     pad.OnKey('\r');
-                    pad.OnKey('\n');
                 }
                 else
                 {

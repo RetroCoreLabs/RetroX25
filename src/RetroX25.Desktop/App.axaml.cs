@@ -7,6 +7,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core;
@@ -34,6 +37,61 @@ namespace RetroX25.Desktop;
 public partial class App : Application
 {
     private ServiceProvider? _serviceProvider;
+
+    /// <summary>
+    /// The configuration file the app starts on, named on the command line, or null to start on the
+    /// built-in defaults.
+    /// </summary>
+    /// <remarks>
+    /// Set by <c>Program.Main</c> before Avalonia builds the application, because Avalonia creates
+    /// <see cref="App"/> itself and gives it no constructor arguments.
+    /// </remarks>
+    public static string? ConfigFilePath { get; set; }
+
+    /// <summary>
+    /// Reads a runtime configuration from a JSON file, the same way the text-mode console does.
+    /// </summary>
+    /// <param name="path">The JSON file.</param>
+    /// <returns>The configuration in the file.</returns>
+    /// <exception cref="FileNotFoundException">The file does not exist.</exception>
+    /// <exception cref="InvalidDataException">The file is empty or not a configuration.</exception>
+    /// <remarks>
+    /// It fails loudly on purpose. Starting on the defaults after a bad file would show a window that
+    /// looks right and sends calls nowhere, which is how this was found: nothing in the app could
+    /// load a file at all, and a call printed COM and left the PC without a packet.
+    /// </remarks>
+    public static RuntimeConfig LoadConfigFile(string path)
+    {
+        if (!File.Exists(path))
+        {
+            throw new FileNotFoundException("Configuration file not found: " + path, path);
+        }
+
+        string json = File.ReadAllText(path);
+        JsonSerializerOptions options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        RuntimeConfig? config;
+        try
+        {
+            config = JsonSerializer.Deserialize<RuntimeConfig>(json, options);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("Configuration file is not valid: " + path + " (" + ex.Message + ")", ex);
+        }
+
+        if (config == null)
+        {
+            throw new InvalidDataException("Configuration file is empty: " + path);
+        }
+
+        return config;
+    }
 
     /// <summary>
     /// Loads the application's XAML resources and styles.
@@ -71,6 +129,11 @@ public partial class App : Application
             var config = _serviceProvider.GetRequiredService<RuntimeConfig>();
             runtimeService.Initialize(config);
 
+            // The built-in switch (if the configuration file asks for one) starts AFTER the runtime:
+            // the switch dials the runtime's own XOT listener, and a dialling port that finds nobody
+            // there waits before it tries again. A failure is shown in the main window, not hidden.
+            _serviceProvider.GetRequiredService<EmbeddedSwitchService>().StartIfEnabled();
+
             // Create main window with DI
             var mainWindow = new MainWindow
             {
@@ -93,8 +156,22 @@ public partial class App : Application
     /// hand-rolled its own registrations would drift, and would then pass while the real startup
     /// path was broken - which is the failure it exists to catch.
     /// </remarks>
-    public static void ConfigureServices(IServiceCollection services)
+    /// <param name="config">
+    /// The configuration to run on. When null, the file named in <see cref="ConfigFilePath"/> is
+    /// read, or the built-in defaults are used if no file was named.
+    /// </param>
+    /// <param name="switchOptions">
+    /// Whether the app runs a switch inside itself. When null, the "EmbeddedSwitch" section of the file named in
+    /// <see cref="ConfigFilePath"/> is read; no file, or no section, means no built-in switch.
+    /// </param>
+    public static void ConfigureServices(IServiceCollection services, RuntimeConfig? config = null,
+        EmbeddedSwitchOptions? switchOptions = null)
     {
+        // The built-in switch setting comes from the same configuration file as the rest.
+        switchOptions ??= ConfigFilePath != null ? EmbeddedSwitchOptions.LoadFrom(ConfigFilePath) : EmbeddedSwitchOptions.Off;
+        services.AddSingleton(switchOptions);
+        services.AddSingleton<EmbeddedSwitchService>();
+
         // Logging
         var historyProvider = new HistoryLoggingProvider(1000);
         services.AddLogging(builder =>
@@ -110,7 +187,7 @@ public partial class App : Application
         services.AddSingleton<IRuntimeService, RuntimeService>();
 
         // Configuration (shared across all ViewModels that need it)
-        var config = CreateDefaultConfig();
+        config ??= ConfigFilePath != null ? LoadConfigFile(ConfigFilePath) : CreateDefaultConfig();
         services.AddSingleton(config);
 
         // ViewModels
@@ -162,6 +239,7 @@ public partial class App : Application
     {
         // Clean up runtime
         _serviceProvider?.GetService<IRuntimeService>()?.Dispose();
+        _serviceProvider?.GetService<EmbeddedSwitchService>()?.Dispose();
         _serviceProvider?.Dispose();
     }
 

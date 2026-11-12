@@ -182,15 +182,43 @@ public partial class LogWindowViewModel : ViewModelWithLogger
         Logger.LogInformation("Log display cleared");
     }
 
-    [RelayCommand]
-    private void CopySelectedLog()
+    /// <summary>
+    /// The text to put on the clipboard for a copy: the selected entry if there is one, otherwise
+    /// every entry the filters let through, one per line, oldest first.
+    /// </summary>
+    /// <returns>The text, or an empty string when nothing is shown.</returns>
+    /// <remarks>
+    /// The view puts it on the clipboard, because the clipboard belongs to the window.
+    /// </remarks>
+    public string GetTextToCopy()
     {
         if (SelectedLog != null)
         {
-            var text = SelectedLog.FullMessage;
-            // TODO: Copy to clipboard when Avalonia clipboard API is available
-            Logger.LogInformation("Copied log entry to clipboard");
+            return SelectedLog.FullMessage;
         }
+
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < LogEntries.Count; i++)
+        {
+            text.AppendLine(LogEntries[i].FullMessage);
+        }
+
+        return text.ToString();
+    }
+
+    /// <summary>
+    /// The text of every entry the filters let through, whatever is selected, for "Copy all".
+    /// </summary>
+    /// <returns>The text, one entry per line.</returns>
+    public string GetAllShownText()
+    {
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < LogEntries.Count; i++)
+        {
+            text.AppendLine(LogEntries[i].FullMessage);
+        }
+
+        return text.ToString();
     }
 
     [RelayCommand]

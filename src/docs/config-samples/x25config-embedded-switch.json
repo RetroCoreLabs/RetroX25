@@ -1,0 +1,102 @@
+{
+  "SerialPort": "NONE",
+  "BaudRate": 19200,
+  "HistoryCapacity": 500,
+
+  "EmbeddedSwitch": {
+    "Enabled": true,
+    "ConfigFile": "../../demo/switch-desktop.ini"
+  },
+
+  "Lapb": {
+    "IsDCE": true,
+    "T1Timeout": "00:00:03",
+    "T2Timeout": "00:00:00.200",
+    "T3Timeout": "00:00:00",
+    "MaxRetries": 5,
+    "WindowSize": 7,
+    "Modulo": 8
+  },
+
+  "X25": {
+    "LocalMachineId": "23430200",
+    "T20Timeout": "00:00:30",
+    "T21Timeout": "00:03:00",
+    "T22Timeout": "00:00:30",
+    "T23Timeout": "00:03:00",
+    "MaxRetries": 3,
+    "WindowSize": 2,
+    "PacketSize": 128,
+    "Modulo": 8
+  },
+
+  "Routing": {
+    "Enabled": true,
+    "SerialInterfaces": [],
+    "XotInterfaces": [
+      {
+        "Name": "XOT_ToSwitch",
+        "Enabled": true,
+        "Mode": "Client",
+        "RemoteIPAddress": "127.0.0.1",
+        "RemotePort": 2200,
+        "RemoteMachineId": "23500000",
+        "TcpKeepalive": true,
+        "KeepAliveIntervalSeconds": 30,
+        "ProtocolMode": "X25Only",
+        "Description": "Calls go out to the built-in switch (its caller port 2200)"
+      },
+      {
+        "Name": "XOT_FromSwitch",
+        "Enabled": true,
+        "Mode": "Server",
+        "LocalPort": 1999,
+        "RemoteMachineId": "23500000",
+        "TcpKeepalive": true,
+        "KeepAliveIntervalSeconds": 30,
+        "ProtocolMode": "X25Only",
+        "Description": "The built-in switch dials in here with calls for the TAD"
+      }
+    ],
+    "TcpLapbInterfaces": [],
+    "RoutingTable": [
+      {
+        "Name": "LocalTAD_All2343",
+        "X121AddressPattern": "2343.*",
+        "Type": "Local",
+        "Destination": "LocalTAD",
+        "Priority": 200,
+        "Enabled": true,
+        "Description": "All 2343 addresses go to the built-in TAD service"
+      },
+      {
+        "Name": "ToSwitch_2350",
+        "X121AddressPattern": "2350.*",
+        "Type": "Interface",
+        "Destination": "XOT_ToSwitch",
+        "Priority": 100,
+        "Enabled": true,
+        "Description": "Our own DNIC, through the switch"
+      },
+      {
+        "Name": "ToSwitch_2360",
+        "X121AddressPattern": "2360.*",
+        "Type": "Interface",
+        "Destination": "XOT_ToSwitch",
+        "Priority": 100,
+        "Enabled": true,
+        "Description": "The Cisco routers (R1 23600001, R2 23600002), through the switch"
+      }
+    ],
+    "KnownHosts": []
+  },
+
+  "Timers": {
+    "CentralTimerManagement": true
+  },
+
+  "Logging": {
+    "EnableFileLogging": false,
+    "LogLevel": "Debug"
+  }
+}

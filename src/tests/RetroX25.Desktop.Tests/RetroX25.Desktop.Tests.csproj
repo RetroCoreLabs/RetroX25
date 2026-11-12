@@ -19,6 +19,7 @@
          DynamicResource only shows up when something actually renders. -->
     <PackageReference Include="Avalonia.Headless.NUnit" />
     <PackageReference Include="Avalonia.Skia" />
+    <PackageReference Include="RetroIO.Protocols.X25.Client" />
   </ItemGroup>
 
   <ItemGroup>

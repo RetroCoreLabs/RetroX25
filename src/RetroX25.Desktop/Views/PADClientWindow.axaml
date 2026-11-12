@@ -59,7 +59,7 @@
                 <TextBlock Text="X.28 commands: CALL &lt;address&gt;, STAT, CLEAR, PAR?, SET &lt;param&gt;:&lt;value&gt; (press Enter to execute)"
                            FontSize="11"
                            Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
-                <TextBlock Text="Special: Ctrl+P=DLE escape | Ctrl+A-Z=control codes | Ctrl+C=break | Characters sent immediately per X.3"
+                <TextBlock Text="Special: Ctrl+P=DLE escape | Ctrl+A-Z=control codes | Ctrl+C=copy marked text (break when nothing is marked) | Characters sent immediately per X.3"
                            FontSize="11"
                            Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
             </StackPanel>
@@ -77,14 +77,17 @@
                                Text="Console Output:"
                                FontWeight="SemiBold"
                                Margin="8,8,8,4"/>
-                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                    <ScrollViewer x:Name="ConsoleScroll"
+                                  VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Auto"
                                   Background="{DynamicResource SystemControlBackgroundAltMediumLowBrush}"
                                   Padding="8">
-                        <TextBlock Text="{Binding ConsoleText}"
-                                   FontFamily="Consolas,Courier New"
-                                   FontSize="12"
-                                   TextWrapping="NoWrap"/>
+                        <!-- Selectable: mark with the mouse, then Ctrl+C or right-click Copy. -->
+                        <SelectableTextBlock x:Name="ConsoleBox"
+                                             Text="{Binding ConsoleText}"
+                                             FontFamily="Consolas,Courier New"
+                                             FontSize="12"
+                                             TextWrapping="NoWrap"/>
                     </ScrollViewer>
                 </DockPanel>
             </Border>

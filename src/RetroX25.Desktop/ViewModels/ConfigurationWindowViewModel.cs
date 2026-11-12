@@ -232,12 +232,13 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
                 return;
             }
 
-            // Apply configuration would require restart in real implementation
-            StatusText = "Settings applied (restart required for changes to take effect)";
-            Logger.LogInformation("Configuration applied");
+            // Stop the running engine and start a new one on these settings, so they take effect now.
+            _runtimeService.Restart(_config);
+            StatusText = "Settings applied: the X.25 engine was restarted";
+            Logger.LogInformation("Configuration applied, runtime restarted");
 
             _dialogService.ShowInfo("Settings Applied",
-                "Configuration has been updated.\n\nNote: A runtime restart is required for changes to take effect.");
+                "The X.25 engine was restarted with these settings.\n\nPAD, TAD and other windows that were open were closed because they belonged to the old engine. Open them again from the Windows menu.");
         }
         catch (Exception ex)
         {

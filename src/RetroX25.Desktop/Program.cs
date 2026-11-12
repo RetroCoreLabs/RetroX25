@@ -16,8 +16,20 @@ sealed class Program
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    public static void Main(string[] args)
+    {
+        // A .json argument is the configuration file to start on, as with the text-mode console.
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (args[i].EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                App.ConfigFilePath = args[i];
+                break;
+            }
+        }
+
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
 
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
