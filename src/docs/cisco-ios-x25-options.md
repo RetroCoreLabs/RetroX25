@@ -219,21 +219,20 @@ That is why the router's address is in `switch-cisco.ini` (`host` in `port.2`).
 
 ## 6b. Testing with the UI apps
 
-The same tests can be done from the two UI programs instead of `x25pad`. **Not verified:** none of this
+The same tests can be done from the Desktop program instead of `x25pad`. **Not verified:** none of this
 was run; the config file below was only written, not loaded. Tell us which step fails.
 
 | Program | What it is | How to start |
 |---|---|---|
 | `RetroX25.Desktop` | Windows desktop application (Avalonia): PAD Client window, Packets window, Routes, XOT interface editor | `dotnet run --project RetroX25.Desktop` from `src`, in a Windows desktop session |
-| `RetroX25.Console` | The same stack in a text screen | `dotnet RetroX25.Console\bin\Debug\net10.0\x25console.dll <config>.json` in a real terminal window |
 
-**The idea.** The UI app is a caller. It opens one XOT connection to our switch (caller port 0, TCP 2200)
+**The idea.** The Desktop app is a caller. It opens one XOT connection to our switch (caller port 0, TCP 2200)
 and sends every call for 2350... and 2360... down it. The switch then does what it does for `x25pad`:
 2350... goes to the echo service, 2360... goes to the Cisco router.
 
 ```mermaid
 flowchart LR
-    UI["RetroX25.Desktop<br/>or x25console<br/>PAD Client window"] -- "XOT client, TCP 2200" --> S["RetroX25 switch"]
+    UI["RetroX25.Desktop<br/>PAD Client window"] -- "XOT client, TCP 2200" --> S["RetroX25 switch"]
     S --> E["x25echo 23500001"]
     S -- "XOT" --> R["Cisco router<br/>23600001 / 23600002"]
 ```
@@ -242,12 +241,12 @@ flowchart LR
 (`127.0.0.1:2200`) and the two routes (`2350.*` and `2360.*` to it). Its own address is 99990002. If the
 switch is on another PC, change `RemoteIPAddress`.
 
-- **Console:** `dotnet RetroX25.Console\bin\Debug\net10.0\x25console.dll docs\config-samples\x25config-xot-to-switch.json`
-  (the program takes the config path as its argument; **checked** in the source).
-- **Desktop:** in the app, open Configuration → XOT Interfaces and add the same client interface (name
-  `XOT_ToSwitch`, mode Client, address `127.0.0.1`, port `2200`), then Configuration → Routing and add the two
-  routes. Whether the Desktop can load the JSON file directly is **not verified**. The README says the
-  configuration survives a restart.
+- **Desktop, with the file:** `dotnet run --project RetroX25.Desktop -- docs\config-samples\x25config-xot-to-switch.json`
+  from `src`. The program takes the config path as its argument (**checked** in `Program.cs`); running this exact
+  command was **not** tested for this page.
+- **Desktop, by hand:** in the app, open Configuration → XOT Interfaces and add the same client interface (name
+  `XOT_ToSwitch`, mode Both ways (peer), address `127.0.0.1`, remote port `2200`, local port `1999`), then Configuration → Routing and add the two
+  routes. The README says the configuration survives a restart.
 
 **Calls to try**, in the PAD Client window:
 
@@ -261,7 +260,7 @@ Watch the **Packets** window while you do it: you should see the call request, t
 data packets in both directions.
 
 **Two limits.** The switch and a UI app that runs an XOT *server* cannot both listen on TCP 1998 on the
-same PC. And the Desktop's TAD Server window answers calls that come to *it*: to test it from the Cisco,
+same PC (two entries of the SAME app can share a port, see `xot-peers.md`; two programs cannot). And the Desktop's TAD Server window answers calls that come to *it*: to test it from the Cisco,
 stop the switch, point `x25 route ^2343 xot <PC address>` at the PC and call `23430200` (section 10 of
 `cisco-gns3-xot-test.md`).
 

@@ -9,6 +9,156 @@ A **PAD** is the part of a router (or of `x25pad`) that lets a person type at a 
 telnet client. **LCI** is the number of a virtual circuit on one link; one call has a different LCI on
 each link it crosses.
 
+## 0. The whole bench in pictures
+
+Read this section first; the rest of the page is the detail behind these five pictures.
+
+**What is real and what is not.** The routers run **real Cisco IOS software** (a 7200 image, IOS 12.4(24)T5).
+The router *hardware* is emulated: GNS3 runs the image in Dynamips. No physical Cisco box (a 2500 or similar)
+has been tested yet. Everything on the RetroX25 side is the real code, not a stand-in.
+
+### Picture 1: the machines and the cables
+
+Three machines on one ordinary home or office LAN. The only special cable is a virtual serial cable between
+the two routers, inside GNS3.
+
+```mermaid
+flowchart LR
+    subgraph PC["Windows PC 192.168.1.180: RetroX25"]
+        PAD["x25pad<br/>(person typing)"]
+        SW["x25switch<br/>network number 2350"]
+        ECHO["x25echo<br/>address 23500001"]
+        PAD -->|"XOT to port 2200"| SW
+        ECHO -->|"XOT to port 2203"| SW
+    end
+
+    subgraph LAP["Linux laptop 192.168.1.134: GNS3"]
+        R1["R1 Cisco 7200<br/>LAN address 192.168.1.155<br/>X.25 address 23600001"]
+        R2["R2 Cisco 7200<br/>X.25 address 23600002"]
+        R1 ---|"virtual serial cable<br/>X.25 DCE to DTE"| R2
+    end
+
+    SW <-->|"XOT = X.25 inside TCP<br/>Cisco port 1998"| R1
+
+    classDef app fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    classDef core fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    classDef svc fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    classDef ext fill:#E91E63,stroke:#AD1457,stroke-width:2px,color:#fff
+    class PAD app
+    class SW core
+    class ECHO svc
+    class R1,R2 ext
+```
+
+### Picture 2: the Cisco calls us (a person types `pad 23500001` on R1)
+
+```mermaid
+sequenceDiagram
+    actor P as Person at R1's console
+    participant R1 as R1 (Cisco)
+    participant SW as x25switch
+    participant E as x25echo
+
+    P->>R1: pad 23500001
+    Note over R1: x25 route ^2350 xot 192.168.1.180
+    R1->>SW: TCP connect to port 1998, then X.25 Call Request
+    Note over SW: route for 2350 leads to the echo port
+    SW->>E: Call Request (XOT, port 2203)
+    E-->>SW: Call Accepted
+    SW-->>R1: Call Connected
+    P->>R1: types text
+    R1->>SW: Data
+    SW->>E: Data
+    E-->>SW: the same bytes back
+    SW-->>R1: Data
+    R1-->>P: the text appears again (echo)
+    P->>R1: Ctrl-^ x, disconnect
+    R1->>SW: Clear Request
+    SW->>E: Clear Request
+```
+
+### Picture 3: we call the Cisco (`x25pad` calls R2 through the switch and R1)
+
+```mermaid
+sequenceDiagram
+    actor P as Person at x25pad
+    participant SW as x25switch
+    participant R1 as R1 (Cisco)
+    participant R2 as R2 (Cisco)
+
+    P->>SW: CALL 23600002 (XOT, port 2200)
+    Note over SW: route for 2360 leads to the port that dials R1
+    SW->>R1: TCP connect to port 1998, then Call Request
+    R1->>R2: Call Request on the serial cable
+    R2-->>R1: Call Accepted
+    R1-->>SW: Call Connected
+    SW-->>P: COM (the call is connected)
+    R2-->>P: the R2 prompt arrives as data
+    P->>R2: show clock
+    R2-->>P: the clock answer
+    P->>SW: CLEAR
+    SW->>R1: Clear Request
+    R1->>R2: Clear Request
+```
+
+### Picture 4: only the Desktop app (no separate switch)
+
+`RetroX25.exe` can carry the switch inside itself, so one program on the PC is enough. R1 calls it the same way as
+in picture 2, and its PAD window calls R1 the same way as in picture 3. Section 12 has the details.
+
+```mermaid
+flowchart LR
+    subgraph PC["Windows PC 192.168.1.180"]
+        subgraph APP["RetroX25.exe (one program)"]
+            PADW["PAD window"]
+            SWI["built-in switch<br/>listens on port 1998"]
+            TAD["built-in TAD service<br/>address 23430200"]
+            PADW --> SWI
+            SWI --> TAD
+        end
+    end
+    R1["R1 Cisco 7200<br/>192.168.1.155"]
+    SWI <-->|"XOT, port 1998"| R1
+
+    classDef app fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    classDef core fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    classDef ext fill:#E91E63,stroke:#AD1457,stroke-width:2px,color:#fff
+    class PADW app
+    class SWI,TAD core
+    class R1 ext
+```
+
+### Picture 5: the Cisco calls our TAD server (a person types `pad 23430200` on R1)
+
+The TAD is a small X.25 service built into the RetroX25 runtime (the Desktop app has it). It sends a banner,
+answers `HELP`, echoes what you type with a short analysis, and ends the call on `QUIT`. It speaks X.29, the
+protocol the Cisco PAD uses, so the router needs nothing special except one route.
+
+```mermaid
+sequenceDiagram
+    actor P as Person at R1's console
+    participant R1 as R1 (Cisco)
+    participant T as RetroX25 TAD server<br/>(Desktop app, address 23430200)
+
+    Note over R1: x25 route ^2343 xot 192.168.1.180
+    P->>R1: pad 23430200
+    R1->>T: TCP connect to port 1998, then X.25 Call Request
+    T-->>R1: Call Accepted
+    T-->>R1: banner: "X.25 TAD Loopback Echo Service" and the TAD> prompt
+    P->>R1: HELP
+    R1->>T: Data
+    T-->>R1: the help text
+    P->>R1: hello cisco 42
+    T-->>R1: "Echo: hello cisco 42" and an analysis line
+    P->>R1: QUIT
+    R1->>T: (call ends)
+    T->>R1: Clear Request
+    R1-->>T: Clear Confirmation
+```
+
+Checked from the real R1 on 2026-11-10 (banner, `HELP`, echo, `QUIT`, no Reset) and again on 2026-11-12 with the
+Desktop app alone and its own built-in switch. Section 10 has the router lines and the output.
+
 ## 1. What the bench proves, and what does not work yet
 
 | # | Test | State on 2026-11-10 |
@@ -21,7 +171,7 @@ each link it crosses.
 | 6 | Telnet into R1 from the PC, then `pad` to the echo service | Works. See section 8, test A4 |
 | 7 | `x25pad` calls R1's own address (23600001) | Works. R1 accepts, prompt `R1>`, `show clock` answered |
 | 8 | R2 holds an echo call open while `x25pad` calls R2 | Works |
-| 9 | A Cisco `pad` calls the TAD server of `x25console` (section 10) | Works with a current `x25console` build: banner, `HELP`, echo and `QUIT` answered, no reset. A stale build had a window fault, see section 10 |
+| 9 | A Cisco `pad` calls the TAD server of the RetroX25 runtime (section 10) | Works (checked with the old text-mode program, since removed; the Desktop app runs the same engine): banner, `HELP`, echo and `QUIT` answered, no reset. A stale build had a window fault, see section 10 |
 | 10 | A burst of data packets in both directions at once (`x25traffic` to the echo service) | Works after the fix in section 9.4. 100 000 packets of 128 bytes, 100% back, about 13 Mbit/s sent. Needs the fixed switch DLL (see 9.4) |
 
 ## 2. The bench
@@ -237,7 +387,7 @@ dotnet build -nodeReuse:false
 
 **Why the forced restore.** RetroX25 takes RetroIO from local packages named `0.1.0-local.<time stamp>`
 (made by RetroIO's `eng/publish-local.ps1`). A plain restore kept an older stamp once, and the programs
-then ran old RetroIO code (an old switch that freezes, an old `x25console` that broke the TAD window).
+then ran old RetroIO code (an old switch that freezes, an old text-mode build that broke the TAD window).
 Check which stamp you got: `Select-String RetroX25.Switch\obj\project.assets.json -Pattern 'X25.Switch/'`.
 
 ### The five-minute check (do this first)
@@ -630,32 +780,36 @@ is on the way at a time. That is why tests 1 to 4 work.
 
 ## 10. The built-in TAD server (more fun than the echo service)
 
-The `x25console` and `RetroX25.exe` (Desktop) programs run a full RetroX25 runtime. That runtime has an XOT
+The `RetroX25.exe` (Desktop) program runs a full RetroX25 runtime. That runtime has an XOT
 server (it listens for XOT calls itself, like a Cisco router would) and a built-in **TAD** service on a "LocalTAD"
 route. TAD answers a PAD call with a banner, takes commands (`HELP`, `STATUS`, `QUIT`) and
 echoes other text (checked from R1, see below). It speaks
 X.29, the same protocol the Cisco PAD uses, so a Cisco router can call it directly.
 
-(There is a second thing also called TAD, the SINTRAN XMSG one. That is a different protocol and a Cisco router
-cannot reach it. This section is only about the X.25 TAD above.)
-
 ### How it was wired up (checked on 2026-11-10)
 
 ```mermaid
 flowchart LR
-    R1["R1<br/>pad 23430200"] -- "XOT, TCP 1998" --> RT["x25console runtime<br/>XOT server on 1998"]
+    R1["R1<br/>pad 23430200"] -- "XOT, TCP 1998" --> RT["RetroX25.exe runtime<br/>XOT server on 1998"]
     RT --> RTE["Route LocalTAD"] --> TAD["Built-in TAD service"]
 ```
 
 The TAD runtime listens on **1998**, the same port our switch's trunk port uses, so run **either** the switch
 or the TAD runtime, not both, on this PC. Going through the switch was not tried.
 
+The entry in the sample is a `Server` entry (it only listens). Since 2026-11-12 the Configuration window also
+offers **Both ways (peer)**: the same entry, with R1's address as the peer, also dials R1 when a call is routed to
+it (one TCP connection for each call) and accepts R1 by its source address. That mode was tested on loopback
+only, **not against R1**. See `xot-peers.md`.
+
 1. Stop the switch and the echo service (port 1998 must be free).
 2. Make a config file from `src/docs/config-samples/x25config-xot-test.json`: keep only the `Server` entry
    under `XotInterfaces` and only the two `LocalTAD` entries under `RoutingTable`. (The sample's address
    23430200 and the pattern `2343.*` are the TAD's addresses.)
-3. Start it, from `src`: `dotnet RetroX25.Console\bin\Debug\net10.0\x25console.dll <your config>.json`.
-   It draws a text screen, so start it in a normal terminal window. The listener comes up on port 1998.
+3. Start it, from `src`: `dotnet run --project RetroX25.Desktop -- <your config>.json` (the config path is the
+   program's argument; **checked** in `Program.cs`). The listener comes up on port 1998. The 2026-11-10 run below
+   was made with the old text-mode program, which has been removed; **the same steps with the Desktop app were not
+   repeated for this page.**
 4. On R1, add a route to it (and remove it afterwards):
 
 ```
@@ -667,7 +821,7 @@ R1#pad 23430200
 
 ### What happens
 
-With an up-to-date build of `x25console` the call works. R1 prints the whole banner, ends on the `TAD>`
+With an up-to-date build the call works. R1 prints the whole banner, ends on the `TAD>`
 prompt, and the commands are answered (checked 2026-11-10 from R1):
 
 ```
@@ -713,7 +867,7 @@ has no stray bytes and the long banner carries the M bit. `debug x25 xot` was no
 
 ### The window fault seen first, and why it is gone
 
-The first try used an `x25console` build whose RetroIO libraries were dated 4 September. R1's own debug
+The first try used a build whose RetroIO libraries were dated 4 September. R1's own debug
 (`debug x25 events`, `debug x25 xot`, then `show logging`) showed the fault:
 
 ```
@@ -727,11 +881,11 @@ XOT O D1 Reset (5) 8 lci 1
 
 R1 asked for a window of 2, the old build sent three packets in a row, and R1 reset the circuit. The current
 RetroIO source has one packet layer that owns the window (the RetroIO changes of 6 September), and a rebuild
-of `x25console` against it removed the fault: same router, same route, no Reset, no window violation.
+against it removed the fault: same router, same route, no Reset, no window violation.
 **The fix was therefore already in RetroIO; the old build was stale.** Lesson for the bench: after any
 RetroIO change, rebuild the RetroX25 programs (`dotnet build` in `src`) before reading a result.
 Clean-up after the test: `no x25 route ^2343 xot 192.168.1.180` on R1 (checked: `show x25 route` is back to the
-two original routes), and stop `x25console`. After stopping it, R1 still listed the dead circuit for a short
+two original routes), and stop the RetroX25 program. After stopping it, R1 still listed the dead circuit for a short
 while; whether and when it disappears by itself was not watched.
 
 ## 11. Troubleshooting
@@ -796,6 +950,7 @@ Use `clear logging` first to start from an empty buffer.
 - The Windows PC's address comes from DHCP. If it changes, change `x25 route ^2350 xot ...` on R1.
 - `x25traffic` against a Cisco PAD proves call set-up and data flow only. For delivery rates use the
   echo service.
+- Sequence number modulo 128 (LAPB and X.25 packets) is not implemented; the bench runs modulo 8. See [modulo-128.md](modulo-128.md), which also says how Cisco uses both settings.
 
 ## 12. The Desktop app alone (built-in switch), checked 2026-11-12
 
@@ -821,7 +976,11 @@ Notes learned on the way:
 - X.28: `COM` means the call is connected. The PAD prints it only when the far end accepts. A call that cannot be
   placed prints a `CLR` line, a call cleared by the far end prints `CLR`, and `PAD>` returns.
 - The main window shows each XOT link as `Connected`, `Listening`, `Far end answers` or `NOT REACHABLE: reason`, and a
-  `Switch:` line for the built-in switch.
+  `Switch:` line for the built-in switch. Below the interface lines an "XOT links" section shows, per XOT peer, whether
+  its TCP connection is up, when it was last up, the failed connects with the last error, the disconnects and the
+  bytes in and out; the trunk to the Cisco router is one such block. The app's own two loopback links to its built-in
+  switch are one quiet line, `Built-in switch: OK` (red with the reason if a part fails). See the Desktop README,
+  section "Is the link working?".
 
 Opt-in live tests (skipped unless named): `Live_PadWindowCallsR1_ThroughTheRealSwitch` (needs `x25switch` with
 `demo\switch-cisco.ini` running), `Live_R1CallsTheTad_InTheDesktopRuntime` (needs R1 to call while it runs) and the one above.

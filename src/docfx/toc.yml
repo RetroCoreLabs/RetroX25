@@ -3,8 +3,6 @@
   href: index.md
 - name: Applications
   items:
-  - name: "x25console — the console emulator"
-    href: ../RetroX25.Console/README.md
   - name: "RetroX25.exe — the desktop application"
     href: ../RetroX25.Desktop/README.md
   - name: "x25echo — the echo service"

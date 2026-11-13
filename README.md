@@ -45,7 +45,6 @@ them is a failing test rather than an argument.
 | `x25trace` | Wire tracer: connect or listen, decode, hex dump | [README](src/RetroX25.Trace/README.md) |
 | `x25traffic` | Load generator: streams and call storms | [README](src/RetroX25.Traffic/README.md) |
 | `x25nmc` | Network management console, in-band over X.25 | [README](src/RetroX25.Nmc/README.md) |
-| `x25console` | Console emulator driven by `x25config.json` | [README](src/RetroX25.Console/README.md) |
 | `x25xot` | XOT client and server, interactive | [README](src/RetroX25.Xot/README.md) |
 
 ---
@@ -64,6 +63,58 @@ No tagged release yet, so the release and download badges above are empty until 
   measure them; no number is claimed here because none has been taken.
 
 ---
+
+## Tested against real Cisco software
+
+The switch, the PAD and the echo and TAD services have been tested against **Cisco routers over XOT** (X.25
+carried inside TCP, RFC 1613). Calls were placed in both directions, through our switch, and the data came back
+unchanged.
+
+**Read this carefully: what was and was not tested.**
+
+- **Tested:** two Cisco 7200 routers running **real Cisco IOS 12.4(24)T5**, started in the GNS3 router emulator
+  (Dynamips). Their X.25 and XOT behaviour is the real IOS code.
+- **Not tested yet:** a physical Cisco box (a 2500 series, for example). The router hardware here is emulated.
+- A Cisco `pad` call to our echo service works. A Cisco `pad 23430200` call to our **TAD server** (banner, `HELP`,
+  echo, `QUIT`) works too, checked on the real IOS image and again with the Desktop app running alone. Calls from `x25pad` and from
+  the Desktop app to a Cisco router, and through it to a second router on a serial cable, work. A call storm of
+  30 calls and a stream of 100 000 data packets (128 bytes each, all returned) ran through the switch.
+
+```mermaid
+flowchart LR
+    subgraph PC["Windows PC: RetroX25"]
+        PAD["x25pad or RetroX25.exe"]
+        SW["x25switch"]
+        ECHO["x25echo"]
+        TAD["TAD server<br/>(in RetroX25.exe)"]
+        PAD --> SW
+        ECHO --> SW
+        TAD --> SW
+    end
+    subgraph LAP["Linux laptop: GNS3"]
+        R1["R1 Cisco 7200<br/>real IOS"]
+        R2["R2 Cisco 7200<br/>real IOS"]
+        R1 ---|"serial cable"| R2
+    end
+    SW <-->|"XOT, TCP port 1998"| R1
+
+    classDef app fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    classDef core fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    classDef svc fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    classDef ext fill:#E91E63,stroke:#AD1457,stroke-width:2px,color:#fff
+    class PAD app
+    class SW core
+    class ECHO,TAD svc
+    class R1,R2 ext
+```
+
+**Build the same bench yourself:** [Testing RetroX25 against real Cisco routers](src/docs/cisco-gns3-xot-test.md)
+starts with five pictures (the machines and cables, a call in each direction, the Cisco calling our TAD server, and the Desktop app alone), then gives
+the GNS3 project, both complete router configurations, the switch file, every test step with its expected output,
+and a troubleshooting list. The Desktop-only variant uses the sample configuration
+[x25config-embedded-switch.json](src/docs/config-samples/x25config-embedded-switch.json).
+
+---
 ## Prerequisites
 
 | # | Requirement | Needed for | How to check |
@@ -75,7 +126,7 @@ No tagged release yet, so the release and download badges above are empty until 
 | P5 | TCP ports 2200-2203, 2210, 9101-9103, 4001-4003 free, and not reserved by Windows | The demo network | `netstat -ano \| findstr "2200 2201 9101 4001"`; reserved ranges: see [the demo README](src/demo/README.md) |
 | P6 | A Windows desktop session | `RetroX25.exe`, `x25monitor` | Two of the ten are Avalonia apps |
 | P7 | A terminal | The console tools | Any modern terminal |
-| P8 | WSL with `x25emu` built | Cross-environment tests only | `wsl -e bash -c 'cd ~/repos/os/x25emu && make -s'` |
+| P8 | WSL with `x25emu` built | Cross-environment tests only | `wsl -e bash -c 'ls <x25emu folder>/tools/x25switch'` |
 | P9 | Inbound TCP 2210 allowed | Cross-environment tests only | The WSL side dials **in** |
 | P10 | A real ND machine and the retroterm MCP | Hardware tests only | `terminal_connlist` |
 
@@ -113,7 +164,6 @@ flowchart TB
         TRACE["x25trace"]
         NMC["x25nmc"]
         XOT["x25xot"]
-        CONS["x25console"]
     end
 
     SW["x25switch"]
@@ -126,7 +176,6 @@ flowchart TB
     TRAF --> SW
     TRACE --> SW
     XOT --> SW
-    CONS --> SW
     RX --> SW
     NMC -->|"X.25 call to the mgmt address"| SW
     MON --> MONPORT
@@ -143,7 +192,7 @@ flowchart TB
     classDef ext  fill:#E91E63,stroke:#AD1457,stroke-width:2px,color:#fff
 
     class RX,MON gui
-    class PAD,TRAF,TRACE,NMC,XOT,CONS cli
+    class PAD,TRAF,TRACE,NMC,XOT cli
     class SW core
     class ECHO svc
     class TELNET,MONPORT port
@@ -246,12 +295,15 @@ flowchart LR
 **The WSL side dials in**, so nothing changes on this side. Start this demo first and allow inbound TCP 2210.
 
 ```powershell
-.\src\demo\crossenv-test.ps1
-.\src\demo\crossenv-test.ps1 -WslHost 172.23.178.242 -Port 2001   # if auto-detect fails
+# the argument is the x25emu folder INSIDE WSL; nothing in it is changed
+.\src\demo\crossenv-test.ps1 -X25emu <x25emu folder in WSL>
+.\src\demo\crossenv-test.ps1 -X25emu <x25emu folder in WSL> -WslHost <address>   # if auto-detect fails
 ```
 
-It finds the WSL address with `hostname -I` (which changes across reboots), calls the reference echo service
-`23420001` through the reference switch over XOT, and asserts the echo returns.
+It finds the WSL address with `hostname -I` (which changes across reboots), starts the x25emu test network in WSL, runs
+every test of category `Interop` against it (calls both ways over XOT and `hdlc-tcp`, data details, connection counts,
+volume), and stops what it started. The guide, with the address table and what was measured, is
+[crossenv-testing.md](src/docs/crossenv-testing.md).
 
 Both directions matter: from our PAD, `CALL 23420001` should reach the reference echo; from the reference PAD,
 `23520001` should reach ours. **A failure in only one direction is the interesting result** — record which.
