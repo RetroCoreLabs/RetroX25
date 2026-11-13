@@ -60,8 +60,12 @@ address** of the TCP connection.
 - **Cisco does the same.** An incoming XOT call is matched by the source IP address only, through the
   optional `xot access-group <standard ACL 1-99> [profile <name>]` lists: the first list that permits the
   source address decides the X.25 settings (the profile) for the call. Once any such list exists, a call
-  that matches none of them is rejected. Cisco's page does not say what happens when there is no list at
-  all, so this page does not claim anything about that.
+  that matches none of them is rejected. Cisco's guide "X.25 over TCP Profiles" (wan-x25otcp-pro) says: "For incoming
+  XOT calls, the source IP address is tested", "If no access lists are applied to XOT, the default X.25 settings are
+  used", the `xot access-group` command disables the older XOT behaviour, and only standard IP access lists are
+  accepted. By that text a router with no `xot access-group` (R1 has none and no access list) accepts a call from any
+  source address. This was **not measured** (no second source address was reachable; see "Measured against a real
+  Cisco router", point 6).
 - Incoming calls are then routed by **X.121 address and call user data** through `x25 route`.
 - **NAT:** behind a NAT router the source address is the translated one, and it is **shared by every
   device behind that router**. One address can stand for many machines, so "listed peer" means "something
@@ -165,7 +169,7 @@ the router sending the Call Request, our Call Confirm (11 bytes) and a Clear aft
 |---|---|---|
 | 1 | 1 | 1 |
 | 2 | 2 | 2 |
-| 5 | 5 | 3 (the router cleared the other two with cause 13, diagnostic 64 on their own connections; the router does not say why. I have not verified the reason; a limit on the number of PAD sessions is a guess) |
+| 5 | 5 | 3 (the router cleared the other two with cause 13, diagnostic 64 on their own connections; the router's PAD has 5 vty lines, see point 9; why this run saw cause 13 diagnostic 64 where point 9 sees cause 0 diagnostic 67 is not explained) |
 
 **4. Two calls on ONE connection are refused.** Measured with raw bytes: the first call (channel 1) is accepted and
 the router sends its prompt. Then we send a second Call Request on the same connection, channel 2. The router never
@@ -199,19 +203,9 @@ sent with the D bit left the serial side with `D`; the confirmation came back as
 all packets confirmed. A chain of three 128-byte packets with the M bit left the serial side as three packets that
 all carry `M` (131 bytes each: 128 data and 3 header). Nothing was merged, split or cleared.
 
-**9. Many calls at once to R2's PAD: only 5 connect.** 5, 10, 20, 50 and 64 calls at once gave 5 connected each time, and
-the rest were cleared by the far side (seen as cause 0 diagnostic 67 on the switch trunk; the router's debug shows no
-reason). I have not verified why 5; five is the number of lines R2's terminal service seems to have, which is a guess.
-Calls to our echo service through the same switch: 50 of 50, five rounds in a row, nothing left open on either side
-(`show x25 vc` on R1 is empty afterwards).
+**9. Only 5 PAD calls at once, on R1 and on R2 alike.** Both routers have `line vty 0 4`, and each PAD call holds one of those lines for its whole life. The 6th call at the same time is cleared by the router's PAD with cause 0, diagnostic 67 (the diagnostic reads "invalid destination address", which is misleading). Proof, from the routers' own output: `debug x25` shows `X.25 O R1 Clear (5) 8 lci 6` with `Cause 0, Diag 67` for lci 6 to 8 right after Call Confirm on lci 1 to 5; `show users` lists vty 0 to 4 held by 99990001; `show x25 context` gives two-way channels 1 to 1024, so channels are not the limit; R1's own PAD (23600001) has the same limit; and after the calls are released a new call connects. (The same test sizes gave 5, 10, 20, 50 and 64 calls at once: 5 connected each time.) To raise it on the router (not applied): `line vty 0 15`. Calls to our echo service through the same switch: 50 of 50, five rounds in a row, nothing left open on either side. Measured by other agents and read again here on 2026-11-13 (R2 `show line` lists the five lines, VTY 2 to 6, and `show x25 vc` binds each of the five circuits to its own vty).
 
-**10. A long stream into the router's PAD ends after about 19 seconds with a Reset from our side. Cause found.** Sending
-64-byte packets to R2's PAD, the router echoes every byte and answers with a never ending run of full 128-byte packets
-that all carry the M bit (R2 has no end of message to mark). Our X.25 layer collects such a run into one message and
-gives up at 64 KB (`X25Vc.MaxReassembly`, 65536 bytes), and sends Reset with cause 0, diagnostic 39 "packet too long".
-R1 passes that on, the circuit is reset and the traffic tool stops (it reported 154 to 156 packets sent and about 66 000
-bytes received, the same in each of four runs). X.25 itself sets no limit on the length of such a run. The limit is in
-RetroIO and is a design choice that is not decided yet (see `PLAN.md`).
+**10. A long stream into the router's PAD: fixed (2026-11-13).** Sending 64-byte packets to R2's PAD, the router echoes every byte and answers with a never ending run of full 128-byte packets that all carry the M bit. Our X.25 layer joined such a run into one message for its consumers and reset the circuit (cause 0, diagnostic 39, "packet too long") when the run reached 64 KB, so the stream ended after about 19 seconds with 154 to 156 packets sent. **What the standard says** (ITU-T X.25 10/96, read from the text): 4.3.4 "If a DTE or DCE wishes to indicate a sequence of more than one packet, it uses a more data mark (M bit)"; 4.3.5 defines the complete packet sequence (category A packets, full with M=1 and D=0, and the category B packet that ends it) and says "When transmitted by a source DTE, a complete packet sequence is always delivered to the destination DTE as a single complete packet sequence", and "user data fields of data packets are delivered to the receiving DTE exactly as they have been received by the network" when the maximum sizes are equal; Table 4-1 shows the packets arrive with the M bit kept. 4.3.2 gives the one reset for size: a data field longer than the agreed maximum is a local procedure error. I found no clause that makes the receiving DTE join the packets into one block, none that bounds the length of a sequence, and none that names a reset for a long one. RFC 1613 says only that an XOT implementation doing local flow control may fragment or combine the packets of a sequence and must keep to the agreed packet sizes. So the layer now hands a long sequence on in parts of about 64 KB, every part but the last with a `moreData` flag, and never resets for length; `DataReceived` still gives every packet with its own M bit, which is what the client library, the PAD, the TAD and the switch use. **Proof:** a unit test sends 100 000 full packets (12.8 MB) with no reset and every byte in order; and on 2026-11-13 the same stream into R2's PAD (`x25traffic -d 23600002 -u 01000000 -n 800 -r 100 -s 64`) ran for 99 seconds, sent all 800 packets, received 352 871 bytes (the old cut came at about 66 000) and ended with a normal clear, cause 0 diagnostic 0, no reset anywhere.
 
 **11. The router calling x25emu, and x25emu calling the router, both through our switch** (`demo/switch-cisco-x25emu.ini`).
 x25emu's PAD (`x25pad -u 01000000 -a 23400001`) called 23600001 and got the `R1>` prompt and the clock; the call went
