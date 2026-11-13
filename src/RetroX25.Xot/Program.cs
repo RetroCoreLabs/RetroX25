@@ -136,13 +136,11 @@ namespace RetroX25.Xot
             Console.WriteLine("Select mode:");
             Console.WriteLine("  1) Raw XOT Client - Send/receive raw packets");
             Console.WriteLine("  2) Raw XOT Server - Accept connections");
-            Console.WriteLine("  3) SINTRAN HOST - Full SINTRAN node (routing + PAD server)");
-            Console.WriteLine("  4) SINTRAN PAD - Connect to SINTRAN PAD service");
-            Console.WriteLine("  5) X.25 PAD - Pure X.25 PAD client (no LAPB)");
-            Console.WriteLine("  6) Help");
-            Console.WriteLine("  7) Quit");
+            Console.WriteLine("  3) X.25 PAD - Pure X.25 PAD client (no LAPB)");
+            Console.WriteLine("  4) Help");
+            Console.WriteLine("  5) Quit");
             Console.WriteLine();
-            Console.Write("Enter choice [1-7]: ");
+            Console.Write("Enter choice [1-5]: ");
 
             string? choice = Console.ReadLine();
             Console.WriteLine();
@@ -158,18 +156,10 @@ namespace RetroX25.Xot
                     break;
 
                 case "3":
-                    SetupSintranClient();
-                    break;
-
-                case "4":
-                    SetupSintranPad();
-                    break;
-
-                case "5":
                     SetupX25Pad();
                     break;
 
-                case "6":
+                case "4":
                     ShowHelp();
                     Console.WriteLine();
                     Console.WriteLine("Press any key to return to menu...");
@@ -177,7 +167,7 @@ namespace RetroX25.Xot
                     ShowInteractiveMenu();
                     break;
 
-                case "7":
+                case "5":
                     return;
 
                 default:
@@ -244,151 +234,6 @@ namespace RetroX25.Xot
             LaunchApplication("server", string.Empty, port);
         }
 
-        static void SetupSintranClient()
-        {
-            Console.WriteLine("═══ SINTRAN HOST Setup ═══");
-            Console.WriteLine();
-
-            Console.WriteLine("Select TCP mode:");
-            Console.WriteLine("  1) TCP Client - Connect to remote host");
-            Console.WriteLine("  2) TCP Server - Listen for incoming connections");
-            Console.WriteLine();
-            Console.Write("Enter choice [1-2]: ");
-            string? modeChoice = Console.ReadLine();
-            Console.WriteLine();
-
-            bool isServer = false;
-            string? host = null;
-            int port = 1998;
-
-            if (modeChoice?.Trim() == "2")
-            {
-                // TCP Server mode
-                isServer = true;
-
-                Console.Write("Listen port [default: 1998]: ");
-                string? portInput = Console.ReadLine();
-                if (!string.IsNullOrWhiteSpace(portInput) && !int.TryParse(portInput, out port))
-                {
-                    Console.WriteLine("Error: Invalid port number");
-                    Console.WriteLine("Press any key to return to menu...");
-                    Console.ReadKey(true);
-                    ShowInteractiveMenu();
-                    return;
-                }
-            }
-            else if (modeChoice?.Trim() == "1")
-            {
-                // TCP Client mode - ask for remote host and port
-                Console.Write("Remote host [default: localhost]: ");
-                host = Console.ReadLine();
-                if (string.IsNullOrWhiteSpace(host))
-                {
-                    host = "localhost";
-                }
-
-                Console.Write("Remote port [default: 1998]: ");
-                string? portInput = Console.ReadLine();
-                if (!string.IsNullOrWhiteSpace(portInput) && !int.TryParse(portInput, out port))
-                {
-                    Console.WriteLine("Error: Invalid port number");
-                    Console.WriteLine("Press any key to return to menu...");
-                    Console.ReadKey(true);
-                    ShowInteractiveMenu();
-                    return;
-                }
-            }
-            else
-            {
-                Console.WriteLine("Invalid choice.");
-                Console.WriteLine("Press any key to return to menu...");
-                Console.ReadKey(true);
-                ShowInteractiveMenu();
-                return;
-            }
-
-            Console.Write("Local Machine ID [default: 200]: ");
-            string? machineIdInput = Console.ReadLine();
-
-            ushort machineId = 200;
-            if (!string.IsNullOrWhiteSpace(machineIdInput) && !ushort.TryParse(machineIdInput, out machineId))
-            {
-                Console.WriteLine("Error: Invalid machine ID");
-                Console.WriteLine("Press any key to return to menu...");
-                Console.ReadKey(true);
-                ShowInteractiveMenu();
-                return;
-            }
-
-            LaunchSintranClient(machineId, isServer, host, port);
-        }
-
-        static void SetupSintranPad()
-        {
-            Console.WriteLine("═══ SINTRAN PAD Setup ═══");
-            Console.WriteLine();
-
-            Console.WriteLine("Select TCP mode:");
-            Console.WriteLine("  1) TCP Client - Connect to remote host");
-            Console.WriteLine("  2) TCP Server - Listen for incoming connections (not yet implemented)");
-            Console.WriteLine();
-            Console.Write("Enter choice [1-2]: ");
-            string? modeChoice = Console.ReadLine();
-            Console.WriteLine();
-
-            if (modeChoice?.Trim() == "2")
-            {
-                Console.WriteLine("TCP Server mode not yet implemented.");
-                Console.WriteLine("Press any key to return to menu...");
-                Console.ReadKey(true);
-                ShowInteractiveMenu();
-                return;
-            }
-            else if (modeChoice?.Trim() != "1")
-            {
-                Console.WriteLine("Invalid choice.");
-                Console.WriteLine("Press any key to return to menu...");
-                Console.ReadKey(true);
-                ShowInteractiveMenu();
-                return;
-            }
-
-            // TCP Client mode - ask for remote host and port
-            Console.Write("Remote host [default: localhost]: ");
-            string? host = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(host))
-            {
-                host = "localhost";
-            }
-
-            Console.Write("Remote port [default: 1998]: ");
-            string? portInput = Console.ReadLine();
-            int port = 1998;
-            if (!string.IsNullOrWhiteSpace(portInput) && !int.TryParse(portInput, out port))
-            {
-                Console.WriteLine("Error: Invalid port number");
-                Console.WriteLine("Press any key to return to menu...");
-                Console.ReadKey(true);
-                ShowInteractiveMenu();
-                return;
-            }
-
-            Console.Write("Local Machine ID [default: 200]: ");
-            string? machineIdInput = Console.ReadLine();
-
-            ushort machineId = 200;
-            if (!string.IsNullOrWhiteSpace(machineIdInput) && !ushort.TryParse(machineIdInput, out machineId))
-            {
-                Console.WriteLine("Error: Invalid machine ID");
-                Console.WriteLine("Press any key to return to menu...");
-                Console.ReadKey(true);
-                ShowInteractiveMenu();
-                return;
-            }
-
-            LaunchSintranPad(machineId);
-        }
-
         static void SetupX25Pad()
         {
             Console.WriteLine("═══ X.25 PAD Setup ═══");
@@ -449,66 +294,6 @@ namespace RetroX25.Xot
             }
 
             LaunchX25Pad(localAddress);
-        }
-
-        static void LaunchSintranClient(ushort machineId, bool isServer, string? remoteHost, int port)
-        {
-            try
-            {
-                // Initialize Terminal.Gui
-                Application.Init();
-
-                try
-                {
-                    // SINTRAN HOST window retired with Stack A (see _retired/XotWindows/SintranClientWindow.cs).
-                    // Migrate it onto LapbInstance (Stack B) to restore this feature.
-                    Console.WriteLine($"SINTRAN HOST window retired (Stack A). machineId={machineId}, server={isServer}, host={remoteHost}, port={port}");
-                }
-                finally
-                {
-                    Application.Shutdown();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Fatal error: {ex.Message}");
-                Console.WriteLine();
-                Console.WriteLine("Stack trace:");
-                Console.WriteLine(ex.StackTrace);
-                Console.WriteLine();
-                Console.WriteLine("Press any key to exit...");
-                Console.ReadKey(true);
-            }
-        }
-
-        static void LaunchSintranPad(ushort machineId)
-        {
-            try
-            {
-                // Initialize Terminal.Gui
-                Application.Init();
-
-                try
-                {
-                    // SINTRAN PAD window retired with Stack A (see _retired/XotWindows/SintranPadClientWindow.cs).
-                    // Migrate it onto LapbInstance (Stack B) to restore this feature.
-                    Console.WriteLine($"SINTRAN PAD window retired (Stack A). machineId={machineId}");
-                }
-                finally
-                {
-                    Application.Shutdown();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Fatal error: {ex.Message}");
-                Console.WriteLine();
-                Console.WriteLine("Stack trace:");
-                Console.WriteLine(ex.StackTrace);
-                Console.WriteLine();
-                Console.WriteLine("Press any key to exit...");
-                Console.ReadKey(true);
-            }
         }
 
         static void LaunchX25Pad(string localAddress)

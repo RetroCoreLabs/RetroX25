@@ -14,6 +14,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The unit tests check the packet bits and the numbering check directly. -->
+    <InternalsVisibleTo Include="RetroX25.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="RetroIO.Protocols.X25.Client" />
   </ItemGroup>
 

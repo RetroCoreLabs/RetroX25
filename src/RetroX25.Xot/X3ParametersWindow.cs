@@ -8,7 +8,6 @@
 using System;
 using System.Collections.Generic;
 using RetroIO.Protocols.X25.Protocols;
-using RetroIO.Protocols.X25.Sintran;
 using Terminal.Gui;
 
 namespace RetroX25.Xot

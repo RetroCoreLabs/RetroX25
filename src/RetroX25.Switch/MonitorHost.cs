@@ -20,8 +20,8 @@ namespace RetroX25.Switch
     /// status snapshot built from the attached ports' counters.
     /// </summary>
     /// <remarks>
-    /// The ports are RetroIO's <see cref="XotSwitchPort"/>, the one X.25 port the whole stack shares.
-    /// This host reads what that port offers a monitor: its <see cref="XotSwitchPort.PacketCaptured"/>
+    /// The ports are RetroIO's real switch ports (<see cref="IMonitoredSwitchPort"/>: XOT, or LAPB over HDLC framing), the ports the whole stack shares.
+    /// This host reads what that port offers a monitor: its <see cref="IMonitoredSwitchPort.PacketCaptured"/>
     /// tap, its <see cref="PortCounters"/> (including the byte totals), and its connect statistics.
     /// This project used to carry its own copy of the port to get those, and the copy had drifted from
     /// the shared one until it no longer compiled against it.
@@ -29,7 +29,7 @@ namespace RetroX25.Switch
     public sealed class MonitorHost : IDisposable
     {
         private readonly MonitorServer _server;
-        private readonly List<XotSwitchPort> _ports = new List<XotSwitchPort>();
+        private readonly List<IMonitoredSwitchPort> _ports = new List<IMonitoredSwitchPort>();
         private long _seq;
 
         /// <summary>
@@ -65,7 +65,7 @@ namespace RetroX25.Switch
         /// <param name="port">
         /// The port to observe.
         /// </param>
-        public void Attach(XotSwitchPort port)
+        public void Attach(IMonitoredSwitchPort port)
         {
             _ports.Add(port);
             port.PacketCaptured += OnFrame;
@@ -118,7 +118,7 @@ namespace RetroX25.Switch
             for (int i = 0; i < topology.Neighbours.Count; i++)
             {
                 NeighbourInfo neighbour = topology.Neighbours[i];
-                XotSwitchPort? port = FindPort(neighbour.ViaPortId);
+                IMonitoredSwitchPort? port = FindPort(neighbour.ViaPortId);
                 neighbour.Up = port != null && port.PeerConnected;
             }
 
@@ -138,7 +138,7 @@ namespace RetroX25.Switch
 
             for (int i = 0; i < _ports.Count; i++)
             {
-                XotSwitchPort port = _ports[i];
+                IMonitoredSwitchPort port = _ports[i];
                 PortRoutes.TryGetValue(port.Id, out string? routeSummary);
                 snapshot.Ports.Add(new PortStatus
                 {
@@ -170,7 +170,7 @@ namespace RetroX25.Switch
             _statusTimer = null;
         }
 
-        private XotSwitchPort? FindPort(int portId)
+        private IMonitoredSwitchPort? FindPort(int portId)
         {
             for (int i = 0; i < _ports.Count; i++)
             {

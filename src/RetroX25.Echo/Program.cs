@@ -48,7 +48,14 @@ namespace RetroX25.Echo
         /// <param name="Close">
         /// True when the call is to be cleared once this packet has gone out (the user typed exit).
         /// </param>
-        private sealed record EchoItem(X25Vc Vc, byte[] Data, bool QBit, bool Close = false);
+        /// <param name="MBit">
+        /// The more-data bit, echoed unchanged. Set only when the packet goes back byte for byte (quiet
+        /// mode or a Q-bit packet); the terminal echo rewrites the text, so a message boundary means nothing there.
+        /// </param>
+        /// <param name="DBit">
+        /// The delivery-confirmation bit, echoed unchanged under the same condition as <c>MBit</c>.
+        /// </param>
+        private sealed record EchoItem(X25Vc Vc, byte[] Data, bool QBit, bool Close = false, bool MBit = false, bool DBit = false);
 
         /// <summary>
         /// Longest line kept while looking for the exit command; anything longer cannot be the command.
@@ -196,7 +203,9 @@ namespace RetroX25.Echo
                     int piece = Math.Min(128, copy.Length - offset);
                     byte[] part = new byte[piece];
                     Buffer.BlockCopy(copy, offset, part, 0, piece);
-                    pending.Enqueue(new EchoItem(vc, part, qBit));
+                    // M and D go back only on a byte-for-byte, single-packet echo (see EchoItem).
+                    bool exact = (quiet || qBit) && copy.Length == piece;
+                    pending.Enqueue(new EchoItem(vc, part, qBit, false, exact && mBit, exact && dBit));
                 }
 
                 if (quiet)
@@ -251,7 +260,7 @@ namespace RetroX25.Echo
                     }
 
                     // A circuit that has cleared has nobody to echo to.
-                    if (!next.Vc.Connected || client.Send(next.Vc, next.Data, next.Data.Length, next.QBit))
+                    if (!next.Vc.Connected || client.Send(next.Vc, next.Data, next.Data.Length, next.QBit, next.MBit, next.DBit))
                     {
                         pending.TryDequeue(out _);
                         idle = 0;

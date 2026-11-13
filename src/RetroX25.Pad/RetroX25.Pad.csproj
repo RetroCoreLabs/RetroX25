@@ -14,8 +14,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The unit tests drive the telnet PAD host directly. -->
+    <InternalsVisibleTo Include="RetroX25.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Reuses PadClient (X.3/X.28/X.29 logic) driven on a runtime built by X25RuntimeConfigFactory. -->
     <PackageReference Include="RetroIO.Protocols.X25.Client" />
+    <!-- TelnetPadServer: the same telnet PAD the Desktop uses. -->
+    <PackageReference Include="RetroIO.Protocols.X25.Runtime" />
   </ItemGroup>
 
 </Project>

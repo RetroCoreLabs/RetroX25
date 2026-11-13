@@ -22,7 +22,7 @@ namespace RetroX25.Switch
     /// x25switch - a multi-port X.25 packet switch.
     /// </summary>
     /// <remarks>
-    /// Loads a switch configuration, brings up each port as an XOT endpoint, routes and stitches calls
+    /// Loads a switch configuration, brings up each port with the transport its configuration names (XOT, or LAPB over HDLC framing on TCP or a serial line), routes and stitches calls
     /// between ports, and exposes a telnet management console plus an X.25-based management surface.
     ///
     /// Usage: x25switch &lt;config-file&gt; [-v] [-v]
@@ -90,15 +90,29 @@ namespace RetroX25.Switch
             SwitchNode node = new SwitchNode(config) { UptimeStartMs = Environment.TickCount64 };
             for (int i = 0; i < config.Ports.Count; i++)
             {
-                XotSwitchPort port = new XotSwitchPort(config.Ports[i], logger);
+                // One factory makes every port, from its configured transport. A port whose transport this
+                // build cannot run stops the program here, naming the port and the transport; it is never
+                // run as some other kind of port.
+                ISwitchPort port;
+                try
+                {
+                    port = SwitchPortFactory.Create(config.Ports[i], logger);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("x25switch: cannot run port {Port} (transport {Transport}): {Reason}. Exiting.",
+                        config.Ports[i].Id, SwitchPortFactory.Describe(config.Ports[i].Transport), ex.Message);
+                    return 1;
+                }
+
                 node.AddPort(port);
 
                 // At -v -v (trace level) every packet each port receives or writes is logged in hex, with
                 // its direction. Working out why two X.25 implementations will not talk to each other
                 // comes down to reading the packets they actually exchanged; this is where they are.
-                if (logger.IsEnabled(LogLevel.Trace))
+                if (logger.IsEnabled(LogLevel.Trace) && port is IMonitoredSwitchPort tapped)
                 {
-                    port.PacketCaptured += (portId, inbound, packet) =>
+                    tapped.PacketCaptured += (portId, inbound, packet) =>
                         logger.LogTrace("Port {Port} {Direction} {Packet}", portId, inbound ? "RX" : "TX", BitConverter.ToString(packet).Replace('-', ' '));
                 }
             }
@@ -137,9 +151,9 @@ namespace RetroX25.Switch
                 monitorHost = new MonitorHost(monitor);
                 for (int i = 0; i < node.Ports.Count; i++)
                 {
-                    if (node.Ports[i] is XotSwitchPort xotPort)
+                    if (node.Ports[i] is IMonitoredSwitchPort monitoredPort)
                     {
-                        monitorHost.Attach(xotPort);
+                        monitorHost.Attach(monitoredPort);
                     }
                 }
 
@@ -209,7 +223,7 @@ namespace RetroX25.Switch
 
             if (failedPorts > 0)
             {
-                logger.LogError("x25switch: {Failed} of {Ports} ports did not start - see the errors above. Exiting.",
+                logger.LogError("x25switch: {Failed} of {Ports} ports did not start - see the errors above (each names its port and transport). Exiting.",
                     failedPorts, node.Ports.Count);
                 monitorHost?.Dispose();
                 for (int i = 0; i < node.Ports.Count; i++)

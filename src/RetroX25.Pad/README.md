@@ -41,17 +41,20 @@ dialled a PAD, got a `*` prompt, and typed `CALL`.
 | P5 | An address to call | X.121 format | Echo answers on `23520001` in the demo |
 
 ```
-x25pad [-x host:port] [-v]
+x25pad [-x host:port] [--telnet-port N [--telnet-bind addr]] [-v]
 ```
 
 | Option | Meaning |
 |---|---|
 | `-x host:port` | The XOT peer. Default `localhost:1998` |
+| `--telnet-port N` | Do not use the keyboard. Listen for telnet on port N. Every telnet connection gets its own X.28 PAD and its own XOT connection to the peer; closing the telnet connection clears its call. It is the same telnet PAD server the Desktop app has |
+| `--telnet-bind addr` | Address to listen on with `--telnet-port`. Default `127.0.0.1` (this PC only). There is no login: do not bind a public address |
 | `-v` | More verbosity; repeat for more |
 
 ```powershell
 .\src\demo\demo.ps1 pad                      # against the demo network
 x25pad -x 127.0.0.1:2200 -v              # by hand
+x25pad -x 127.0.0.1:2200 --telnet-port 2323   # any telnet client, then: CALL 23520001
 ```
 
 ## At the `*` prompt (X.28)

@@ -17,7 +17,7 @@ When a call fails, the interesting information is in a packet nobody looked at. 
 **diagnostic**; a refused call says why; a circuit that resets says what reset it. Those bytes are the difference
 between "it does not work" and "the called address is not obtainable, diagnostic 67".
 
-It is also the only honest way to settle an interoperability argument. If a Cisco router, a SINTRAN machine or the
+It is also the only honest way to settle an interoperability argument. If a Cisco router, another X.25 switch or the
 C reference implementation disagrees with this one, the question is which octets went past — not which program's
 log is more convincing.
 

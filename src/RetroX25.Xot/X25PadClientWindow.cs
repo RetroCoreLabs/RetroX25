@@ -14,7 +14,6 @@ using RetroIO.Protocols.X25.Modules;
 using RetroIO.Protocols.X25.Protocols;
 using RetroIO.Protocols.X25.Runtime.Models;
 using RetroIO.Protocols.X25.Runtime.Transport;
-using RetroIO.Protocols.X25.Sintran;
 using RetroIO.Protocols.X25.Transport;
 using Terminal.Gui;
 
