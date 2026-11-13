@@ -20,10 +20,26 @@
     <PackageReference Include="Avalonia.Headless.NUnit" />
     <PackageReference Include="Avalonia.Skia" />
     <PackageReference Include="RetroIO.Protocols.X25.Client" />
+    <!-- The monitor client reads x25emu's per-port counters in the cross-environment tests. -->
+    <PackageReference Include="RetroIO.Protocols.X25.Monitor" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\RetroX25.Desktop\RetroX25.Desktop.csproj" />
+    <!-- The burst tests start these two command-line tools as real processes. They are built with the tests;
+         the tests only run their programs, they never load them as libraries. -->
+    <ProjectReference Include="..\..\RetroX25.Traffic\RetroX25.Traffic.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\RetroX25.Echo\RetroX25.Echo.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The cross-environment helpers (the WSL process starter, the checker and the XOT wire tap) are shared with
+         RetroX25.Tests by link: the tests where x25emu dials US must run in this project, because the Windows
+         firewall decides inbound connections program by program. -->
+    <Compile Include="..\RetroX25.Tests\Interop\X25emuEnvironment.cs" Link="Interop\X25emuEnvironment.cs" />
+    <Compile Include="..\RetroX25.Tests\Interop\XotWireTap.cs" Link="Interop\XotWireTap.cs" />
+    <Compile Include="..\RetroX25.Tests\Interop\X25emuEchoPool.cs" Link="Interop\X25emuEchoPool.cs" />
+    <Compile Include="..\RetroX25.Tests\Interop\X25emuMonitor.cs" Link="Interop\X25emuMonitor.cs" />
   </ItemGroup>
 
 </Project>
