@@ -4,6 +4,7 @@
 # plus an echo service on Switch C. Mirrors the reference demo's UX.
 #
 #   Switch A  DNIC 2350  access 2200   mgmt 9101   monitor 4001
+#   (the A->B and B->C trunks are HDLC leased lines, transport = hdlc-tcp, not XOT)
 #   Switch B  DNIC 2351  trunk  2201   mgmt 9102   monitor 4002
 #   Switch C  DNIC 2352  trunk  2202   mgmt 9103   monitor 4003
 #   echo      answers on 23520001, connected to Switch C access port 2203

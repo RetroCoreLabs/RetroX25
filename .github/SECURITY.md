@@ -29,7 +29,7 @@ disk image, a configuration file, a capture, a saved session.
 
 ## What is not in scope
 
- - **The age of the protocols themselves.** X.25, XMSG, TNFS, Econet and the 1980s filesystems
+ - **The age of the protocols themselves.** X.25, XOT and the other 1980s protocols
    have no authentication, no encryption and no integrity checking worth the name. That is what
    they were; reproducing them faithfully is the purpose of this project, not a defect. Do not run
    any of it on a network you do not control, and do not expose a port of it to the internet.

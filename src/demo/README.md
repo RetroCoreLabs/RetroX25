@@ -7,7 +7,7 @@ management CLIs.
 ## Topology
 
 ```
-  PAD ──▶ Switch A ──trunk──▶ Switch B ──trunk──▶ Switch C ──▶ echo (23520001)
+  PAD ──▶ Switch A ══HDLC══▶ Switch B ══HDLC══▶ Switch C ──▶ echo (23520001)
           DNIC 2350           DNIC 2351           DNIC 2352
           access 2200         trunk-in 2201       trunk-in 2202
           mgmt  9101          mgmt  9102          access  2203
@@ -16,6 +16,16 @@ management CLIs.
 
 A call to `23520001` placed at the PAD routes A → B → C and out to the echo
 service, which sends the data straight back.
+
+The two trunks (A to B, B to C) are **leased lines**: X.25 over LAPB over 0x7E HDLC framing on one
+TCP connection (`transport = hdlc-tcp`), the same way the C emulator's demo chains its switches.
+The end that dials (A toward B, B toward C) is the DTE and sends the SABM; the end that listens
+is the DCE. XOT is not used between the demo switches. The trunk to the reference (WSL) network
+on Switch A, and the sample configs `switch-cisco.ini` and `switch-desktop.ini`, stay XOT because
+their peers speak XOT. See `src/docs/trunk-links.md`.
+
+The Desktop main window and the monitor show each trunk's LAPB link state, link resets, failed dials,
+frames, retransmissions and calls.
 
 ## Run it
 
@@ -70,3 +80,7 @@ The routes that carry calls across that trunk are the `[route.0]` comments in
 `switch-a.ini`. The live interop tests that drive this trunk from the C# side are the
 `CrossEnvLive` tests in the RetroIO repository (`RetroIO.Protocols.X25.Tests`), started by
 the `crossenv-test.ps1` script kept beside them in its `src/tests/demo` folder.
+
+This repository has its own set, which also starts the reference network itself: run
+`crossenv-test.ps1` from this folder (the guide, `src/docs/crossenv-testing.md` in the repository, has the address
+table, the tests and what was measured).
