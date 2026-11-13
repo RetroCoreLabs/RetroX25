@@ -176,6 +176,20 @@ dotnet test src\tests\RetroX25.Tests\RetroX25.Tests.csproj --filter "FullyQualif
 dotnet test src\tests\RetroX25.Desktop.Tests\RetroX25.Desktop.Tests.csproj --filter "FullyQualifiedName~CiscoR1PeerTests"
 ```
 
+### x25emu, our switch and the router together (checked 2026-11-13)
+
+`demo/switch-cisco-x25emu.ini` is `switch-cisco.ini` plus two ports for x25emu (a trunk x25emu dials on 2210, and a trunk
+we dial to Switch A's access port 2001; its `host` is the WSL address, which changes after a reboot).
+`demo/crossenv-wsl.sh` gives Switch A a route for 2360 out of its XOT trunk, so a call to the router leaves through us.
+Start the network with `crossenv-wsl.sh`, then `x25switch demo\switch-cisco-x25emu.ini`. Then:
+
+- x25emu to the router: in WSL `x25pad -x 127.0.0.1:2001 -a 23400001 -u 01000000`, type `CALL 23600001`, get `R1>`.
+- The router to x25emu: attach an x25emu echo to Switch A's endpoint port (`x25echo -x 127.0.0.1:2007`) and on the router
+  type `pad 23430001` (the router's existing `^2343` route already points at this PC). Without the echo attached,
+  x25emu clears the caller after 5 seconds with cause 1, diagnostic 71.
+
+The router's console needs no change for either.
+
 ## The Desktop windows against x25emu
 
 `tests/RetroX25.Desktop.Tests/Interop/X25emuWindowsTests.cs` (needs the same variables as the other cross-environment tests):

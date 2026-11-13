@@ -238,6 +238,15 @@ address = 2353
 prefix_len = 4
 port = 7
 
+# Calls for the Cisco side (2360...) also go out of the XOT trunk to us (port 4). Our switch
+# (demo/switch-cisco-x25emu.ini) passes them on to the router. Without this route they would
+# follow the default route into Switch B and C, which know no 2360 and clear them.
+[route.7]
+type = prefix
+address = 2360
+prefix_len = 4
+port = 4
+
 [account.0]
 name = pad_users
 addr_start = 23400000
