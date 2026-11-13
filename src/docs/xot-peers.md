@@ -64,7 +64,7 @@ address** of the TCP connection.
   XOT calls, the source IP address is tested", "If no access lists are applied to XOT, the default X.25 settings are
   used", the `xot access-group` command disables the older XOT behaviour, and only standard IP access lists are
   accepted. By that text a router with no `xot access-group` (R1 has none and no access list) accepts a call from any
-  source address. This was **not measured** (no second source address was reachable; see "Measured against a real
+  source address. Measured for R1 on 2026-11-13: a caller from a second machine was served ("Measured against a real
   Cisco router", point 6).
 - Incoming calls are then routed by **X.121 address and call user data** through `x25 route`.
 - **NAT:** behind a NAT router the source address is the translated one, and it is **shared by every
@@ -181,14 +181,14 @@ call. This is why the Client mode now opens one connection for each call.
 **5. A connection that opens and closes with no packet** is logged by the router as `XOT incoming cx closed, no VC setup`
 and is harmless.
 
-**6. A connection from an address the router has no access list for: NOT measured.** To see it, the connection has to
-arrive from an address other than this PC's. This PC has one address on that network (192.168.1.180). **WSL does not
-give a second one:** a connection opened from WSL (its own address 172.24.50.23) reaches the router with the source
-address 192.168.1.180, because Windows translates it (checked 2026-11-13 with `show tcp brief` on the router, which
-listed the WSL connection as `192.168.1.180.<other port>`). The laptop that holds the router console has no route to the
-router (`No route to host`). So to test this case one of these is needed, and none was done: a second address on this
-PC's network card, WSL set to bridged or mirrored networking, or another machine on that network. The router was
-not changed.
+**6. A connection from an address the router has no access list for: measured, it is accepted (2026-11-13).** The probe ran on a second machine on the same network, ubuntu18lts, address 192.168.1.228 (not this PC's 192.168.1.180; WSL cannot be used because Windows translates its address, checked with `show tcp brief`). R1 has no `xot access-group` and no access list. One TCP connection to R1 port 1998 and one XOT Call Request were sent from there, and the bytes were read in order:
+
+- `show tcp brief` on R1 while the connection was open: `192.168.1.155.1998  192.168.1.228.51836  ESTAB`.
+- Sent (XOT header `00 00 00 16`, then the call): `10 01 0b 58 23 60 00 01 10 00 00 06 42 07 07 43 07 07 01 00 00 00` (called 23600001, calling 10000, packet size 128 and window 7, call user data `01 00 00 00`).
+- Received after 0.05 s: Call Accepted `10 01 0f 00 06 42 07 07 43 07 07`, then a Q-bit data packet `90 01 00 04`, then a data packet `10 01 02 0d 0a 52 31 3e`, which is the text `R1>` after a CR LF (the router PAD prompt).
+- Router log: `XOT I P/Inactive Call (22)` from 192.168.1.228, `XOT O P3 Call Confirm`, the two data packets, then after our Clear Request `Cause 0, Diag 0` and `Clear Confirm`.
+
+So a router with no access list serves a caller from any source address, as Cisco's text says. **What is still not measured** is the other half: what the router does with an unknown address once an `xot access-group` exists. That needs a router configuration change, which was not made. A first probe with a facility length of 0 (no facilities) was cleared by the router with `XOT Call packet, Bad value for facility`, cause 3, diagnostic 66: the router wants the facility block, and the cause was the packet, not the address.
 
 **7. All the router tests were run again on 2026-11-13 and pass:** the three `Live_*` tests (each alone; they need the
 switch running, or the router calling in, as their comments say, and they must be run one at a time because each
