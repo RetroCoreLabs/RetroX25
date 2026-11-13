@@ -178,8 +178,46 @@ call. This is why the Client mode now opens one connection for each call.
 and is harmless.
 
 **6. A connection from an address the router has no access list for: NOT measured.** To see it, the connection has to
-arrive from an address other than this PC's. This PC has one address on that network; the only other machine that
-could forward (the laptop that holds the router console) has no route to the router (`No route to host`). Adding an
-address to this PC or changing the router was not done. The first time a different machine is on that network, run
-`CiscoR1MeasurementTests.CallToTheRouterPad_...` from it.
+arrive from an address other than this PC's. This PC has one address on that network (192.168.1.180). **WSL does not
+give a second one:** a connection opened from WSL (its own address 172.24.50.23) reaches the router with the source
+address 192.168.1.180, because Windows translates it (checked 2026-11-13 with `show tcp brief` on the router, which
+listed the WSL connection as `192.168.1.180.<other port>`). The laptop that holds the router console has no route to the
+router (`No route to host`). So to test this case one of these is needed, and none was done: a second address on this
+PC's network card, WSL set to bridged or mirrored networking, or another machine on that network. The router was
+not changed.
+
+**7. All the router tests were run again on 2026-11-13 and pass:** the three `Live_*` tests (each alone; they need the
+switch running, or the router calling in, as their comments say, and they must be run one at a time because each
+needs port 1998 or 1999 for itself), `ClientEntry_SimultaneousCalls_OpenOneConnectionEach` (1 call: 1 connection; 2
+calls: 2 connections, both connected), `PeerEntry_SimultaneousCalls_...` (table in point 3 again) and both
+`CiscoR1MeasurementTests`.
+
+**8. Q, M and D bits cross the router unchanged, both ways.** Read from `debug x25 all` on R1 for a call from our
+`x25traffic` through R1 to R2's PAD. A Q-bit data packet from us left the router's serial side with the Q bit set
+(`O ... Data (19) Q`), and the Q-bit packets R2 sent came out of the XOT side with Q (`XOT O ... Data (4) Q`). A packet
+sent with the D bit left the serial side with `D`; the confirmation came back as a Receive Ready and the tool reported
+all packets confirmed. A chain of three 128-byte packets with the M bit left the serial side as three packets that
+all carry `M` (131 bytes each: 128 data and 3 header). Nothing was merged, split or cleared.
+
+**9. Many calls at once to R2's PAD: only 5 connect.** 5, 10, 20, 50 and 64 calls at once gave 5 connected each time, and
+the rest were cleared by the far side (seen as cause 0 diagnostic 67 on the switch trunk; the router's debug shows no
+reason). I have not verified why 5; five is the number of lines R2's terminal service seems to have, which is a guess.
+Calls to our echo service through the same switch: 50 of 50, five rounds in a row, nothing left open on either side
+(`show x25 vc` on R1 is empty afterwards).
+
+**10. A long stream into the router's PAD ends after about 19 seconds with a Reset from our side. Cause found.** Sending
+64-byte packets to R2's PAD, the router echoes every byte and answers with a never ending run of full 128-byte packets
+that all carry the M bit (R2 has no end of message to mark). Our X.25 layer collects such a run into one message and
+gives up at 64 KB (`X25Vc.MaxReassembly`, 65536 bytes), and sends Reset with cause 0, diagnostic 39 "packet too long".
+R1 passes that on, the circuit is reset and the traffic tool stops (it reported 154 to 156 packets sent and about 66 000
+bytes received, the same in each of four runs). X.25 itself sets no limit on the length of such a run. The limit is in
+RetroIO and is a design choice that is not decided yet (see `PLAN.md`).
+
+**11. The router calling x25emu, and x25emu calling the router, both through our switch** (`demo/switch-cisco-x25emu.ini`).
+x25emu's PAD (`x25pad -u 01000000 -a 23400001`) called 23600001 and got the `R1>` prompt and the clock; the call went
+x25emu Switch A, our switch (trunk on 2210), R1. The router's `pad 23430001` reached an x25emu echo service
+attached to Switch A (port 2007) through R1, our switch (trunk 1998 in), Switch A (our switch dials its access port
+2001), and the text came back. Each switch counted one call in and one out. The clear is cause 0 diagnostic 0 on both
+sides. Without a service attached to 2007 x25emu waits 5 seconds and clears the caller with cause 1 (number busy),
+diagnostic 71. A storm of 5 calls from x25emu's `x25traffic` to R1's PAD: 5 of 5 connected, 5 of 5 cleared.
 
