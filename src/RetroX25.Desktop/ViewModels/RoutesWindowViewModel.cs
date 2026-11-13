@@ -11,6 +11,7 @@ using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using RetroIO.Protocols.X25.Transport;
 using RetroX25.Desktop.Services;
 
 namespace RetroX25.Desktop.ViewModels;
@@ -40,6 +41,20 @@ public partial class RoutesWindowViewModel : ViewModelWithLogger
 
     [ObservableProperty]
     private string _testResults = "";
+
+    /// <summary>
+    /// Gets or sets the direction the route test is made for: <c>Outbound</c> (a call placed from
+    /// here), <c>Inbound</c> (a call arriving) or <c>Bidirectional</c> (matches only routes that
+    /// work both ways).
+    /// </summary>
+    [ObservableProperty]
+    private string _testDirection = "Outbound";
+
+    /// <summary>
+    /// Gets the directions the route test can be made for.
+    /// </summary>
+    public System.Collections.Generic.List<string> AvailableDirections { get; } =
+        new() { "Outbound", "Inbound", "Bidirectional" };
 
     /// <summary>
     /// Creates the view-model and loads the routing table from the running protocol
@@ -102,6 +117,7 @@ public partial class RoutesWindowViewModel : ViewModelWithLogger
                     Destination = route.Destination,
                     Priority = route.Priority,
                     Enabled = route.Enabled,
+                    Direction = RouteDirection.Bidirectional.ToString(),
                     Description = route.Description ?? ""
                 });
             }
@@ -136,6 +152,7 @@ public partial class RoutesWindowViewModel : ViewModelWithLogger
             details.AppendLine($"Route Name: {value.Name}");
             details.AppendLine($"Status: {(value.Enabled ? "Enabled" : "Disabled")}");
             details.AppendLine($"Priority: {value.Priority}");
+            details.AppendLine($"Direction: {value.Direction}");
             details.AppendLine();
             details.AppendLine($"X.121 Pattern: {value.Pattern}");
             details.AppendLine($"Transport Type: {value.Type}");
@@ -171,6 +188,15 @@ public partial class RoutesWindowViewModel : ViewModelWithLogger
         Logger.LogInformation("Routes refreshed");
     }
 
+    /// <summary>
+    /// Asks the engine's own router which routes match the test address for the chosen direction,
+    /// and shows them, best first.
+    /// </summary>
+    /// <remarks>
+    /// The match is the engine's: the address is matched against each enabled route's pattern with
+    /// upper and lower case treated alike, only routes that work in the chosen direction count, and
+    /// the route with the highest priority is the selected one. Nothing is placed on the wire.
+    /// </remarks>
     [RelayCommand]
     private void TestRoute()
     {
@@ -180,67 +206,50 @@ public partial class RoutesWindowViewModel : ViewModelWithLogger
             return;
         }
 
-        try
+        if (!_runtimeService.IsRunning)
         {
-            var results = new StringBuilder();
-            results.AppendLine($"Testing X.121 address: {TestAddress}");
+            TestResults = "The protocol runtime is not running";
+            return;
+        }
+
+        if (!Enum.TryParse(TestDirection, true, out RouteDirection direction))
+        {
+            TestResults = $"Unknown direction: {TestDirection}";
+            return;
+        }
+
+        string address = TestAddress.Trim();
+        System.Collections.Generic.List<X25Route> matches = _runtimeService.Runtime.Router.TestRoute(address, direction);
+
+        var results = new StringBuilder();
+        results.AppendLine($"Testing X.121 address: {address}");
+        results.AppendLine($"Direction: {direction}");
+        results.AppendLine();
+
+        if (matches.Count == 0)
+        {
+            results.AppendLine("No matching routes found");
+        }
+        else
+        {
+            results.AppendLine($"Found {matches.Count} matching route(s):");
             results.AppendLine();
 
-            // Find matching routes
-            int matchCount = 0;
-            RouteDisplayItem? bestMatch = null;
-            int highestPriority = int.MinValue;
-
-            for (int i = 0; i < Routes.Count; i++)
+            for (int i = 0; i < matches.Count; i++)
             {
-                var route = Routes[i];
-                if (!route.Enabled) continue;
-
-                try
+                X25Route route = matches[i];
+                results.AppendLine($"{route.Name} (Priority {route.Priority}) {(i == 0 ? "→ SELECTED" : "  (backup)")}");
+                results.AppendLine($"  Pattern: {route.X121AddressPattern}");
+                results.AppendLine($"  Destination: {route.Type}/{route.Destination}");
+                if (i < matches.Count - 1)
                 {
-                    var regex = new System.Text.RegularExpressions.Regex(route.Pattern);
-                    if (regex.IsMatch(TestAddress))
-                    {
-                        matchCount++;
-                        if (route.Priority > highestPriority)
-                        {
-                            highestPriority = route.Priority;
-                            bestMatch = route;
-                        }
-                    }
-                }
-                catch
-                {
-                    // Invalid regex
+                    results.AppendLine();
                 }
             }
-
-            if (matchCount == 0)
-            {
-                results.AppendLine("No matching routes found");
-            }
-            else
-            {
-                results.AppendLine($"Found {matchCount} matching route(s)");
-                results.AppendLine();
-                if (bestMatch != null)
-                {
-                    results.AppendLine("→ SELECTED ROUTE:");
-                    results.AppendLine($"  Name: {bestMatch.Name}");
-                    results.AppendLine($"  Priority: {bestMatch.Priority}");
-                    results.AppendLine($"  Pattern: {bestMatch.Pattern}");
-                    results.AppendLine($"  Destination: {bestMatch.Type}/{bestMatch.Destination}");
-                }
-            }
-
-            TestResults = results.ToString();
-            Logger.LogDebug("Route test completed for {Address}: {Count} matches", TestAddress, matchCount);
         }
-        catch (Exception ex)
-        {
-            TestResults = $"Error testing route: {ex.Message}";
-            Logger.LogError(ex, "Error testing route");
-        }
+
+        TestResults = results.ToString();
+        Logger.LogDebug("Route test completed for {Address} ({Direction}): {Count} matches", address, direction, matches.Count);
     }
 
     /// <inheritdoc/>
@@ -289,6 +298,13 @@ public class RouteDisplayItem
     /// test.
     /// </summary>
     public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the direction the route works in: <c>Outbound</c>, <c>Inbound</c> or <c>Bidirectional</c>.
+    /// The engine makes every route from the routing table <c>Bidirectional</c>, so that is what is
+    /// shown.
+    /// </summary>
+    public string Direction { get; set; } = "";
 
     /// <summary>
     /// Gets or sets the free-text description of the route; empty when it has none.

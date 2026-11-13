@@ -13,7 +13,7 @@ using RetroX25.Desktop.ViewModels;
 namespace RetroX25.Desktop.Views;
 
 /// <summary>
-/// The PAD Client window (F10), a terminal for the X.3/X.28/X.29 PAD client.
+/// The PAD Client window (Ctrl+5), a terminal for the X.3/X.28/X.29 PAD client.
 /// </summary>
 public partial class PADClientWindow : Window
 {
@@ -67,21 +67,28 @@ public partial class PADClientWindow : Window
             }
         };
 
-        // Follow the output: when new text arrives and the view was at the bottom, scroll to the new
-        // bottom. The check is made as the text changes, before the layout grows, so it compares the
-        // old extent. A person who has scrolled up to read is not pulled back down.
-        viewModel.PropertyChanged += (sender, e) =>
+        // Follow the output. "Following" means the person is looking at the end of the text. It changes
+        // only when the person scrolls (the offset moves while the text and the visible area stay the
+        // same): to the end = following, anywhere else = not following, so someone who scrolled up to
+        // read is left alone. While following, every time the text grows or the visible area shrinks
+        // (a horizontal scroll bar appears and takes room from the bottom) the view goes to the end
+        // again. Deciding this from the scroll view's own change notices, and not from a guess made when
+        // the text property changes, means no timing between text, layout and scrolling can lose it.
+        ScrollViewer scroll = this.FindControl<ScrollViewer>("ConsoleScroll")!;
+        bool following = true;
+        scroll.ScrollChanged += (sender, e) =>
         {
-            if (e.PropertyName != nameof(PADClientWindowViewModel.ConsoleText))
+            bool contentMoved = e.ExtentDelta.Y != 0 || e.ViewportDelta.Y != 0;
+            if (contentMoved)
             {
-                return;
+                if (following)
+                {
+                    scroll.ScrollToEnd();
+                }
             }
-
-            ScrollViewer scroll = this.FindControl<ScrollViewer>("ConsoleScroll")!;
-            bool atBottom = scroll.Offset.Y + scroll.Viewport.Height >= scroll.Extent.Height - 2;
-            if (atBottom)
+            else if (e.OffsetDelta.Y != 0)
             {
-                Dispatcher.UIThread.Post(() => scroll.ScrollToEnd(), DispatcherPriority.Background);
+                following = scroll.Offset.Y + scroll.Viewport.Height >= scroll.Extent.Height - 2;
             }
         };
 

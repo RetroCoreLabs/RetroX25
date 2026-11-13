@@ -70,6 +70,7 @@
                             <DataGridTextColumn Header="→" Binding="{Binding Type}" Width="70"/>
                             <DataGridTextColumn Header="Destination" Binding="{Binding Destination}" Width="100"/>
                             <DataGridTextColumn Header="Pri" Binding="{Binding Priority}" Width="50"/>
+                            <DataGridTextColumn Header="Direction" Binding="{Binding Direction}" Width="100"/>
                             <DataGridCheckBoxColumn Header="✓" Binding="{Binding Enabled}" Width="40"/>
                         </DataGrid.Columns>
                     </DataGrid>
@@ -123,13 +124,21 @@
                         <StackPanel DockPanel.Dock="Top"
                                     Margin="8"
                                     Spacing="8">
-                            <TextBlock Text="Test Address:"
+                            <TextBlock Text="Test Address and Direction:"
                                        FontSize="11"/>
-                            <Grid ColumnDefinitions="*,Auto">
+                            <Grid ColumnDefinitions="*,Auto,Auto">
                                 <TextBox Grid.Column="0"
+                                         Name="TestAddressBox"
                                          Text="{Binding TestAddress}"
                                          Watermark="Enter X.121 address..."/>
-                                <Button Grid.Column="1"
+                                <ComboBox Grid.Column="1"
+                                          Name="TestDirectionBox"
+                                          ItemsSource="{Binding AvailableDirections}"
+                                          SelectedItem="{Binding TestDirection}"
+                                          Margin="8,0,0,0"
+                                          Width="140"/>
+                                <Button Grid.Column="2"
+                                        Name="TestButton"
                                         Command="{Binding TestRouteCommand}"
                                         Content="Test"
                                         Margin="8,0,0,0"

@@ -12,7 +12,7 @@ using RetroX25.Desktop.ViewModels;
 namespace RetroX25.Desktop.Views;
 
 /// <summary>
-/// The Log window (F7), which shows the application log with filtering.
+/// The Log window (Ctrl+3), which shows the application log with filtering.
 /// </summary>
 public partial class LogWindow : Window
 {

@@ -1,0 +1,68 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+        x:Class="RetroX25.Desktop.Views.LinkStatusWindow"
+        x:DataType="vm:LinkStatusWindowViewModel"
+        Icon="/Assets/icon.ico"
+        Title="Link Status"
+        Width="900" Height="600"
+        MinWidth="700" MinHeight="400">
+
+    <!-- Lists every link and interface of the running engine, with details of the selected one. -->
+    <DockPanel LastChildFill="True">
+
+        <!-- Top bar: the buttons and the summary. No counters here: they are in the Status window (Ctrl+1). -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="12,8">
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Name="RefreshButton" Content="Refresh" Command="{Binding RefreshCommand}"/>
+                    <Button Name="StartButton" Content="Start" Command="{Binding StartSelectedCommand}"/>
+                    <Button Name="StopButton" Content="Stop" Command="{Binding StopSelectedCommand}"/>
+                    <Button Name="ConnectButton" Content="LAPB Connect" Command="{Binding ConnectLapbCommand}"/>
+                    <Button Name="DisconnectButton" Content="LAPB Disconnect" Command="{Binding DisconnectLapbCommand}"/>
+                </StackPanel>
+                <TextBlock Name="SummaryText" Text="{Binding SummaryText}" FontWeight="SemiBold"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Bottom bar: what the last button did -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,6">
+            <TextBlock Name="ActionText" Text="{Binding ActionText}" FontSize="11"/>
+        </Border>
+
+        <Grid ColumnDefinitions="360,*" Margin="12">
+            <DockPanel Grid.Column="0" Margin="0,0,12,0">
+                <TextBlock DockPanel.Dock="Top" Text="Links and interfaces" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <ListBox Name="LinkList"
+                         ItemsSource="{Binding Rows}"
+                         SelectedItem="{Binding SelectedRow, Mode=TwoWay}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:LinkRowViewModel">
+                            <TextBlock Text="{Binding Display}" FontFamily="Consolas,Menlo,monospace"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <DockPanel Grid.Column="1">
+                <TextBlock DockPanel.Dock="Top" Text="Details" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <ScrollViewer>
+                    <SelectableTextBlock Name="DetailText"
+                                         Text="{Binding DetailText}"
+                                         FontFamily="Consolas,Menlo,monospace"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>

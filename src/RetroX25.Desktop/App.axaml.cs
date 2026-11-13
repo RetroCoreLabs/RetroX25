@@ -186,6 +186,9 @@ public partial class App : Application
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IRuntimeService, RuntimeService>();
 
+        // Remembers which packets the user cleared from view; shared by the main window and every Packet window.
+        services.AddSingleton<PacketViewState>();
+
         // Configuration (shared across all ViewModels that need it)
         config ??= ConfigFilePath != null ? LoadConfigFile(ConfigFilePath) : CreateDefaultConfig();
         services.AddSingleton(config);
@@ -197,18 +200,18 @@ public partial class App : Application
         services.AddTransient<LogWindowViewModel>();
         services.AddTransient<ConfigurationWindowViewModel>();
         services.AddTransient<TADServerWindowViewModel>();
-        services.AddTransient<XMSGServerWindowViewModel>();
         services.AddTransient<RoutesWindowViewModel>();
-        services.AddTransient<SintranTadServerWindowViewModel>();
         services.AddTransient<SimulateReceiveWindowViewModel>();
+        services.AddTransient<LinkStatusWindowViewModel>();
 
         // Configuration Routing Tab ViewModels
         services.AddTransient<SerialInterfacesTabViewModel>();
         services.AddTransient<XotInterfacesTabViewModel>();
+        services.AddTransient<TcpLapbInterfacesTabViewModel>();
         services.AddTransient<KnownHostsTabViewModel>();
         services.AddTransient<RoutingTabViewModel>();
 
-        // Note: PADClientWindowViewModel and SintranTadClientWindowViewModel require windowNumber parameter, created manually in MainWindowViewModel
+        // Note: PADClientWindowViewModel requires a windowNumber parameter, created manually in MainWindowViewModel
     }
 
     /// <summary>
@@ -218,7 +221,7 @@ public partial class App : Application
     public static RuntimeConfig CreateDefaultConfig()
     {
         // Use RuntimeConfig.CreateDefault() which includes proper routing setup
-        // User can modify this through the Configuration window (F9)
+        // User can modify this through the Configuration window (Ctrl+,)
         var config = RuntimeConfig.CreateDefault();
 
         // Override with UI-specific settings

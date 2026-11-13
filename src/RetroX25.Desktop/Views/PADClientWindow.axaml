@@ -39,9 +39,11 @@
                 Padding="12,8">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                 <Button Command="{Binding ClearConsoleCommand}"
+                        Focusable="False"
                         Content="Clear Console"
                         Width="120"/>
                 <Button Command="{Binding DisconnectCommand}"
+                        Focusable="False"
                         Content="Disconnect"
                         Width="100"/>
             </StackPanel>

@@ -178,20 +178,16 @@
                                     <NumericUpDown Grid.Row="1" Grid.Column="1"
                                                    Value="{Binding LapbWindowSize}"
                                                    Minimum="1"
-                                                   Maximum="127"
+                                                   Maximum="7"
                                                    Increment="1"
                                                    Width="150"
                                                    HorizontalAlignment="Left"/>
 
-                                    <!-- Modulo -->
+                                    <!-- Modulo: fixed at 8. The engine has no modulo 128 (docs/modulo-128.md). -->
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Modulo:" VerticalAlignment="Center"/>
-                                    <ComboBox Grid.Row="2" Grid.Column="1"
-                                              SelectedItem="{Binding LapbModulo}"
-                                              Width="150"
-                                              HorizontalAlignment="Left">
-                                        <ComboBoxItem Content="8"/>
-                                        <ComboBoxItem Content="128"/>
-                                    </ComboBox>
+                                    <TextBlock Grid.Row="2" Grid.Column="1"
+                                               Text="8 (modulo 128 is not implemented)"
+                                               VerticalAlignment="Center"/>
 
                                     <!-- Max Info Field Size -->
                                     <TextBlock Grid.Row="3" Grid.Column="0" Text="Max Info Field Size (N1):" VerticalAlignment="Center"/>
@@ -287,17 +283,17 @@
                                     <NumericUpDown Grid.Row="1" Grid.Column="1"
                                                    Value="{Binding X25DefaultPacketWindowSize}"
                                                    Minimum="1"
-                                                   Maximum="127"
+                                                   Maximum="7"
                                                    Increment="1"
                                                    Width="150"
                                                    HorizontalAlignment="Left"/>
 
-                                    <!-- Extended Sequencing -->
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Extended Sequencing:" VerticalAlignment="Center"/>
-                                    <CheckBox Grid.Row="2" Grid.Column="1"
-                                              IsChecked="{Binding X25ExtendedPacketSequencing}"
-                                              Content="Enable extended packet sequencing"
-                                              VerticalAlignment="Center"/>
+                                    <!-- X.25 packet modulo: fixed at 8. Nothing in the engine reads the old checkbox;
+                                         the X.25 layer refuses modulo 128 (docs/modulo-128.md). -->
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Packet modulo:" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1"
+                                               Text="8 (modulo 128 is not implemented)"
+                                               VerticalAlignment="Center"/>
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -368,6 +364,72 @@
                 </ScrollViewer>
             </TabItem>
 
+            <!-- Telnet PAD Tab: a TCP port where an ordinary terminal program gets an X.28 PAD -->
+            <TabItem Header="Telnet PAD">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16" Spacing="16">
+                        <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Telnet PAD"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"/>
+
+                                <CheckBox Name="TelnetPadEnabledCheck"
+                                          IsChecked="{Binding TelnetPadEnabled}"
+                                          Content="Enable the telnet PAD (listen for telnet connections)"/>
+
+                                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Port:" VerticalAlignment="Center"/>
+                                    <NumericUpDown Name="TelnetPadPortBox"
+                                                   Grid.Row="0" Grid.Column="1"
+                                                   Value="{Binding TelnetPadPort}"
+                                                   Minimum="1"
+                                                   Maximum="65535"
+                                                   Increment="1"
+                                                   FormatString="0"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Bind address:" VerticalAlignment="Center"/>
+                                    <TextBox Name="TelnetPadBindBox"
+                                             Grid.Row="1" Grid.Column="1"
+                                             Text="{Binding TelnetPadBindAddress}"
+                                             Width="150"
+                                             HorizontalAlignment="Left"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Maximum sessions:" VerticalAlignment="Center"/>
+                                    <NumericUpDown Name="TelnetPadMaxSessionsBox"
+                                                   Grid.Row="2" Grid.Column="1"
+                                                   Value="{Binding TelnetPadMaxSessions}"
+                                                   Minimum="1"
+                                                   Maximum="256"
+                                                   Increment="1"
+                                                   FormatString="0"
+                                                   Width="150"
+                                                   HorizontalAlignment="Left"/>
+                                </Grid>
+
+                                <TextBlock Name="TelnetPadStatusLine"
+                                           Text="{Binding TelnetPadStatusText}"
+                                           FontWeight="SemiBold"/>
+
+                                <TextBlock TextWrapping="Wrap"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}">
+                                    <Run>With this on, a normal terminal program can use a PAD of its own. Connect with</Run><LineBreak/>
+                                    <Run FontWeight="SemiBold">telnet 127.0.0.1 2323</Run><Run>, then type </Run><Run FontWeight="SemiBold">CALL 23430200</Run><Run> at the PAD&gt; prompt.</Run><LineBreak/>
+                                    <Run>Each connection gets its own PAD. The bind address 127.0.0.1 lets only this computer connect;</Run><LineBreak/>
+                                    <Run>use 0.0.0.0 to allow other computers (there is no login). Press Apply to start, stop or move the listener.</Run>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <!-- Serial Interfaces Tab -->
             <TabItem Header="Serial Interfaces">
                 <ContentControl Content="{Binding SerialInterfacesTab}">
@@ -385,6 +447,17 @@
                     <ContentControl.ContentTemplate>
                         <DataTemplate>
                             <views:XotInterfacesTab/>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
+            </TabItem>
+
+            <!-- TCP LAPB Interfaces Tab -->
+            <TabItem Header="TCP LAPB">
+                <ContentControl Content="{Binding TcpLapbInterfacesTab}">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate>
+                            <views:TcpLapbInterfacesTab/>
                         </DataTemplate>
                     </ContentControl.ContentTemplate>
                 </ContentControl>

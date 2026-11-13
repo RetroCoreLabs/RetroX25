@@ -22,7 +22,7 @@ using LogLevel = RetroIO.Protocols.X25.Common.LogLevel;
 namespace RetroX25.Desktop.ViewModels;
 
 /// <summary>
-/// ViewModel for the Log Window (F7) - displays application logs with filtering.
+/// ViewModel for the Log Window (Ctrl+3) - displays application logs with filtering.
 /// </summary>
 public partial class LogWindowViewModel : ViewModelWithLogger
 {
@@ -96,20 +96,83 @@ public partial class LogWindowViewModel : ViewModelWithLogger
     }
 
     /// <summary>
-    /// Handle new log entries.
+    /// Log entries that arrived from any thread and are waiting for the UI thread.
+    /// </summary>
+    private readonly System.Collections.Concurrent.ConcurrentQueue<LogEntry> _incoming = new();
+
+    /// <summary>
+    /// 1 while a flush of <see cref="_incoming"/> is already queued on the UI thread.
+    /// </summary>
+    private int _flushQueued;
+
+    /// <summary>
+    /// A batch of at most this many entries is added one at a time; a larger one replaces the list.
+    /// </summary>
+    private const int SmallBatch = 16;
+
+    /// <summary>
+    /// Handle new log entries (any thread). They are queued and the UI thread takes everything that has
+    /// arrived in ONE job: one job per entry, each changing the grid, kept the window thread busy for
+    /// up to 18 seconds during a burst of 2000 packets (measured with x25traffic on 2026-11-12).
     /// </summary>
     private void OnLogEntryAdded(LogEntry entry)
     {
-        // Add to collection if it matches filters
-        if (ShouldShowLog(entry))
+        _incoming.Enqueue(entry);
+        if (System.Threading.Interlocked.Exchange(ref _flushQueued, 1) == 0)
         {
-            // UI updates must happen on UI thread
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                LogEntries.Add(entry);
-                UpdateStatus();
-            });
+            Avalonia.Threading.Dispatcher.UIThread.Post(FlushIncoming);
         }
+    }
+
+    /// <summary>
+    /// UI thread: adds the queued entries that match the filters and keeps the list at the size the log
+    /// provider keeps (the window must not hold more than the provider, or it grows for as long as the
+    /// app runs).
+    /// </summary>
+    private void FlushIncoming()
+    {
+        // Open the gate BEFORE draining: an entry that arrives while this runs queues a new flush.
+        System.Threading.Interlocked.Exchange(ref _flushQueued, 0);
+
+        List<LogEntry> add = new List<LogEntry>();
+        while (_incoming.TryDequeue(out LogEntry? entry))
+        {
+            if (ShouldShowLog(entry))
+            {
+                add.Add(entry);
+            }
+        }
+
+        if (add.Count == 0)
+        {
+            return;
+        }
+
+        int max = _loggingProvider.MaxEntries;
+        if (add.Count <= SmallBatch)
+        {
+            for (int i = 0; i < add.Count; i++)
+            {
+                LogEntries.Add(add[i]);
+            }
+
+            int extra = LogEntries.Count - max;
+            for (int i = 0; i < extra; i++)
+            {
+                LogEntries.RemoveAt(0);
+            }
+        }
+        else
+        {
+            // Keep the newest `max` of the old and the new entries, and give the grid one new list.
+            List<LogEntry> all = new List<LogEntry>(LogEntries.Count + add.Count);
+            all.AddRange(LogEntries);
+            all.AddRange(add);
+            int skip = Math.Max(0, all.Count - max);
+            LogEntries = new ObservableCollection<LogEntry>(all.GetRange(skip, all.Count - skip));
+        }
+
+        UpdateStatus();
     }
 
     /// <summary>
@@ -159,17 +222,18 @@ public partial class LogWindowViewModel : ViewModelWithLogger
     /// </summary>
     private void RefreshDisplay()
     {
-        LogEntries.Clear();
-
         var logs = _loggingProvider.GetAllLogs();
-        foreach (var log in logs)
+        List<LogEntry> shown = new List<LogEntry>(logs.Count);
+        for (int i = 0; i < logs.Count; i++)
         {
-            if (ShouldShowLog(log))
+            if (ShouldShowLog(logs[i]))
             {
-                LogEntries.Add(log);
+                shown.Add(logs[i]);
             }
         }
 
+        // One new list for the grid, one redraw (adding the entries one at a time redraws it for each).
+        LogEntries = new ObservableCollection<LogEntry>(shown);
         UpdateStatus();
     }
 

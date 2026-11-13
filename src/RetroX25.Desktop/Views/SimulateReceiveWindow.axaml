@@ -87,32 +87,6 @@
                                 </StackPanel>
                             </TabItem>
 
-                            <!-- SINTRAN PAD Tab -->
-                            <TabItem Header="SINTRAN PAD">
-                                <StackPanel Spacing="8" Margin="0,8,0,0">
-                                    <ListBox ItemsSource="{Binding SintranPadPackets}"
-                                             SelectedItem="{Binding SelectedSintranPadPacket}"
-                                             Height="200">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <StackPanel Spacing="4">
-                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="11"/>
-                                                    <TextBlock Text="{Binding Description}"
-                                                               FontSize="10"
-                                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
-                                                    <TextBlock Text="{Binding HexData}"
-                                                               FontFamily="Consolas,Courier New"
-                                                               FontSize="10"
-                                                               Foreground="{DynamicResource SystemAccentColor}"/>
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-                                    <Button Content="Send Selected SINTRAN Packet"
-                                            Command="{Binding SendSintranPadPacketCommand}"
-                                            HorizontalAlignment="Stretch"/>
-                                </StackPanel>
-                            </TabItem>
 
                             <!-- X.25 Tab -->
                             <TabItem Header="X.25">

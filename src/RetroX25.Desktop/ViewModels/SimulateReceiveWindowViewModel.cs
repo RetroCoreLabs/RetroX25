@@ -34,16 +34,10 @@ public partial class SimulateReceiveWindowViewModel : ViewModelWithLogger
     private ObservableCollection<PacketTemplate> _lapbPackets = new();
 
     [ObservableProperty]
-    private ObservableCollection<PacketTemplate> _sintranPadPackets = new();
-
-    [ObservableProperty]
     private ObservableCollection<PacketTemplate> _x25Packets = new();
 
     [ObservableProperty]
     private PacketTemplate? _selectedLapbPacket;
-
-    [ObservableProperty]
-    private PacketTemplate? _selectedSintranPadPacket;
 
     [ObservableProperty]
     private PacketTemplate? _selectedX25Packet;
@@ -173,27 +167,6 @@ public partial class SimulateReceiveWindowViewModel : ViewModelWithLogger
             HexData = "01 53 00 AC"
         });
 
-        // SINTRAN PAD packets
-        SintranPadPackets.Add(new PacketTemplate
-        {
-            Name = "SINTRAN TAD Call Request",
-            Description = "Connect to TAD service on address 200",
-            HexData = "01 00 0B 00 01 00 00 C8 00 00 00 00 00 00"
-        });
-
-        SintranPadPackets.Add(new PacketTemplate
-        {
-            Name = "SINTRAN Data Packet",
-            Description = "Test data packet with 'HELLO'",
-            HexData = "01 00 10 00 01 48 45 4C 4C 4F"
-        });
-
-        SintranPadPackets.Add(new PacketTemplate
-        {
-            Name = "SINTRAN Clear Request",
-            Description = "Disconnect SINTRAN connection",
-            HexData = "01 00 13 00 01 00 00"
-        });
 
         // X.25 packets
         X25Packets.Add(new PacketTemplate
@@ -259,21 +232,6 @@ public partial class SimulateReceiveWindowViewModel : ViewModelWithLogger
         }
 
         SendPacket(SelectedLapbPacket);
-    }
-
-    /// <summary>
-    /// Send selected SINTRAN PAD packet
-    /// </summary>
-    [RelayCommand]
-    private void SendSintranPadPacket()
-    {
-        if (SelectedSintranPadPacket == null)
-        {
-            _dialogService.ShowWarning("No Packet Selected", "Please select a SINTRAN PAD packet to send.");
-            return;
-        }
-
-        SendPacket(SelectedSintranPadPacket);
     }
 
     /// <summary>

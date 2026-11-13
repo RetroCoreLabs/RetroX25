@@ -11,7 +11,7 @@ using RetroX25.Desktop.ViewModels;
 namespace RetroX25.Desktop.Views;
 
 /// <summary>
-/// The TAD Server window (F11), which shows the LocalTAD protocol sessions.
+/// The TAD Server window (Ctrl+6), which shows the LocalTAD protocol sessions.
 /// </summary>
 public partial class TADServerWindow : Window
 {

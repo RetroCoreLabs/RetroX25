@@ -116,6 +116,12 @@ namespace RetroX25.Desktop.Tests
 
             public volatile bool ClearSeen;
 
+            /// <summary>When set, a call is refused with a Clear Indication carrying this cause.</summary>
+            public byte? RefuseCause { get; set; }
+
+            /// <summary>Diagnostic octet of the refusing Clear Indication.</summary>
+            public byte RefuseDiagnostic { get; set; }
+
             public volatile bool QBitDataSeen;
 
             public bool HasData(string text)
@@ -225,6 +231,13 @@ namespace RetroX25.Desktop.Tests
                     }
 
                     CalledAddress = digits.ToString();
+                    if (RefuseCause.HasValue)
+                    {
+                        // Refuse the call: Clear Indication with this cause and diagnostic.
+                        Send(stream, new byte[] { 0x10, lci, 0x13, RefuseCause.Value, RefuseDiagnostic });
+                        return;
+                    }
+
                     Send(stream, new byte[] { 0x10, lci, 0x0F });
                     SendData(stream, lci, 0, "R1>");
                 }
@@ -330,6 +343,7 @@ namespace RetroX25.Desktop.Tests
 
             RuntimeConfig config = App.LoadConfigFile(FindSampleFile());
             config.Routing.XotInterfaces[0].RemotePort = router.Port;
+            config.Routing.XotInterfaces[0].LocalPort = FreePort();
 
             using ServiceProvider provider = BuildServices(config);
             IRuntimeService runtimeService = provider.GetRequiredService<IRuntimeService>();
@@ -368,12 +382,13 @@ namespace RetroX25.Desktop.Tests
             Assert.That(stats.X25.CallRequestsTransmitted, Is.EqualTo(1), "the Call Request was not counted");
             Assert.That(runtimeService.Runtime.GetHistory().Count, Is.GreaterThan(0), "the packet history is empty");
 
-            // The main window's own view-model shows the layer counters and says the XOT link is up.
+            // The counters are read the way the Status window reads them (StatisticsReader), and the main
+            // window's own view-model says the XOT link is up.
             MainWindowViewModel main = provider.GetRequiredService<MainWindowViewModel>();
-            WaitUntil(() => main.X25PacketsReceived != "0", "X.25 packet count in the main window",
-                () => "rx=" + main.X25PacketsReceived + " tx=" + main.X25PacketsTransmitted);
-            Assert.That(main.X25PacketsTransmitted, Is.Not.EqualTo("0"));
-            Assert.That(main.X25CallRequestsTransmitted, Is.EqualTo("1"));
+            WaitUntil(() => Total(provider, "X.25 packets received") != "0", "X.25 packet count in the statistics",
+                () => "rx=" + Total(provider, "X.25 packets received") + " tx=" + Total(provider, "X.25 packets sent"));
+            Assert.That(Total(provider, "X.25 packets sent"), Is.Not.EqualTo("0"));
+            Assert.That(Total(provider, "X.25 call requests sent"), Is.EqualTo("1"));
             WaitUntil(() => main.Interfaces.Count > 0 && main.Interfaces[0].Status.StartsWith("Connected"),
                 "the XOT link shown as connected",
                 () => main.Interfaces.Count > 0 ? main.Interfaces[0].Status : "(no interface rows)");
@@ -387,9 +402,9 @@ namespace RetroX25.Desktop.Tests
             StatusWindow statusWindow = new StatusWindow(statusVm);
             statusWindow.Show();
             Dispatcher.UIThread.RunJobs();
-            Assert.That(statusVm.X25PacketsReceived, Is.Not.EqualTo("0"), "Status window: X.25 packets received are 0");
-            Assert.That(statusVm.X25PacketsTransmitted, Is.Not.EqualTo("0"), "Status window: X.25 packets sent are 0");
-            Assert.That(statusVm.X25CallRequestsTransmitted, Is.EqualTo("1"), "Status window: the call request is not counted");
+            Assert.That(statusVm.Table.Cell("X.25 packets received", "Total"), Is.Not.EqualTo("0"), "Status window: X.25 packets received are 0");
+            Assert.That(statusVm.Table.Cell("X.25 packets sent", "Total"), Is.Not.EqualTo("0"), "Status window: X.25 packets sent are 0");
+            Assert.That(statusVm.Table.Cell("X.25 call requests sent", "Total"), Is.EqualTo("1"), "Status window: the call request is not counted");
             statusWindow.Close();
             packetWindow.Close();
 
@@ -422,6 +437,7 @@ namespace RetroX25.Desktop.Tests
 
             RuntimeConfig config = App.LoadConfigFile(FindSampleFile());
             config.Routing.XotInterfaces[0].RemotePort = deadPort;
+            config.Routing.XotInterfaces[0].LocalPort = FreePort();
 
             using ServiceProvider provider = BuildServices(config);
             PADClientWindowViewModel viewModel = new PADClientWindowViewModel(
@@ -439,6 +455,36 @@ namespace RetroX25.Desktop.Tests
             Assert.That(shown, Does.Not.Contain("COM"), "said connected with nobody at the far end\n" + shown + "\n--- app log ---\n" + AppLog(provider));
             Assert.That(shown, Does.Contain("CLR"), "no word that the call failed\n" + shown);
             Assert.That(shown.TrimEnd(), Does.EndWith("PAD>"), "the PAD> prompt did not come back\n" + shown);
+            window.Close();
+        }
+
+        /// <summary>
+        /// The far end refuses the call with cause 1 (number busy), diagnostic 0. The window shows the X.28
+        /// clear signal with the reason, "CLR OCC C:1 D:0", and the PAD> prompt comes back.
+        /// </summary>
+        [AvaloniaTest]
+        public void ARefusedCall_ShowsTheX28ClearSignalWithTheReason()
+        {
+            using FakeRouter router = new FakeRouter { RefuseCause = 1, RefuseDiagnostic = 0 };
+            RuntimeConfig config = App.LoadConfigFile(FindSampleFile());
+            config.Routing.XotInterfaces[0].RemotePort = router.Port;
+            config.Routing.XotInterfaces[0].LocalPort = FreePort();
+
+            using ServiceProvider provider = BuildServices(config);
+            PADClientWindowViewModel viewModel = new PADClientWindowViewModel(
+                NullLogger<PADClientWindowViewModel>.Instance, provider.GetRequiredService<IRuntimeService>(), 1);
+            PADClientWindow window = new PADClientWindow(viewModel) { Width = 900, Height = 600 };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            window.KeyTextInput("CALL 23600001");
+            window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+
+            WaitUntil(() => viewModel.ConsoleText.Contains("CLR OCC C:1 D:0"), "CLR OCC C:1 D:0 in the window",
+                () => viewModel.ConsoleText + "\n--- app log ---\n" + AppLog(provider));
+            Assert.That(viewModel.ConsoleText, Does.Not.Contain("COM"), "said connected on a refused call");
+            WaitUntil(() => viewModel.ConsoleText.TrimEnd().EndsWith("PAD>"), "the PAD> prompt after the clear",
+                () => viewModel.ConsoleText);
             window.Close();
         }
 
@@ -472,9 +518,9 @@ namespace RetroX25.Desktop.Tests
             Assert.That(afterClock, Does.Not.Contain("R1>\r\n\r\nR1>").And.Not.Contain("R1>\n\nR1>"), "Enter was sent twice\n" + afterClock);
 
             MainWindowViewModel main = provider.GetRequiredService<MainWindowViewModel>();
-            WaitUntil(() => main.X25PacketsReceived != "0" && main.Interfaces[0].Status.StartsWith("Connected"),
-                "stats and the connected link in the main window",
-                () => "rx=" + main.X25PacketsReceived + " link=" + main.Interfaces[0].Status);
+            WaitUntil(() => Total(provider, "X.25 packets received") != "0" && main.Interfaces[0].Status.StartsWith("Connected"),
+                "stats and the connected link",
+                () => "rx=" + Total(provider, "X.25 packets received") + " link=" + main.Interfaces[0].Status);
 
             window.KeyPress(Key.P, RawInputModifiers.Control, PhysicalKey.P, null);
             window.KeyTextInput("CLEAR");
@@ -498,20 +544,20 @@ namespace RetroX25.Desktop.Tests
             MainWindowViewModel main = provider.GetRequiredService<MainWindowViewModel>();
 
             // The router's call arrives, the TAD answers it, and the main window counts it.
-            WaitUntil(() => main.X25CallRequestsReceived != "0", "R1's call to arrive",
+            WaitUntil(() => Total(provider, "X.25 call requests received") != "0", "R1's call to arrive",
                 () => AppLog(provider), 120000);
             WaitUntil(() => main.Interfaces.Count > 0 && main.Interfaces[0].Status.StartsWith("Listening, 1"),
                 "the listener shown with R1 connected", () => main.Interfaces[0].Status, 20000);
             // Hold the call open while R1 is typing. R1 keeps the TCP link up after its call ends, so
             // "done" is: data has arrived and nothing more has come for 8 seconds.
-            WaitUntil(() => main.X25DataPacketsReceived != "0", "R1's typed data to arrive",
+            WaitUntil(() => Total(provider, "X.25 data packets received") != "0", "R1's typed data to arrive",
                 () => AppLog(provider), 100000);
             string last = "";
             System.Diagnostics.Stopwatch quiet = System.Diagnostics.Stopwatch.StartNew();
             while (quiet.ElapsedMilliseconds < 8000)
             {
                 Dispatcher.UIThread.RunJobs();
-                string now = main.X25PacketsReceived + "/" + main.X25PacketsTransmitted;
+                string now = Total(provider, "X.25 packets received") + "/" + Total(provider, "X.25 packets sent");
                 if (now != last)
                 {
                     last = now;
@@ -521,8 +567,8 @@ namespace RetroX25.Desktop.Tests
                 Thread.Sleep(50);
             }
 
-            Assert.That(main.X25DataPacketsReceived, Is.Not.EqualTo("0"), "no data from R1 reached the TAD");
-            Assert.That(main.X25PacketsTransmitted, Is.Not.EqualTo("0"));
+            Assert.That(Total(provider, "X.25 data packets received"), Is.Not.EqualTo("0"), "no data from R1 reached the TAD");
+            Assert.That(Total(provider, "X.25 packets sent"), Is.Not.EqualTo("0"));
             Assert.That(provider.GetRequiredService<IRuntimeService>().Runtime.GetHistory().Count, Is.GreaterThan(0));
         }
 
@@ -563,16 +609,16 @@ namespace RetroX25.Desktop.Tests
             window.Close();
 
             // 2. R1 -> built-in switch -> the app's TAD. Wait for the call, then for the traffic to go quiet.
-            string callsBefore = main.X25CallRequestsReceived;
-            WaitUntil(() => main.X25CallRequestsReceived != callsBefore, "R1's call to the TAD",
+            string callsBefore = Total(provider, "X.25 call requests received");
+            WaitUntil(() => Total(provider, "X.25 call requests received") != callsBefore, "R1's call to the TAD",
                 () => AppLog(provider), 110000);
-            WaitUntil(() => main.X25DataPacketsReceived != "0", "R1's typed data", () => AppLog(provider), 100000);
+            WaitUntil(() => Total(provider, "X.25 data packets received") != "0", "R1's typed data", () => AppLog(provider), 100000);
             string last = "";
             System.Diagnostics.Stopwatch quiet = System.Diagnostics.Stopwatch.StartNew();
             while (quiet.ElapsedMilliseconds < 8000)
             {
                 Dispatcher.UIThread.RunJobs();
-                string now = main.X25PacketsReceived + "/" + main.X25PacketsTransmitted;
+                string now = Total(provider, "X.25 packets received") + "/" + Total(provider, "X.25 packets sent");
                 if (now != last)
                 {
                     last = now;
@@ -767,12 +813,21 @@ namespace RetroX25.Desktop.Tests
 
             // The main window shows the call: the listener has a connection, the X.25 counters moved.
             MainWindowViewModel main = provider.GetRequiredService<MainWindowViewModel>();
-            WaitUntil(() => main.X25PacketsReceived != "0" && main.X25CallRequestsReceived == "1",
+            WaitUntil(() => Total(provider, "X.25 packets received") != "0" && Total(provider, "X.25 call requests received") == "1",
                 "the call in the main window's X.25 counters",
-                () => "rx=" + main.X25PacketsReceived + " calls=" + main.X25CallRequestsReceived);
+                () => "rx=" + Total(provider, "X.25 packets received") + " calls=" + Total(provider, "X.25 call requests received"));
             WaitUntil(() => main.Interfaces.Count > 0 && main.Interfaces[0].Status.StartsWith("Listening, 1"),
                 "the listener shown with one connection",
                 () => main.Interfaces.Count > 0 ? main.Interfaces[0].Status : "(no interface rows)");
+        }
+
+        /// <summary>
+        /// Reads one figure of the Total column the way the Status window reads it (StatisticsReader), so
+        /// a test and the window cannot disagree. The main window shows no counters any more.
+        /// </summary>
+        private static string Total(ServiceProvider provider, string counter)
+        {
+            return StatisticsReader.Build(provider.GetRequiredService<IRuntimeService>().Runtime).Cell(counter, "Total") ?? "(no such counter)";
         }
 
         /// <summary>
@@ -831,7 +886,8 @@ namespace RetroX25.Desktop.Tests
             RuntimeConfig config = App.LoadConfigFile(FindSampleFile("x25config-embedded-switch.json"));
             options = new EmbeddedSwitchOptions { Enabled = true, ConfigFile = iniPath };
             config.Routing.XotInterfaces[0].RemotePort = callersPort;
-            config.Routing.XotInterfaces[1].LocalPort = desktopServerPort;
+            config.Routing.XotInterfaces[0].LocalPort = FreePort();
+            config.Routing.XotInterfaces[0].LocalPort = desktopServerPort;
             return config;
         }
 
@@ -999,6 +1055,56 @@ namespace RetroX25.Desktop.Tests
             }
         }
 
+        private sealed class QuietDialogs : IDialogService
+        {
+            public string LastInfo = "";
+            public string LastError = "";
+
+            public void ShowInfo(string title, string message) { LastInfo = message; }
+
+            public void ShowWarning(string title, string message) { }
+
+            public void ShowError(string title, string message) { LastError = message; }
+
+            public System.Threading.Tasks.Task<bool> ShowConfirmation(string title, string message) => System.Threading.Tasks.Task.FromResult(true);
+
+            public System.Threading.Tasks.Task<string?> ShowOpenFileDialog(string title, string? filters = null) => System.Threading.Tasks.Task.FromResult<string?>(null);
+
+            public System.Threading.Tasks.Task<string?> ShowSaveFileDialog(string title, string? defaultFileName = null, string? filters = null) => System.Threading.Tasks.Task.FromResult<string?>(null);
+        }
+
+        /// <summary>
+        /// Apply in the Configuration window restarts the engine on the configuration the app is running
+        /// (the loaded file, plus the window's edits), not on a fresh default one.
+        /// </summary>
+        [AvaloniaTest]
+        public void ApplyInTheConfigurationWindow_KeepsTheInterfacesAndRoutesFromTheLoadedFile()
+        {
+            RuntimeConfig config = App.LoadConfigFile(FindSampleFile("x25config-embedded-switch.json"));
+            int xot = config.Routing.XotInterfaces.Count;
+            int routes = config.Routing.RoutingTable.Count;
+            Assert.That(xot, Is.GreaterThan(0));
+
+            ServiceCollection services = new ServiceCollection();
+            App.ConfigureServices(services, config, EmbeddedSwitchOptions.Off);
+            QuietDialogs dialogs = new QuietDialogs();
+            services.AddSingleton<IDialogService>(dialogs);
+            using ServiceProvider provider = services.BuildServiceProvider();
+            // The two server ports of the sample are fixed numbers; move them so the test never meets a real program.
+            config.Routing.XotInterfaces[0].LocalPort = FreePort();
+            provider.GetRequiredService<IRuntimeService>().Initialize(config);
+
+            ConfigurationWindowViewModel vm = provider.GetRequiredService<ConfigurationWindowViewModel>();
+            Assert.That(vm.X25LocalMachineId, Is.EqualTo("23430200"), "the window does not show the running configuration");
+            vm.ApplySettingsCommand.Execute(null);
+            Assert.That(dialogs.LastError, Is.Empty, dialogs.LastError);
+
+            IRuntimeService runtimeService = provider.GetRequiredService<IRuntimeService>();
+            Assert.That(runtimeService.Runtime.Config.Routing.XotInterfaces.Count, Is.EqualTo(xot), "Apply lost the XOT interfaces");
+            Assert.That(runtimeService.Runtime.Config.Routing.RoutingTable.Count, Is.EqualTo(routes), "Apply lost the routes");
+            Assert.That(runtimeService.Runtime.Config.X25.LocalMachineId, Is.EqualTo("23430200"));
+        }
+
         /// <summary>
         /// A client link whose far end is not there is shown as NOT REACHABLE, with the reason, before
         /// any call is made; with something listening it is shown as answering.
@@ -1009,6 +1115,7 @@ namespace RetroX25.Desktop.Tests
             int port = FreePort();
             RuntimeConfig config = App.LoadConfigFile(FindSampleFile());
             config.Routing.XotInterfaces[0].RemotePort = port;
+            config.Routing.XotInterfaces[0].LocalPort = FreePort();
             using ServiceProvider provider = BuildServices(config);
             MainWindowViewModel main = provider.GetRequiredService<MainWindowViewModel>();
 

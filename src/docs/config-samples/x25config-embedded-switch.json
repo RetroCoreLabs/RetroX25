@@ -37,25 +37,17 @@
       {
         "Name": "XOT_ToSwitch",
         "Enabled": true,
-        "Mode": "Client",
+        "Mode": "Both",
         "RemoteIPAddress": "127.0.0.1",
         "RemotePort": 2200,
-        "RemoteMachineId": "23500000",
-        "TcpKeepalive": true,
-        "KeepAliveIntervalSeconds": 30,
-        "ProtocolMode": "X25Only",
-        "Description": "Calls go out to the built-in switch (its caller port 2200)"
-      },
-      {
-        "Name": "XOT_FromSwitch",
-        "Enabled": true,
-        "Mode": "Server",
         "LocalPort": 1999,
         "RemoteMachineId": "23500000",
+        "RequestedWindowSize": null,
+        "RequestedPacketSize": null,
         "TcpKeepalive": true,
         "KeepAliveIntervalSeconds": 30,
         "ProtocolMode": "X25Only",
-        "Description": "The built-in switch dials in here with calls for the TAD"
+        "Description": "ONE peer entry for the built-in switch: calls go out to its caller port 2200, and the switch dials in here on TCP 1999 with calls for the TAD"
       }
     ],
     "TcpLapbInterfaces": [],

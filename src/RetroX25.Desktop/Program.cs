@@ -18,17 +18,32 @@ sealed class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        // A .json argument is the configuration file to start on, as with the text-mode console.
+        App.ConfigFilePath = ChooseConfigFile(args, System.IO.File.Exists);
+
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
+
+    /// <summary>
+    /// Picks the configuration file to start on: the first command-line argument that ends in .json,
+    /// else x25config.json in the working folder when that file exists, else none (built-in defaults).
+    /// </summary>
+    /// <param name="args">The command-line arguments.</param>
+    /// <param name="fileExists">Tells whether a file exists; the real one is File.Exists.</param>
+    /// <returns>
+    /// The file name, or null. A file that is NAMED but missing is returned as named, so the loader
+    /// fails loudly instead of the program quietly starting on the defaults.
+    /// </returns>
+    public static string? ChooseConfigFile(string[] args, Func<string, bool> fileExists)
+    {
         for (int i = 0; i < args.Length; i++)
         {
             if (args[i].EndsWith(".json", StringComparison.OrdinalIgnoreCase))
             {
-                App.ConfigFilePath = args[i];
-                break;
+                return args[i];
             }
         }
 
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        return fileExists("x25config.json") ? "x25config.json" : null;
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.

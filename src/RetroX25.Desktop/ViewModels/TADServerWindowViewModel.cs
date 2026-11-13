@@ -12,13 +12,12 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using RetroIO.Protocols.X25.Protocols;
-using RetroIO.Protocols.X25.Sintran;
 using RetroX25.Desktop.Services;
 
 namespace RetroX25.Desktop.ViewModels;
 
 /// <summary>
-/// ViewModel for TAD Server Window (F11) - monitors LocalTAD protocol sessions.
+/// ViewModel for TAD Server Window (Ctrl+6) - monitors LocalTAD protocol sessions.
 /// </summary>
 public partial class TADServerWindowViewModel : ViewModelWithLogger
 {

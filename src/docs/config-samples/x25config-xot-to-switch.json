@@ -32,14 +32,17 @@
       {
         "Name": "XOT_ToSwitch",
         "Enabled": true,
-        "Mode": "Client",
+        "Mode": "Both",
         "RemoteIPAddress": "127.0.0.1",
         "RemotePort": 2200,
+        "LocalPort": 1999,
         "RemoteMachineId": "23500000",
+        "RequestedWindowSize": null,
+        "RequestedPacketSize": null,
         "TcpKeepalive": true,
         "KeepAliveIntervalSeconds": 30,
         "ProtocolMode": "X25Only",
-        "Description": "XOT client to the RetroX25 switch, caller port 0 (switch-cisco.ini)"
+        "Description": "One peer entry for the RetroX25 switch: calls go out to its caller port 0 (switch-cisco.ini), and the switch may dial in on TCP 1999"
       }
     ],
     "TcpLapbInterfaces": [],

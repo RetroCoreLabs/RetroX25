@@ -38,7 +38,7 @@
                     <ComboBox ItemsSource="{Binding AvailableModes}"
                               SelectedItem="{Binding Mode}"
                               HorizontalAlignment="Stretch"/>
-                    <TextBlock Text="Client connects to remote XOT server, Server accepts incoming connections"
+                    <TextBlock Text="Client dials the remote XOT end, Server accepts incoming connections, Both ways (peer) does both with ONE entry: it dials out for each call and accepts connections from the same peer"
                                FontSize="10"
                                Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                 </StackPanel>
@@ -49,7 +49,7 @@
                                FontWeight="SemiBold"/>
                     <TextBox Text="{Binding RemoteIPAddress}"
                              Watermark="192.168.1.100"/>
-                    <TextBlock Text="IP address of remote XOT server (for Client mode)"
+                    <TextBlock Text="IP address of remote XOT end. Client mode: where we dial. Both ways: where we dial AND the address connections are accepted from"
                                FontSize="10"
                                Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                 </StackPanel>
@@ -77,7 +77,7 @@
                                    Maximum="65535"
                                    FormatString="0"
                                    ShowButtonSpinner="True"/>
-                    <TextBlock Text="TCP port for local XOT server listening (for Server mode, standard is 1998)"
+                    <TextBlock Text="TCP port we listen on (Server mode and Both ways; standard is 1998). Several entries may use the same port: connections are told apart by their source IP address"
                                FontSize="10"
                                Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                 </StackPanel>
@@ -90,6 +90,44 @@
                              Watermark="300"/>
                     <TextBlock Text="X.121 address of remote X.25 system (e.g., 300)"
                                FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Window size and packet size the calls of this peer ask for (like a Cisco profile, one pair per peer) -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Window size for this peer (optional):"
+                               FontWeight="SemiBold"/>
+                    <NumericUpDown x:Name="WindowSizeBox"
+                                   Value="{Binding RequestedWindowSize}"
+                                   Minimum="1"
+                                   Maximum="7"
+                                   FormatString="0"
+                                   ShowButtonSpinner="True"/>
+                    <TextBlock Text="1 to 7. Empty: the window size of the X.25 settings. Calls placed to this peer ask for it in the Call Request, and calls from it are accepted with the size they ask for"
+                               FontSize="10"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                    <TextBlock Text="Packet size for this peer (optional):"
+                               FontWeight="SemiBold"/>
+                    <NumericUpDown x:Name="PacketSizeBox"
+                                   Value="{Binding RequestedPacketSize}"
+                                   Minimum="16"
+                                   Maximum="4096"
+                                   FormatString="0"
+                                   ShowButtonSpinner="True"/>
+                    <TextBlock Text="Bytes of user data in a packet: 16, 32, 64, 128, 256, 512, 1024, 2048 or 4096. Empty: the packet size of the X.25 settings"
+                               FontSize="10"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- Both ways: refuse unlisted source addresses -->
+                <StackPanel Spacing="4">
+                    <CheckBox Content="Accept only listed peers (Both ways)"
+                              IsChecked="{Binding AllowOnlyListedPeers}"/>
+                    <TextBlock Text="Off: a connection from an address no entry lists is accepted as an unlisted peer. On: it is refused. XOT has no password or login: the source IP address is all there is, and everybody behind one NAT router shares one address."
+                               FontSize="10"
+                               TextWrapping="Wrap"
                                Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                 </StackPanel>
 

@@ -96,6 +96,7 @@ public sealed class EmbeddedSwitchService : IDisposable
     private readonly ILogger _logger;
     private SwitchNode? _node;
     private string _failure = string.Empty;
+    private IReadOnlyList<PortConfig> _configuredPorts = Array.Empty<PortConfig>();
 
     /// <summary>
     /// Creates the service. Nothing runs until <see cref="StartIfEnabled"/>.
@@ -115,6 +116,31 @@ public sealed class EmbeddedSwitchService : IDisposable
     public bool IsRunning => _node != null;
 
     /// <summary>
+    /// Why the switch is not running, in words; empty while it runs or when it was never asked for.
+    /// </summary>
+    public string Failure => _failure;
+
+    /// <summary>
+    /// The ports as the switch file describes them. They are known as soon as the file has been read,
+    /// also when a port then failed to start, so the XOT link view can still tell which of the app's
+    /// own links lead to the built-in switch. Empty when no switch was asked for or the file could not be read.
+    /// </summary>
+    public IReadOnlyList<PortConfig> ConfiguredPorts => _configuredPorts;
+
+    /// <summary>
+    /// The running port objects (read-only). Empty while the switch is not running. The link view reads
+    /// their counters and connection state; it never changes them.
+    /// </summary>
+    public IReadOnlyList<ISwitchPort> RunningPorts
+    {
+        get
+        {
+            SwitchNode? node = _node;
+            return node != null ? node.Ports : Array.Empty<ISwitchPort>();
+        }
+    }
+
+    /// <summary>
     /// Starts the switch when the setting asks for it. Does nothing otherwise, and does nothing when it
     /// is already running.
     /// </summary>
@@ -129,10 +155,14 @@ public sealed class EmbeddedSwitchService : IDisposable
         try
         {
             SwitchConfig config = SwitchConfigLoader.LoadFile(_options.ConfigFile);
+            _configuredPorts = new List<PortConfig>(config.Ports);
             SwitchNode node = new SwitchNode(config) { UptimeStartMs = Environment.TickCount64 };
             for (int i = 0; i < config.Ports.Count; i++)
             {
-                node.AddPort(new XotSwitchPort(config.Ports[i], _logger));
+                // One factory makes every port from its configured transport. A transport this build cannot
+                // run throws here, naming the port and the transport; the catch below keeps the failure and the
+                // main window shows it. It is never run as some other kind of port.
+                node.AddPort(SwitchPortFactory.Create(config.Ports[i], _logger));
             }
 
             // The core joins an incoming call on one port to an outgoing call on another, by route.
@@ -146,7 +176,7 @@ public sealed class EmbeddedSwitchService : IDisposable
             {
                 if (!node.Ports[i].Start())
                 {
-                    failed.Add(config.Ports[i].Id.ToString());
+                    failed.Add(config.Ports[i].Id.ToString() + " (" + SwitchPortFactory.Describe(config.Ports[i].Transport) + ")");
                 }
             }
 
@@ -157,7 +187,7 @@ public sealed class EmbeddedSwitchService : IDisposable
                     node.Ports[i].Stop();
                 }
 
-                _failure = "port(s) " + string.Join(", ", failed) + " did not start (is the port already in use, for example by an x25switch program?)";
+                _failure = "port(s) " + string.Join(", ", failed) + " did not start (for a listening port: is it already in use, for example by an x25switch program? for a serial port: can the device be opened? The log has the reason)";
                 _logger.LogError("Built-in switch: {Failure}", _failure);
                 return false;
             }

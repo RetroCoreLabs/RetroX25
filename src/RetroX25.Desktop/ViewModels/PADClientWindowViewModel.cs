@@ -18,7 +18,7 @@ using RetroX25.Desktop.Services;
 namespace RetroX25.Desktop.ViewModels;
 
 /// <summary>
-/// ViewModel for PAD Client Window (F10) - ITU-T X.3/X.28/X.29 PAD client.
+/// ViewModel for PAD Client Window (Ctrl+5) - ITU-T X.3/X.28/X.29 PAD client.
 /// </summary>
 public partial class PADClientWindowViewModel : ViewModelWithLogger
 {
@@ -94,10 +94,49 @@ public partial class PADClientWindowViewModel : ViewModelWithLogger
     /// </summary>
     private void OnDataReceived(object? sender, PadDataEventArgs e)
     {
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        QueueText(e.Data);
+    }
+
+    /// <summary>
+    /// Text that arrived from the PAD (any thread) and is waiting for the UI thread.
+    /// </summary>
+    private readonly System.Collections.Concurrent.ConcurrentQueue<string> _incomingText = new();
+
+    /// <summary>
+    /// 1 while a flush of <see cref="_incomingText"/> is already queued on the UI thread.
+    /// </summary>
+    private int _flushQueued;
+
+    /// <summary>
+    /// Queues text for the console. The UI thread takes everything that has arrived in ONE job and sets
+    /// the console text once. One job per piece of text, each copying the whole console into a new string
+    /// and redrawing it, made a burst of 300 typed and echoed lines take minutes (found by a burst test
+    /// on 2026-11-12).
+    /// </summary>
+    private void QueueText(string text)
+    {
+        _incomingText.Enqueue(text);
+        if (System.Threading.Interlocked.Exchange(ref _flushQueued, 1) == 0)
         {
-            AppendText(e.Data);
-        });
+            Avalonia.Threading.Dispatcher.UIThread.Post(FlushIncomingText);
+        }
+    }
+
+    private void FlushIncomingText()
+    {
+        // Open the gate BEFORE draining: text that arrives while this runs queues a new flush.
+        System.Threading.Interlocked.Exchange(ref _flushQueued, 0);
+        bool any = false;
+        while (_incomingText.TryDequeue(out string? text))
+        {
+            AppendText(text, false);
+            any = true;
+        }
+
+        if (any)
+        {
+            ConsoleText = _consoleBuffer.ToString();
+        }
     }
 
     /// <summary>
@@ -105,10 +144,7 @@ public partial class PADClientWindowViewModel : ViewModelWithLogger
     /// </summary>
     private void OnCharacterEcho(object? sender, PadCharacterEventArgs e)
     {
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            AppendText(((char)e.Character).ToString());
-        });
+        QueueText(((char)e.Character).ToString());
     }
 
     /// <summary>
@@ -125,7 +161,7 @@ public partial class PADClientWindowViewModel : ViewModelWithLogger
     /// <summary>
     /// Append text to console with proper handling of control characters.
     /// </summary>
-    private void AppendText(string text)
+    private void AppendText(string text, bool publish = true)
     {
         foreach (char c in text)
         {
@@ -149,7 +185,10 @@ public partial class PADClientWindowViewModel : ViewModelWithLogger
             }
         }
 
-        ConsoleText = _consoleBuffer.ToString();
+        if (publish)
+        {
+            ConsoleText = _consoleBuffer.ToString();
+        }
     }
 
     /// <summary>
@@ -361,6 +400,9 @@ public partial class PADClientWindowViewModel : ViewModelWithLogger
     {
         _consoleBuffer.Clear();
         ConsoleText = "";
+        // The prompt was on the lines just wiped. When the PAD is waiting for a command, write it
+        // again, or the person sees a blank window and cannot tell where to type.
+        _padClient.RedrawPrompt();
         Logger.LogInformation("Console cleared");
     }
 

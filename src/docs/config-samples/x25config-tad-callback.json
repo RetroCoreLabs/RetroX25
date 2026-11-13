@@ -35,6 +35,8 @@
         "Mode": "Server",
         "LocalPort": 1998,
         "RemoteMachineId": "23430001",
+        "RequestedWindowSize": null,
+        "RequestedPacketSize": null,
         "TcpKeepalive": true,
         "KeepAliveIntervalSeconds": 30,
         "ProtocolMode": "X25Only",
@@ -63,6 +65,17 @@
       }
     ],
     "KnownHosts": []
+  },
+
+  // Telnet PAD: a normal terminal program (telnet, PuTTY) gets an X.28 PAD of its own on this port.
+  // Off here. Set "Enabled" to true, press Apply in the Configuration window (or restart), then:
+  //   telnet 127.0.0.1 2323      and at the PAD> prompt type      CALL 23430200
+  // "BindAddress" 127.0.0.1 lets only this computer connect; 0.0.0.0 lets other computers in (no login).
+  "TelnetPad": {
+    "Enabled": false,
+    "Port": 2323,
+    "BindAddress": "127.0.0.1",
+    "MaxSessions": 8
   },
 
   "Timers": {

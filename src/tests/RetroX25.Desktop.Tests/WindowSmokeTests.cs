@@ -189,8 +189,6 @@ namespace RetroX25.Desktop.Tests
             {
                 Assert.That(provider.GetRequiredService<StatusWindowViewModel>(), Is.Not.Null);
                 Assert.That(provider.GetRequiredService<TADServerWindowViewModel>(), Is.Not.Null);
-                Assert.That(provider.GetRequiredService<XMSGServerWindowViewModel>(), Is.Not.Null);
-                Assert.That(provider.GetRequiredService<SintranTadServerWindowViewModel>(), Is.Not.Null);
                 Assert.That(provider.GetRequiredService<SimulateReceiveWindowViewModel>(), Is.Not.Null);
                 Assert.That(provider.GetRequiredService<SerialInterfacesTabViewModel>(), Is.Not.Null);
                 Assert.That(provider.GetRequiredService<XotInterfacesTabViewModel>(), Is.Not.Null);

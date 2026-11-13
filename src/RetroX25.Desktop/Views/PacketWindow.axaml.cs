@@ -12,7 +12,7 @@ using RetroX25.Desktop.ViewModels;
 namespace RetroX25.Desktop.Views;
 
 /// <summary>
-/// The Packet window (F2), which shows the captured protocol packets with filtering.
+/// The Packet window (Ctrl+2), which shows the captured protocol packets with filtering.
 /// </summary>
 public partial class PacketWindow : Window
 {

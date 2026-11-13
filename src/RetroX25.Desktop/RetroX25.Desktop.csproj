@@ -37,4 +37,9 @@
   <ItemGroup>
     <PackageReference Include="RetroIO.Protocols.X25.Runtime" />
   </ItemGroup>
+
+  <!-- The tests feed the view-models a statistics snapshot directly, and read a few internal helpers. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="RetroX25.Desktop.Tests" />
+  </ItemGroup>
 </Project>

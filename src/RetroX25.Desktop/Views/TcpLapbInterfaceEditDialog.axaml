@@ -1,0 +1,149 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        x:Class="RetroX25.Desktop.Views.TcpLapbInterfaceEditDialog"
+        x:DataType="vm:TcpLapbInterfaceEditDialogViewModel"
+        Title="{Binding DialogTitle}"
+        Width="520" Height="700"
+        MinWidth="450" MinHeight="600"
+        CanResize="false"
+        WindowStartupLocation="CenterOwner"
+        Icon="/Assets/icon.ico">
+
+    <Grid RowDefinitions="*,Auto" Margin="16">
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="12">
+
+                <!-- Name -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Interface Name:" FontWeight="SemiBold"/>
+                    <TextBox Name="NameBox" Text="{Binding Name}" Watermark="e.g., TcpLapb0"/>
+                </StackPanel>
+
+                <CheckBox Name="EnabledBox" Content="Interface Enabled" IsChecked="{Binding Enabled}"/>
+
+                <TextBlock Text="Connection" FontWeight="SemiBold" Margin="0,8,0,0"/>
+
+                <CheckBox Name="ServerBox"
+                          Content="Server mode (accept connections)"
+                          IsChecked="{Binding IsServer}"/>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="IP Address:" FontWeight="SemiBold"/>
+                    <TextBox Name="IpBox" Text="{Binding IpAddress}" Watermark="127.0.0.1"/>
+                    <TextBlock Text="Where to connect (needed in client mode)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Port:" FontWeight="SemiBold"/>
+                    <NumericUpDown Name="PortBox"
+                                   Value="{Binding Port}"
+                                   Minimum="1" Maximum="65535"
+                                   FormatString="0" ShowButtonSpinner="True"/>
+                    <TextBlock Text="The port to connect to (client) or to listen on (server)"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Remote Machine ID:" FontWeight="SemiBold"/>
+                    <TextBox Name="MachineBox" Text="{Binding RemoteMachineId}" Watermark="300"/>
+                </StackPanel>
+
+                <TextBlock Text="LAPB Parameters" FontWeight="SemiBold" Margin="0,8,0,0"/>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Window Size (K):" FontWeight="SemiBold"/>
+                    <NumericUpDown Name="WindowBox"
+                                   Value="{Binding WindowSize}"
+                                   Minimum="0" Maximum="255"
+                                   FormatString="0" ShowButtonSpinner="True"/>
+                    <TextBlock Text="1 to 7, default 7"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="T1 Timeout (ms):" FontWeight="SemiBold"/>
+                    <NumericUpDown Name="T1Box"
+                                   Value="{Binding T1TimeoutMs}"
+                                   Minimum="0" Maximum="600000"
+                                   FormatString="0" ShowButtonSpinner="True"/>
+                    <TextBlock Text="Wait for an answer before sending a frame again. At least 100."
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="T2 Timeout (ms):" FontWeight="SemiBold"/>
+                    <NumericUpDown Name="T2Box"
+                                   Value="{Binding T2TimeoutMs}"
+                                   Minimum="0" Maximum="600000"
+                                   FormatString="0" ShowButtonSpinner="True"/>
+                    <TextBlock Text="Delay before an acknowledge is sent. No more than half of T1."
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="T3 Timeout (ms):" FontWeight="SemiBold"/>
+                    <NumericUpDown Name="T3Box"
+                                   Value="{Binding T3TimeoutMs}"
+                                   Minimum="0" Maximum="3600000"
+                                   FormatString="0" ShowButtonSpinner="True"/>
+                    <TextBlock Text="Idle check. 0 turns it off; otherwise it must be greater than T1."
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Max Retries (N2):" FontWeight="SemiBold"/>
+                    <NumericUpDown Name="N2Box"
+                                   Value="{Binding MaxRetries}"
+                                   Minimum="0" Maximum="1000"
+                                   FormatString="0" ShowButtonSpinner="True"/>
+                    <TextBlock Text="1 to 255"
+                               FontSize="10"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Description (optional):" FontWeight="SemiBold"/>
+                    <TextBox Name="DescriptionBox"
+                             Text="{Binding Description}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="60"/>
+                </StackPanel>
+
+                <!-- Validation Error -->
+                <Border Background="#FFFFE0E0"
+                        BorderBrush="#FFFF0000"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="8"
+                        IsVisible="{Binding ValidationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <TextBlock Name="ErrorText"
+                               Text="{Binding ValidationError}"
+                               Foreground="#FFCC0000"
+                               TextWrapping="Wrap"/>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8"
+                    Margin="0,16,0,0">
+            <Button Name="OkButton" Content="OK" Width="80" IsDefault="True" Click="OnOkClick"/>
+            <Button Name="CancelButton" Content="Cancel" Width="80" IsCancel="True" Click="OnCancelClick"/>
+        </StackPanel>
+
+    </Grid>
+</Window>

@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        xmlns:svc="using:RetroX25.Desktop.Services"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
@@ -8,7 +9,7 @@
         x:DataType="vm:PacketWindowViewModel"
         Icon="/Assets/icon.ico"
         Title="Packet Window"
-        Width="1000" Height="700"
+        Width="1240" Height="860"
         MinWidth="800" MinHeight="500">
 
     <Design.DataContext>
@@ -36,6 +37,7 @@
                 BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                 BorderThickness="0,0,0,1"
                 Padding="12,8">
+            <StackPanel Spacing="8">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <!-- Filter Controls -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
@@ -79,6 +81,49 @@
                     <Button Command="{Binding ClearPacketsCommand}" Content="Clear"/>
                 </StackPanel>
             </Grid>
+
+            <!-- Second row of filters: LAPB frame class, X.25 packet group, channel number, errors -->
+            <WrapPanel Orientation="Horizontal">
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="0,0,16,4">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="LAPB frame:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                        <CheckBox Name="FilterI" IsChecked="{Binding ShowIFrames}" Content="I"/>
+                        <CheckBox Name="FilterS" IsChecked="{Binding ShowSFrames}" Content="S"/>
+                        <CheckBox Name="FilterU" IsChecked="{Binding ShowUFrames}" Content="U"/>
+                    </StackPanel>
+                </Border>
+
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="0,0,16,4">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="X.25 packet:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                        <CheckBox Name="FilterData" IsChecked="{Binding ShowDataPackets}" Content="DATA"/>
+                        <CheckBox Name="FilterCall" IsChecked="{Binding ShowCallPackets}" Content="CALL"/>
+                        <CheckBox Name="FilterClear" IsChecked="{Binding ShowClearPackets}" Content="CLEAR"/>
+                        <CheckBox Name="FilterReset" IsChecked="{Binding ShowResetPackets}" Content="RESET"/>
+                        <CheckBox Name="FilterRestart" IsChecked="{Binding ShowRestartPackets}" Content="RESTART"/>
+                        <CheckBox Name="FilterInt" IsChecked="{Binding ShowInterruptPackets}" Content="INT"/>
+                    </StackPanel>
+                </Border>
+
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="0,0,16,4">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Channel (LCN):" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                        <TextBox Name="FilterLcn" Text="{Binding LcnFilterText}" Width="70" Watermark="all"
+                                 ToolTip.Tip="Show only X.25 packets on this logical channel number. Empty shows all."/>
+                        <Button Command="{Binding ToggleLcnFilterCommand}" Content="Use selected"
+                                ToolTip.Tip="Take the channel number of the selected packet, or clear the filter"/>
+                    </StackPanel>
+                </Border>
+
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="0,0,16,4">
+                    <CheckBox Name="FilterErrors" IsChecked="{Binding ErrorsOnly}" Content="Errors only"/>
+                </Border>
+            </WrapPanel>
+            </StackPanel>
         </Border>
 
         <!-- Status Bar (docked to bottom) -->
@@ -102,7 +147,7 @@
         </Border>
 
         <!-- Main Content Area - Split View -->
-        <Grid RowDefinitions="2*,4,*">
+        <Grid RowDefinitions="*,4,1.5*">
             <!-- Packet List (top) -->
             <Border Grid.Row="0" BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
                     BorderThickness="0,0,0,1">
@@ -114,11 +159,17 @@
                           CanUserResizeColumns="True"
                           CanUserSortColumns="True">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60"/>
-                        <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss.fff}'}" Width="100"/>
-                        <DataGridTextColumn Header="Layer" Binding="{Binding Layer}" Width="70"/>
-                        <DataGridTextColumn Header="Dir" Binding="{Binding Direction}" Width="50"/>
-                        <DataGridTextColumn Header="Length" Binding="{Binding Length}" Width="70"/>
+                        <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="64"/>
+                        <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss.fff}'}" Width="120"/>
+                        <DataGridTextColumn Header="Layer" Binding="{Binding Layer}" Width="72"/>
+                        <DataGridTextColumn Header="Dir" Binding="{Binding Direction}" Width="60"/>
+                        <DataGridTextColumn Header="L2" Binding="{Binding L2Name}" Width="64"/>
+                        <DataGridTextColumn Header="L3" Binding="{Binding L3Type}" Width="120"/>
+                        <DataGridTextColumn Header="LCN" Binding="{Binding Lcn}" Width="64"/>
+                        <DataGridTextColumn Header="N(S)/N(R) P(S)/P(R)" Binding="{Binding Sequence}" Width="150"/>
+                        <DataGridTextColumn Header="Flags" Binding="{Binding Flags}" Width="70"/>
+                        <DataGridTextColumn Header="FCS" Binding="{Binding Fcs}" Width="62"/>
+                        <DataGridTextColumn Header="Length" Binding="{Binding Length}" Width="76"/>
                         <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
                     </DataGrid.Columns>
                 </DataGrid>
@@ -131,40 +182,111 @@
 
             <!-- Packet Details (bottom) -->
             <Border Grid.Row="2" Padding="12">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Spacing="8" IsVisible="{Binding SelectedPacket, Converter={StaticResource NullToVisibilityConverter}}">
-                        <!-- Summary -->
-                        <TextBlock Text="{Binding SelectedPacketSummary}"
-                                   FontFamily="Consolas,Courier New"
-                                   FontWeight="SemiBold"/>
+                <Grid RowDefinitions="Auto,*" IsVisible="{Binding SelectedPacket, Converter={StaticResource NullToVisibilityConverter}}">
+                    <!-- Summary line of the selected packet -->
+                    <TextBlock Grid.Row="0"
+                               Text="{Binding SelectedPacketSummary}"
+                               FontFamily="Consolas,Courier New"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,8"
+                               TextTrimming="CharacterEllipsis"/>
 
-                        <!-- Hex Dump -->
-                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
-                                CornerRadius="4"
-                                Padding="8">
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="Payload (Hex):" FontWeight="SemiBold" FontSize="11"/>
-                                <TextBlock Text="{Binding SelectedPacketHex}"
-                                           FontFamily="Consolas,Courier New"
-                                           FontSize="11"
-                                           TextWrapping="Wrap"/>
-                            </StackPanel>
+                    <Grid Grid.Row="1" ColumnDefinitions="*,12,*">
+                        <!-- Detail tree, like the middle pane of Wireshark. Every heading starts open; click a
+                             line to mark its bytes in the dump on the right. -->
+                        <Border Grid.Column="0"
+                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                CornerRadius="6"
+                                Padding="4">
+                            <TreeView Name="DetailTree"
+                                      ItemsSource="{Binding DetailTree}"
+                                      SelectedItem="{Binding SelectedNode, Mode=TwoWay}"
+                                      FontFamily="Consolas,Courier New"
+                                      FontSize="12"
+                                      Background="Transparent">
+                                <TreeView.Styles>
+                                    <Style Selector="TreeViewItem">
+                                        <Setter Property="IsExpanded" Value="True"/>
+                                        <Setter Property="MinHeight" Value="22"/>
+                                    </Style>
+                                </TreeView.Styles>
+                                <TreeView.DataTemplates>
+                                    <TreeDataTemplate x:DataType="svc:PacketTreeNode" ItemsSource="{Binding Children}">
+                                        <TextBlock Text="{Binding Text}"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </TreeDataTemplate>
+                                </TreeView.DataTemplates>
+                            </TreeView>
                         </Border>
 
-                        <!-- ASCII Dump (if applicable) -->
-                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
-                                CornerRadius="4"
-                                Padding="8">
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="Payload (ASCII):" FontWeight="SemiBold" FontSize="11"/>
-                                <TextBlock Text="{Binding SelectedPacketAscii}"
-                                           FontFamily="Consolas,Courier New"
-                                           FontSize="11"
-                                           TextWrapping="Wrap"/>
-                            </StackPanel>
+                        <GridSplitter Grid.Column="1" Background="Transparent" HorizontalAlignment="Stretch"/>
+
+                        <!-- The bytes. The ones that belong to the clicked tree line are lit. -->
+                        <Border Grid.Column="2"
+                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                CornerRadius="6"
+                                Padding="10">
+                            <Grid RowDefinitions="*,6,*">
+                            <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="BYTES" FontSize="10" FontWeight="SemiBold" LetterSpacing="1.5"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                    <ItemsControl Name="HexDump" ItemsSource="{Binding HexBytes}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:HexByteViewModel">
+                                                <Border CornerRadius="3" Padding="3,1" Margin="0,0,2,2"
+                                                        Classes.lit="{Binding IsHighlighted}">
+                                                    <Border.Styles>
+                                                        <Style Selector="Border.lit">
+                                                            <Setter Property="Background" Value="{DynamicResource SystemAccentColor}"/>
+                                                        </Style>
+                                                        <Style Selector="Border.lit TextBlock">
+                                                            <Setter Property="Foreground" Value="White"/>
+                                                            <Setter Property="FontWeight" Value="Bold"/>
+                                                        </Style>
+                                                    </Border.Styles>
+                                                    <TextBlock Text="{Binding Text}"
+                                                               FontFamily="Consolas,Courier New"
+                                                               FontSize="12"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <TextBlock Text="TEXT" FontSize="10" FontWeight="SemiBold" LetterSpacing="1.5"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                    <SelectableTextBlock Text="{Binding SelectedPacketAscii}"
+                                                         FontFamily="Consolas,Courier New"
+                                                         FontSize="12"
+                                                         TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <GridSplitter Grid.Row="1" Background="Transparent" HorizontalAlignment="Stretch" ResizeDirection="Rows"/>
+
+                            <!-- The same fields as one block of plain text, for copying into a mail or a bug report.
+                                 Always shown below the splitter; drag the splitter to give it more or less room. -->
+                            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="DECODED FIELDS (PLAIN TEXT)" FontSize="10" FontWeight="SemiBold" LetterSpacing="1.5"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                    <SelectableTextBlock Name="DetailText"
+                                                         Text="{Binding SelectedPacketDetail}"
+                                                         FontFamily="Consolas,Courier New"
+                                                         FontSize="11"
+                                                         TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                            </Grid>
                         </Border>
-                    </StackPanel>
-                </ScrollViewer>
+                    </Grid>
+                </Grid>
             </Border>
         </Grid>
 

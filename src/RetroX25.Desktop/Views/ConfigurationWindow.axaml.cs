@@ -12,7 +12,7 @@ using RetroX25.Desktop.ViewModels;
 namespace RetroX25.Desktop.Views;
 
 /// <summary>
-/// The Configuration window (F9), where the user edits the runtime settings, the serial and
+/// The Configuration window (Ctrl+,), where the user edits the runtime settings, the serial and
 /// XOT interfaces, the known hosts and the routing table.
 /// </summary>
 public partial class ConfigurationWindow : Window
@@ -49,6 +49,7 @@ public partial class ConfigurationWindow : Window
         // Set owner window reference for tab ViewModels to show dialogs
         viewModel.SerialInterfacesTab.SetOwnerWindow(this);
         viewModel.XotInterfacesTab.SetOwnerWindow(this);
+        viewModel.TcpLapbInterfacesTab.SetOwnerWindow(this);
         viewModel.KnownHostsTab.SetOwnerWindow(this);
         viewModel.RoutingTab.SetOwnerWindow(this);
 

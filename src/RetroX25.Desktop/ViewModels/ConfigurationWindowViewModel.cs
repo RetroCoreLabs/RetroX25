@@ -20,7 +20,7 @@ using RetroX25.Desktop.Services;
 namespace RetroX25.Desktop.ViewModels;
 
 /// <summary>
-/// ViewModel for the Configuration Window (F9) - manages ProtocolRuntime settings.
+/// ViewModel for the Configuration Window (Ctrl+,) - manages ProtocolRuntime settings.
 /// </summary>
 public partial class ConfigurationWindowViewModel : ViewModelWithLogger
 {
@@ -86,6 +86,27 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
     [ObservableProperty]
     private bool _x25ExtendedPacketSequencing = false;
 
+    // Telnet PAD: a TCP port where an ordinary terminal program (telnet, PuTTY) gets an X.28 PAD.
+    /// <summary>Gets or sets whether the telnet PAD listens for connections.</summary>
+    [ObservableProperty]
+    private bool _telnetPadEnabled = false;
+
+    /// <summary>Gets or sets the TCP port of the telnet PAD (1 to 65535).</summary>
+    [ObservableProperty]
+    private int _telnetPadPort = TelnetPadConfig.DefaultPort;
+
+    /// <summary>Gets or sets the IP address the telnet PAD listens on (127.0.0.1 = this machine only).</summary>
+    [ObservableProperty]
+    private string _telnetPadBindAddress = TelnetPadConfig.DefaultBindAddress;
+
+    /// <summary>Gets or sets how many telnet sessions may be open at once.</summary>
+    [ObservableProperty]
+    private int _telnetPadMaxSessions = TelnetPadConfig.DefaultMaxSessions;
+
+    /// <summary>Gets or sets what the running telnet PAD is doing now, in one line (listening, off, or why it failed).</summary>
+    [ObservableProperty]
+    private string _telnetPadStatusText = "Telnet PAD: off";
+
     [ObservableProperty]
     private string _statusText = "Ready";
 
@@ -99,6 +120,11 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
     /// Gets the view-model behind the XOT Interfaces tab.
     /// </summary>
     public XotInterfacesTabViewModel XotInterfacesTab { get; }
+
+    /// <summary>
+    /// Gets the view-model behind the TCP LAPB tab.
+    /// </summary>
+    public TcpLapbInterfacesTabViewModel TcpLapbInterfacesTab { get; }
 
     /// <summary>
     /// Gets the view-model behind the Known Hosts tab.
@@ -119,8 +145,10 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
         IDialogService dialogService,
         SerialInterfacesTabViewModel serialInterfacesTab,
         XotInterfacesTabViewModel xotInterfacesTab,
+        TcpLapbInterfacesTabViewModel tcpLapbInterfacesTab,
         KnownHostsTabViewModel knownHostsTab,
-        RoutingTabViewModel routingTab) : base(logger)
+        RoutingTabViewModel routingTab,
+        RuntimeConfig config) : base(logger)
     {
         _runtimeService = runtimeService ?? throw new ArgumentNullException(nameof(runtimeService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
@@ -128,11 +156,15 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
         // Assign tab ViewModels
         SerialInterfacesTab = serialInterfacesTab ?? throw new ArgumentNullException(nameof(serialInterfacesTab));
         XotInterfacesTab = xotInterfacesTab ?? throw new ArgumentNullException(nameof(xotInterfacesTab));
+        TcpLapbInterfacesTab = tcpLapbInterfacesTab ?? throw new ArgumentNullException(nameof(tcpLapbInterfacesTab));
         KnownHostsTab = knownHostsTab ?? throw new ArgumentNullException(nameof(knownHostsTab));
         RoutingTab = routingTab ?? throw new ArgumentNullException(nameof(routingTab));
 
         // Load current configuration
-        _config = GetCurrentConfig();
+        // The SAME configuration object the tabs edit and the engine was started from (the one in the
+        // service container). It used to be a fresh default configuration, so Apply restarted the engine
+        // on defaults and lost the interfaces and routes loaded from the file.
+        _config = config ?? throw new ArgumentNullException(nameof(config));
         LoadConfigurationIntoProperties();
 
         Logger.LogInformation("ConfigurationWindowViewModel initialized");
@@ -144,17 +176,6 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
     public void SetStorageProvider(IStorageProvider storageProvider)
     {
         _storageProvider = storageProvider ?? throw new ArgumentNullException(nameof(storageProvider));
-    }
-
-    /// <summary>
-    /// Get current runtime configuration.
-    /// </summary>
-    private RuntimeConfig GetCurrentConfig()
-    {
-        // If runtime is running, we can't get the config directly
-        // So we'll create a copy of the default config
-        // In a real implementation, you'd want to expose the config from RuntimeService
-        return RuntimeConfig.CreateDefault();
     }
 
     /// <summary>
@@ -185,6 +206,14 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
         X25T22Timeout = (int)_config.X25.T22Timeout.TotalMilliseconds;
         X25T23Timeout = (int)_config.X25.T23Timeout.TotalMilliseconds;
         X25ExtendedPacketSequencing = _config.X25.ExtendedPacketSequencing;
+
+        // Telnet PAD (a file written before this section existed has the defaults: off).
+        TelnetPadConfig telnet = _config.TelnetPad ?? new TelnetPadConfig();
+        TelnetPadEnabled = telnet.Enabled;
+        TelnetPadPort = telnet.Port;
+        TelnetPadBindAddress = telnet.BindAddress;
+        TelnetPadMaxSessions = telnet.MaxSessions;
+        TelnetPadStatusText = _runtimeService.IsRunning ? _runtimeService.Runtime.TelnetPadStatus.Text : "Telnet PAD: off";
 
         StatusText = "Configuration loaded";
     }
@@ -217,6 +246,13 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
         _config.X25.T22Timeout = TimeSpan.FromMilliseconds(X25T22Timeout);
         _config.X25.T23Timeout = TimeSpan.FromMilliseconds(X25T23Timeout);
         _config.X25.ExtendedPacketSequencing = X25ExtendedPacketSequencing;
+
+        // Telnet PAD
+        _config.TelnetPad ??= new TelnetPadConfig();
+        _config.TelnetPad.Enabled = TelnetPadEnabled;
+        _config.TelnetPad.Port = TelnetPadPort;
+        _config.TelnetPad.BindAddress = TelnetPadBindAddress;
+        _config.TelnetPad.MaxSessions = TelnetPadMaxSessions;
     }
 
     [RelayCommand]
@@ -237,8 +273,19 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
             StatusText = "Settings applied: the X.25 engine was restarted";
             Logger.LogInformation("Configuration applied, runtime restarted");
 
+            // The telnet PAD is started by the engine. If it could not listen (the port is in use, the
+            // address is not on this machine) say so here, in words, and not only in the main window.
+            TelnetPadStatus telnetStatus = _runtimeService.Runtime.TelnetPadStatus;
+            TelnetPadStatusText = telnetStatus.Text;
+            string telnetNote = string.Empty;
+            if (telnetStatus.State == TelnetPadState.Failed)
+            {
+                StatusText = "Settings applied, but the " + telnetStatus.Text;
+                telnetNote = "\n\nThe telnet PAD did not start: " + telnetStatus.Error + ". Change the port or the address and press Apply again.";
+            }
+
             _dialogService.ShowInfo("Settings Applied",
-                "The X.25 engine was restarted with these settings.\n\nPAD, TAD and other windows that were open were closed because they belonged to the old engine. Open them again from the Windows menu.");
+                "The X.25 engine was restarted with these settings.\n\nPAD, TAD and other windows that were open were closed because they belonged to the old engine. Open them again from the Windows menu." + telnetNote);
         }
         catch (Exception ex)
         {
@@ -384,6 +431,7 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
             // This will reload their display items from the updated _config
             SerialInterfacesTab.RefreshCommand.Execute(null);
             XotInterfacesTab.RefreshCommand.Execute(null);
+            TcpLapbInterfacesTab.RefreshCommand.Execute(null);
             KnownHostsTab.RefreshCommand.Execute(null);
             RoutingTab.RefreshCommand.Execute(null);
 
@@ -429,6 +477,14 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
         destination.X25.LocalMachineId = source.X25.LocalMachineId;
         destination.X25.ExtendedPacketSequencing = source.X25.ExtendedPacketSequencing;
 
+        // Copy telnet PAD settings
+        destination.TelnetPad ??= new TelnetPadConfig();
+        TelnetPadConfig sourceTelnet = source.TelnetPad ?? new TelnetPadConfig();
+        destination.TelnetPad.Enabled = sourceTelnet.Enabled;
+        destination.TelnetPad.Port = sourceTelnet.Port;
+        destination.TelnetPad.BindAddress = sourceTelnet.BindAddress;
+        destination.TelnetPad.MaxSessions = sourceTelnet.MaxSessions;
+
         // Copy routing settings
         destination.Routing.Enabled = source.Routing.Enabled;
         destination.Routing.DefaultGateway = source.Routing.DefaultGateway;
@@ -448,6 +504,13 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
             destination.Routing.XotInterfaces.Add(source.Routing.XotInterfaces[i]);
         }
 
+        // Interfaces that carry LAPB over TCP: Save and Load used to drop these.
+        destination.Routing.TcpLapbInterfaces.Clear();
+        for (int i = 0; i < source.Routing.TcpLapbInterfaces.Count; i++)
+        {
+            destination.Routing.TcpLapbInterfaces.Add(source.Routing.TcpLapbInterfaces[i]);
+        }
+
         destination.Routing.KnownHosts.Clear();
         for (int i = 0; i < source.Routing.KnownHosts.Count; i++)
         {
@@ -464,21 +527,6 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
         for (int i = 0; i < source.Routing.PvcBindings.Count; i++)
         {
             destination.Routing.PvcBindings.Add(source.Routing.PvcBindings[i]);
-        }
-
-        // Copy SINTRAN settings
-        destination.Sintran.LocalSintranId = source.Sintran.LocalSintranId;
-        destination.Sintran.RemoteSintranId = source.Sintran.RemoteSintranId;
-        destination.Sintran.AutoEstablishPvcs = source.Sintran.AutoEstablishPvcs;
-        destination.Sintran.EnableRoutingProtocol = source.Sintran.EnableRoutingProtocol;
-        destination.Sintran.EnableXmsgProtocol = source.Sintran.EnableXmsgProtocol;
-        destination.Sintran.EnableFileProtocol = source.Sintran.EnableFileProtocol;
-        destination.Sintran.PvcEstablishmentTimeout = source.Sintran.PvcEstablishmentTimeout;
-
-        destination.Sintran.StandardPvcs.Clear();
-        for (int i = 0; i < source.Sintran.StandardPvcs.Count; i++)
-        {
-            destination.Sintran.StandardPvcs.Add(source.Sintran.StandardPvcs[i]);
         }
 
         // Copy Timer settings
@@ -513,18 +561,54 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
             return false;
         }
 
-        // Validate window sizes
-        if (LapbWindowSize < 1 || LapbWindowSize > 127)
+        // The LAPB layer of the engine counts frames modulo 8 only: window 1..7, no SABME. A loaded file
+        // that asks for modulo 128 is refused out loud rather than run as modulo 8 without a word.
+        // What 128 would need: src/docs/modulo-128.md.
+        if (LapbModulo != 8)
         {
             _dialogService.ShowWarning("Invalid Configuration",
-                "LAPB window size must be between 1 and 127.");
+                "LAPB modulo 128 is not implemented. The engine runs LAPB with modulo 8 only (see docs/modulo-128.md).");
             return false;
         }
 
-        if (X25DefaultPacketWindowSize < 1 || X25DefaultPacketWindowSize > 127)
+        // Validate window sizes
+        if (LapbWindowSize < 1 || LapbWindowSize > 7)
         {
             _dialogService.ShowWarning("Invalid Configuration",
-                "X.25 packet window size must be between 1 and 127.");
+                "LAPB window size must be between 1 and 7 (modulo 8).");
+            return false;
+        }
+
+        // The X.25 packet layer is a separate setting from LAPB and also counts modulo 8 only: window 1..7,
+        // and a configuration that asks for extended (modulo 128) packet sequencing is refused out loud.
+        if (X25ExtendedPacketSequencing)
+        {
+            _dialogService.ShowWarning("Invalid Configuration",
+                "X.25 packet modulo 128 (extended packet sequencing) is not implemented. The X.25 layer runs modulo 8 only (see docs/modulo-128.md).");
+            return false;
+        }
+
+        if (X25DefaultPacketWindowSize < 1 || X25DefaultPacketWindowSize > 7)
+        {
+            _dialogService.ShowWarning("Invalid Configuration",
+                "X.25 packet window size must be between 1 and 7 (modulo 8).");
+            return false;
+        }
+
+        // Telnet PAD: the same rules the engine applies when it starts the listener. Checked even when
+        // the PAD is off, so a bad value is not saved to a file and found only when it is switched on.
+        TelnetPadConfig telnetCheck = new TelnetPadConfig
+        {
+            Enabled = TelnetPadEnabled,
+            Port = TelnetPadPort,
+            BindAddress = TelnetPadBindAddress,
+            MaxSessions = TelnetPadMaxSessions
+        };
+        string? telnetProblem = telnetCheck.Validate();
+        if (telnetProblem != null)
+        {
+            _dialogService.ShowWarning("Invalid Configuration", telnetProblem);
+            StatusText = telnetProblem;
             return false;
         }
 

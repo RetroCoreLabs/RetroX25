@@ -87,7 +87,7 @@ public partial class XotInterfacesTabViewModel : ViewModelWithLogger
             {
                 Index = i,
                 Name = xot.Name,
-                Mode = xot.Mode.ToString(),
+                Mode = XotInterfaceEditDialogViewModel.ModeToText(xot.Mode),
                 RemoteIPAddress = xot.RemoteIPAddress ?? "",
                 RemotePort = xot.RemotePort,
                 LocalPort = xot.LocalPort,
@@ -111,7 +111,7 @@ public partial class XotInterfacesTabViewModel : ViewModelWithLogger
             {
                 Name = $"XOT{_config.Routing.XotInterfaces.Count}",
                 Enabled = false,
-                Mode = XotMode.Client,
+                Mode = XotMode.Both,
                 RemoteIPAddress = "127.0.0.1",
                 RemotePort = 1998,
                 LocalPort = 1998,
@@ -268,7 +268,7 @@ public class XotInterfaceDisplayItem
     public string Name { get; set; } = "";
 
     /// <summary>
-    /// Gets or sets the XOT mode as text, "Client" or "Server".
+    /// Gets or sets the XOT mode as text: "Client", "Server" or "Both ways (peer)".
     /// </summary>
     public string Mode { get; set; } = "";
 
@@ -311,7 +311,9 @@ public class XotInterfaceDisplayItem
     /// local port. Both forms include the name, mode, remote machine ID and whether the
     /// interface is enabled.
     /// </remarks>
-    public string DisplayText => Mode == "Client"
+    public string DisplayText => Mode == XotInterfaceEditDialogViewModel.ClientText
         ? $"{Name} - {Mode} → {RemoteIPAddress}:{RemotePort} (Machine {RemoteMachineId}) [{(Enabled ? "Enabled" : "Disabled")}]"
-        : $"{Name} - {Mode} port {LocalPort} (Machine {RemoteMachineId}) [{(Enabled ? "Enabled" : "Disabled")}]";
+        : Mode == XotInterfaceEditDialogViewModel.BothText
+            ? $"{Name} - {Mode}: dials {RemoteIPAddress}:{RemotePort}, accepts on port {LocalPort} (Machine {RemoteMachineId}) [{(Enabled ? "Enabled" : "Disabled")}]"
+            : $"{Name} - {Mode} port {LocalPort} (Machine {RemoteMachineId}) [{(Enabled ? "Enabled" : "Disabled")}]";
 }
