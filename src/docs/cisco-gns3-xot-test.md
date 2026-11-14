@@ -11,6 +11,8 @@ each link it crosses.
 
 ## 0. The whole bench in pictures
 
+Everything measured about the router, in one page (facts, cause codes, commands): [cisco-learnings.md](cisco-learnings.md).
+
 Read this section first; the rest of the page is the detail behind these five pictures.
 
 **What is real and what is not.** The routers run **real Cisco IOS software** (a 7200 image, IOS 12.4(24)T5).
@@ -517,8 +519,8 @@ one byte, `0x01` (X.29 section 3.2.1). The router's PAD shows the goodbye first 
 itself; R1 prints `[Connection to 23500001 closed by foreign host]`. In `debug x25 xot`: Goodbye is
 `PS 2`, the invitation is `PS 3` with `Q`, and the router's `Clear` follows 4 ms later. **Why not just
 clear?** The echo service used to send the goodbye and clear at once. On the wire the goodbye
-arrived before the clear, yet the router never showed it (measured; I did not find out why the PAD
-drops it, X.25 section 4.5 only says data before a clear may be discarded). A 500 ms wait before the clear
+arrived before the clear, yet the router never showed it (measured; the reason the PAD
+drops it was not found, X.25 section 4.5 only says data before a clear may be discarded). A 500 ms wait before the clear
 also made it show, but a delay is not a fix. The echo service now waits for the router to acknowledge the invitation and
 clears the call itself only if the router has not cleared within 2 seconds.
 
@@ -951,7 +953,7 @@ Use `clear logging` first to start from an empty buffer.
 - The switch once logged `Cannot access a disposed object ... NetworkStream` when a trunk connection was
   closed by hand. It has not been investigated.
 - The Windows PC's address comes from DHCP. If it changes, change `x25 route ^2350 xot ...` on R1.
-- `x25traffic` against a Cisco PAD proves call set-up and data flow only. For delivery rates use the
+- `x25traffic` cannot call a Cisco PAD (it sends no X.29 call user data). Put traffic into a router PAD with `x25pad`; for delivery rates use the
   echo service.
 - Sequence number modulo 128 (LAPB and X.25 packets) is not implemented; the bench runs modulo 8. See [modulo-128.md](modulo-128.md), which also says how Cisco uses both settings.
 

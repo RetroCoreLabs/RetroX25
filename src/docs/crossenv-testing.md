@@ -151,7 +151,6 @@ Both have a test that failed before the fix.
 - **x25emu's serial trunk, and our serial trunk against anything real.** WSL here has no `socat`, and there is no
   virtual serial pair on the Windows side, so no serial device could be opened for a test. Serial is tested over an
   in-memory cable only (see [trunk-links.md](trunk-links.md)).
-- **The unknown source address on a Cisco router** (below).
 
 ## Troubleshooting
 
@@ -164,6 +163,8 @@ Both have a test that failed before the fix.
 | Tests that need x25emu to dial us fail inside `RetroX25.Tests` | That test host is blocked by a firewall rule on purpose. These tests live in `RetroX25.Desktop.Tests`. |
 
 ## The real Cisco router
+
+Everything learned about the router is summarised in [cisco-learnings.md](cisco-learnings.md).
 
 The tests against the real router R1 are marked `CiscoLive` and **Explicit**: they run only when named, and need the
 variable `CISCO_R1_HOST` (the router's LAN address). They send test traffic to the router and change nothing on it. The

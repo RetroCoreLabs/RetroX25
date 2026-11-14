@@ -29,7 +29,7 @@ The demo network that starts three switches and an echo service is described in
 | Program | What it is | Where it is described |
 |---|---|---|
 | `x25emu` tools (`x25switch`, `x25pad`, `x25echo`, `x25traffic`, `x25trace`, `x25nmc`) | A second, independent X.25 emulator written in C that runs in WSL. It is the other implementation that RetroX25 is tested against. | [crossenv-testing.md](crossenv-testing.md) |
-| A Cisco router (IOS) | A real X.25 implementation. It acts as a DTE or a DCE, runs a PAD service and speaks XOT. | [cisco-gns3-xot-test.md](cisco-gns3-xot-test.md) and [xot-peers.md](xot-peers.md) |
+| A Cisco router (IOS) | A real X.25 implementation. It acts as a DTE or a DCE, runs a PAD service and speaks XOT. | [cisco-gns3-xot-test.md](cisco-gns3-xot-test.md), [xot-peers.md](xot-peers.md); what was learned, on one page: [cisco-learnings.md](cisco-learnings.md) |
 
 ## How the programs find each other
 
