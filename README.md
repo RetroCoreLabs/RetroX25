@@ -47,6 +47,8 @@ them is a failing test rather than an argument.
 | `x25nmc` | Network management console, in-band over X.25 | [README](src/RetroX25.Nmc/README.md) |
 | `x25xot` | XOT client and server, interactive | [README](src/RetroX25.Xot/README.md) |
 
+The guides that cover more than one program (trunks, XOT peers, Cisco testing, the telnet PAD) are listed in [src/docs/README.md](src/docs/README.md).
+
 ---
 
 ## Status
