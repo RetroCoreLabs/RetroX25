@@ -85,8 +85,7 @@ sequenceDiagram
     participant E as x25echo
 
     U->>P: x25pad -x 127.0.0.1:2200
-    P->>S: TCP connect, then RESTART
-    S-->>P: RESTART CONFIRM
+    P->>S: TCP connect (no Restart is sent over XOT, RFC 1613 section 6.4)
     P-->>U: the * prompt
     U->>P: SET 3:2
     U->>P: CALL 23520001
