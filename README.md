@@ -1,13 +1,13 @@
 # RetroX25
 
-**An X.25 network you can run.** Ten applications — a packet switch, two desktop front ends, and seven console
+**An X.25 network you can run.** Nine applications — a packet switch, two desktop front ends, and six console
 tools — built on the `RetroIO.Protocols.X25.*` packages.
 
 [![build](https://github.com/RetroCoreLabs/RetroX25/actions/workflows/build.yml/badge.svg)](https://github.com/RetroCoreLabs/RetroX25/actions/workflows/build.yml)
 [![release](https://img.shields.io/github/v/release/RetroCoreLabs/RetroX25)](https://github.com/RetroCoreLabs/RetroX25/releases)
 [![licence](https://img.shields.io/github/license/RetroCoreLabs/RetroX25)](LICENSE)
 [![downloads](https://img.shields.io/github/downloads/RetroCoreLabs/RetroX25/total)](https://github.com/RetroCoreLabs/RetroX25/releases)
-[Applications](#the-ten-applications) · [Prerequisites](#prerequisites) · [The demo network](#the-demo-network) · [About X.25](#about-x25) · [API reference](https://retrocorelabs.github.io/RetroX25/)
+[Applications](#the-nine-applications) · [Prerequisites](#prerequisites) · [The demo network](#the-demo-network) · [About X.25](#about-x25) · [API reference](https://retrocorelabs.github.io/RetroX25/)
 
 <!-- A 5-15 second recording: the switch running, a call placed from x25pad, the packets
      appearing in x25monitor. Under 10 MB. Uncomment when the capture exists.
@@ -33,7 +33,7 @@ It is also one half of a **two-implementation** arrangement. A C emulator (`x25e
 protocols, the two are trunked together, and both read the same X.25 conformance vectors. A disagreement between
 them is a failing test rather than an argument.
 
-## The ten applications
+## The nine applications
 
 | Application | What it is | README |
 |---|---|---|
@@ -52,13 +52,13 @@ them is a failing test rather than an argument.
 ## Status
 
 No tagged release yet, so the release and download badges above are empty until the first
-`v*` tag is pushed. The ten applications are built and run.
+`v*` tag is pushed. The nine applications are built and run.
 
-- **The whole solution builds in Release with no errors**, and three test projects cover it.
+- **The whole solution builds in Release with no errors**, and four test projects cover it (see [Tests](#tests)).
 - **Two implementations, one set of vectors.** The C emulator `x25emu` implements the same
   protocols, the two are trunked together, and both read the same X.25 conformance vectors.
-- **The six-switch demonstration network runs**, and a dialling trunk whose peer does not
-  answer now costs 13 ms at start-up instead of a full TCP connect timeout.
+- **The six-switch demonstration network runs**, and a trunk whose peer does not answer is
+  dialled again every 2 seconds (see [trunk-links.md](src/docs/trunk-links.md)). No start-up time is claimed.
 - **Not yet measured:** call setup rate and throughput under load. `x25traffic` exists to
   measure them; no number is claimed here because none has been taken.
 
@@ -122,9 +122,9 @@ and a troubleshooting list. The Desktop-only variant uses the sample configurati
 | P1 | .NET SDK as pinned in `src/global.json` | Everything | `dotnet --info` |
 | P2 | PowerShell 7+ | `build.ps1`, `demo.ps1` | `$PSVersionTable.PSVersion` |
 | P3 | **RetroIO built and packed to the local feed** (`../localfeed`, beside the repositories) | Restore | `dir ..\localfeed` shows `0.1.0-local.*` |
-| P4 | `.\src\build.ps1` run | Testing the published exes | `dir src\publish\win-x64\*.exe` lists ten |
+| P4 | `.\src\build.ps1` run | Testing the published exes | `dir src\publish\win-x64\*.exe` lists nine |
 | P5 | TCP ports 2200-2203, 2210, 9101-9103, 4001-4003 free, and not reserved by Windows | The demo network | `netstat -ano \| findstr "2200 2201 9101 4001"`; reserved ranges: see [the demo README](src/demo/README.md) |
-| P6 | A Windows desktop session | `RetroX25.exe`, `x25monitor` | Two of the ten are Avalonia apps |
+| P6 | A Windows desktop session | `RetroX25.exe`, `x25monitor` | Two of the nine are Avalonia apps |
 | P7 | A terminal | The console tools | Any modern terminal |
 | P8 | WSL with `x25emu` built | Cross-environment tests only | `wsl -e bash -c 'ls <x25emu folder>/tools/x25switch'` |
 | P9 | Inbound TCP 2210 allowed | Cross-environment tests only | The WSL side dials **in** |
@@ -135,7 +135,7 @@ first publish**. That is expected, not a broken build.
 
 ```powershell
 # from the repository root
-.\src\build.ps1                 # build, test, publish all ten as single self-contained files
+.\src\build.ps1                 # build, test, publish all nine as single self-contained files
 .\src\demo\demo.ps1 start       # three chained switches and an echo service
 .\src\demo\demo.ps1 pad         # a PAD client; at the * prompt:  CALL 23520001
 .\src\demo\demo.ps1 stop        # always stop with the script, never by process name
@@ -322,6 +322,8 @@ the trunk.
 |---|---|
 | `src/tests/RetroX25.Desktop.Tests` | The desktop app |
 | `src/tests/RetroX25.Monitor.Desktop.Tests` | The monitor app |
+| `src/tests/RetroX25.Tests` | The switch, trunks (XOT and HDLC), the console tools, and interop tests against the C reference `x25emu` (these need WSL, see above) |
+| `src/tests/RetroX25.Xot.Tests` | The `x25xot` tool: its predefined packets and an XOT loopback |
 
 The protocol itself is tested in RetroIO — `src/tests/RetroIO.Protocols.X25.Tests`, including the shared vectors.
 That is the right place for it: these are applications, and a protocol bug found here should become a test there.
