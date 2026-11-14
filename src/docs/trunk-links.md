@@ -160,7 +160,7 @@ Cisco and Desktop samples stay XOT because their peers speak XOT.
   octets reset the call. The sizes are now negotiated end to end (X.25 6.9 and 6.12); a trunk port limits what it asks for
   to its `max_packet_size` (default 1024, so set it to 2048 or 4096 on trunks that should carry larger packets).
   **The serial gateways in the test above take frames of 1024 octets with the FCS at most**, which is a packet size of 512
-  at most (a 512-octet packet is a 524-octet frame; a 1024-octet packet would be 1031).
+  at most (a 512-octet packet is a 519-octet frame with modulo 8 and 521 with modulo 128; a 1024-octet packet would be 1031 and 1033).
 - **Not tested on serial:** other baud rates, parity, stop bits and data bits (the ports are USB, so these settings do
   nothing there), a real RS-422 UART, unplugging and plugging back, and x25emu's serial trunk against ours.
 - **The other direction, x25emu dialling OUR listening port** (our port as DCE against its DTE): done. x25emu's PAD calls
