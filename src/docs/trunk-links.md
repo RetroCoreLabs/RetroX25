@@ -150,6 +150,17 @@ Cisco and Desktop samples stay XOT because their peers speak XOT.
     line bytes arrive after the line was idle. They never crossed the line. A normal HDLC receiver sees them as frames
     with a wrong checksum and drops them, which is what our port does. The tests set them aside (address 0xFE and CRC
     residue 0x0000) and fail on any other wrong checksum.
+- **Packet sizes up to 4096 (checked 2026-11-14).** A data packet can have a user data field of 128 (the standard), 256, 512,
+  1024, 2048 or 4096 octets (X.25 4.3.2). The largest packet is 4100 octets with its 4-octet header (modulo 128), and as a
+  LAPB frame with FCS 4103 octets (modulo 8) or 4105 (modulo 128). XOT now accepts packets up to 4100 octets and the HDLC
+  framer frames up to 4105; both stopped at 4096 before. `LargePacketTrunkTests` sends 40 packets each of 128, 1024, 2048
+  and 4096 octets through two switches over an XOT trunk and over an HDLC-over-TCP trunk, and they come back in order and
+  unchanged. The same test found that the switch did not pass the packet size and window of a call on: it asked for 128 and
+  window 2 on every onward leg and told the caller the call had the sizes the caller asked for, so any packet above 128
+  octets reset the call. The sizes are now negotiated end to end (X.25 6.9 and 6.12); a trunk port limits what it asks for
+  to its `max_packet_size` (default 1024, so set it to 2048 or 4096 on trunks that should carry larger packets).
+  **The serial gateways in the test above take frames of 1024 octets with the FCS at most**, which is a packet size of 512
+  at most (a 512-octet packet is a 524-octet frame; a 1024-octet packet would be 1031).
 - **Not tested on serial:** other baud rates, parity, stop bits and data bits (the ports are USB, so these settings do
   nothing there), a real RS-422 UART, unplugging and plugging back, and x25emu's serial trunk against ours.
 - **The other direction, x25emu dialling OUR listening port** (our port as DCE against its DTE): done. x25emu's PAD calls

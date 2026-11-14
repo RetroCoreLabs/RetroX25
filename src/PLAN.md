@@ -20,7 +20,10 @@ Tested 2026-11-14 on two real USB serial ports joined by an HDLC line (see `docs
 - A real RS-422 UART, and baud, parity, stop bits and data bits other than the defaults: the ports above are USB and
   ignore them.
 - Unplugging and plugging back (our port opens the device again every 2 seconds; only the in-memory cable proves it).
-- Frames above 1024 bytes with the checksum: an Explicit test measures them; not run since the board restart.
+- Frames above 1024 bytes with the checksum on the gateways: the ESP32 firmware drops them (limit 1024 octets incl. FCS,
+  `BYTE_FRAME_MAX`, and a 4096-byte ring of bit-stuffed line bits); raising it to 4105 needs the shared library, a bigger
+  ring and PSRAM, and is Ronny's decision (asked 2026-11-14). The Pico's limit was not asked. Until then packet sizes up to
+  512 are the most the gateway line can carry.
 - Waits for: a real UART or a serial pair visible from WSL, and someone to pull the cable.
 
 ### A6. Housekeeping
@@ -41,8 +44,9 @@ The C# switch has none. The Cisco IOS 12.4(24)T5 router has no X.75 command (onl
 "no X.75" is not verified.
 
 ### B1. Facilities pass through the switch
-Today the switch drops every facility except two when it relays a call (`ISwitchPort.PlaceCall` has no facilities
-argument). Billing, X.75 and the hop count all need them to cross.
+Done 2026-11-14: the window and packet size are negotiated end to end (the onward Call Request asks for what the caller
+asked for, limited to the egress port's `max_packet_size`; the Call Accepted states what the far end agreed to). Every other
+facility is still dropped when the switch relays a call. Billing, X.75 and the hop count all need them to cross.
 - Build: carry the facility block from the incoming Call Request to the outgoing one, and back in Call Connected and
   Clear. Unknown facilities pass as bytes.
 - Prove: unit test with a known facility block in, the same bytes out; a hop-count facility crosses a three-switch chain.
