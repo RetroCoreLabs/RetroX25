@@ -7,8 +7,10 @@
 
 ## What it is
 
-A tiny X.25 service. It attaches to a switch port, accepts any call routed to its address, and sends every octet
-it receives straight back.
+A tiny X.25 service. It attaches to a switch port and accepts any call routed to its address. By default it is made
+for a person at a terminal: it sends a welcome line, echoes what is typed (a CR comes back as CR LF, so each line
+starts on its own row), and ends the call when the person types `exit`. With `-q` it is a plain echo: every octet comes
+back unchanged, with nothing added.
 
 ## Why you need it
 
@@ -39,18 +41,24 @@ thing that is broken.
 | P5 | An address to answer on | So callers have something to dial | `-a`; default `23420001` |
 
 ```
-x25echo [-x host:port] [-a address] [-v]
+x25echo [-x host:port] [-a address] [-q] [-v]
 ```
 
 | Option | Meaning | Default |
 |---|---|---|
 | `-x host:port` | The XOT switch port to attach to | `127.0.0.1:2006` |
 | `-a address` | The local X.121 address to answer on | `23420001` |
+| `-q` | Quiet: no welcome line, no `exit` command, no CR to CR LF change; a plain byte-for-byte echo. Use it for `x25traffic` runs, which count every packet they get back | off |
 | `-v` | More verbosity; repeat for more | |
 
 ```powershell
 x25echo -a 23520002 -x 127.0.0.1:2203 -v
 ```
+
+> **What it does by default.** On a new call it accepts and sends `Welcome to the echo server. Type exit to leave.`.
+> Every CR you type is echoed as CR LF. A line that says `exit` (any case), or a Ctrl-D, makes it send `Goodbye.`, ask the
+> PAD to clear the call (an X.29 invitation to clear), and clear the call itself if the other end has not. The Q, M and D
+> bits are echoed back unchanged only when the data goes back byte for byte (`-q`, or a Q-bit packet).
 
 > **Note the direction.** The echo service **dials the switch** and then waits; it is not a listener. The switch
 > routes incoming calls down that existing connection. That is why it needs a route pointing at its port, and why
