@@ -58,11 +58,11 @@ The default endpoint in code is Switch A at **`127.0.0.1:4001`**. Add `4002` and
 
 | Window | Shows |
 |---|---|
-| **Packet Monitor** | Live decoded packets, with hex highlighting per field |
-| **Link Status** | Per-port counters and state |
-| **Network Map** | The nodes and the trunks between them, built by discovery |
-| **Log** | Log records streamed from the switches |
-| **Preferences** | Endpoints and display settings |
+| **X.25 Network Map** | The main window, and the one that opens first: the nodes and the trunks between them, built by discovery. The other three windows open from its right-click menu on a node (Packet Analyzer, Link Status, Log Viewer) |
+| **X.25 Packet Analyzer** | Live decoded packets, with hex highlighting per field |
+| **X.25 Link Status** | Per-port counters and state |
+| **X.25 Log Viewer** | Log records streamed from the switches |
+| **Preferences** | Endpoints and display settings (View > Preferences in the map window) |
 
 ## Server decodes, monitor renders
 
