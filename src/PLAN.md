@@ -18,11 +18,6 @@ no `socat` (checked 2026-11-13).
   Then x25emu's `hdlc-serial` trunk against ours.
 - Waits for: a cable or a virtual serial pair.
 
-### A5. Cisco: an unknown source address once an access list exists
-Measured 2026-11-13 (see `docs/xot-peers.md`, router point 6): with no `xot access-group`, R1 serves a caller from any address (a second machine, 192.168.1.228). Not measured: the refusal, once an `xot access-group` with a list that does not name the caller exists.
-- Prove: needs a router configuration change (an access list and `xot access-group`). Do it only with Ronny's OK, then probe from the second machine as before and decode the bytes in order.
-- Waits for: Ronny's OK to change R1's configuration.
-
 ### A6. Housekeeping
 - The work is committed by topic in both repositories and not pushed. RetroX25 pushes from WSL (Windows has no
   GitHub SSH key).

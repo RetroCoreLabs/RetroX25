@@ -188,7 +188,18 @@ and is harmless.
 - Received after 0.05 s: Call Accepted `10 01 0f 00 06 42 07 07 43 07 07`, then a Q-bit data packet `90 01 00 04`, then a data packet `10 01 02 0d 0a 52 31 3e`, which is the text `R1>` after a CR LF (the router PAD prompt).
 - Router log: `XOT I P/Inactive Call (22)` from 192.168.1.228, `XOT O P3 Call Confirm`, the two data packets, then after our Clear Request `Cause 0, Diag 0` and `Clear Confirm`.
 
-So a router with no access list serves a caller from any source address, as Cisco's text says. **What is still not measured** is the other half: what the router does with an unknown address once an `xot access-group` exists. That needs a router configuration change, which was not made. A first probe with a facility length of 0 (no facilities) was cleared by the router with `XOT Call packet, Bad value for facility`, cause 3, diagnostic 66: the router wants the facility block, and the cause was the packet, not the address.
+So a router with no access list serves a caller from any source address, as Cisco's text says. A first probe with a facility length of 0 (no facilities) was cleared by the router with `XOT Call packet, Bad value for facility`, cause 3, diagnostic 66: the router wants the facility block, and the cause was the packet, not the address.
+
+**6b. The same router with an `xot access-group` (measured 2026-11-14, R1 changed for the test and put back).** R1 got `access-list 10 permit 192.168.1.180` and `xot access-group 10`. The same call (the bytes above) was sent each time, and the router log was read after each:
+
+| Case | Caller | Result |
+|---|---|---|
+| A. List 10 permits only 192.168.1.180 | 192.168.1.228, not in the list | **Refused at the TCP level:** the connection opened, the router reset it 0.06 s after the Call Request was sent (`connection reset`). Nothing was answered and **nothing was logged** by `debug x25 events`: no XOT line at all. |
+| B. Same list | this PC (WSL leaves as 192.168.1.180) | Served: Call Accepted, the `R1>` prompt, Clear Confirm after our clear. |
+| C. `access-list 10 permit 192.168.1.228` added | 192.168.1.228 | Served, the same as B. |
+| D. `xot access-group 11`, list 11 does not exist | 192.168.1.180, which was served in B | **Refused the same way** (reset at 0.09 s, nothing logged). This confirms Cisco's statement that a list that does not exist denies everything. |
+
+So an address the list does not permit gets a reset TCP connection and no X.25 packet and no log line, which is what a client sees as "connection reset" right after connecting. Afterwards `no xot access-group 11`, `no access-list 10` put R1 back; its full `show running-config` was saved before and after and the two are identical (70 lines each). `no xot access-group 10` answered `Can't delete unknown access group 10` because the group had already been changed to 11; harmless.
 
 **7. All the router tests were run again on 2026-11-13 and pass:** the three `Live_*` tests (each alone; they need the
 switch running, or the router calling in, as their comments say, and they must be run one at a time because each
