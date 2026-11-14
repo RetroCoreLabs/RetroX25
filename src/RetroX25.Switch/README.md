@@ -55,12 +55,12 @@ X.25 packet each port sends and receives, as hex.
 
 ## Configuration
 
-INI. `src\demo\switch-a.ini` is the fullest example.
+INI. `src\demo\switch-a.ini` is the fullest example. The HDLC trunk keys (`hdlc-tcp`, `hdlc-serial`, the serial and LAPB keys) are explained in [trunk-links.md](../docs/trunk-links.md).
 
 | Section | Keys |
 |---|---|
 | `[switch]` | `name`, `dnic`, `mgmt_port`, `monitor_port`, `mgmt_addr` |
-| `[port.N]` | `type` (`access`/`trunk`), `transport` (`xot`), `mode` (`dce`/`dte`), `host`, `port`, `lci_base`, `lci_count`; for trunks also `peer_name`, `peer_monitor_host`, `peer_monitor_port`, `peer_mgmt_addr` |
+| `[port.N]` | `type` (`access`/`trunk`), `transport` (`xot` is the default; `hdlc-tcp`, alias `hdlc-ppp`; `hdlc-serial`; any other value is refused), `mode` (`dce`/`dte`), `host`, `port`, `lci_base`, `lci_count`; for trunks also `peer_name`, `peer_monitor_host`, `peer_monitor_port`, `peer_mgmt_addr`. Serial keys: `device`, `baud` (9600), `databits` (8), `parity` (`none`), `stopbits` (1), `flow` (`rtscts`). LAPB keys, in milliseconds except the last two: `lapb_t1` (3000), `lapb_t2` (0), `lapb_t3` (30000), `lapb_n2` (10), `lapb_k` (7); 0 or no key gives the default |
 | `[route.N]` | `type` (`prefix`/`default`), `address`, `prefix_len`, `port` |
 | `[user.N]` | `name`, `password`, `level` |
 
