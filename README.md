@@ -324,7 +324,7 @@ the trunk.
 |---|---|
 | `src/tests/RetroX25.Desktop.Tests` | The desktop app |
 | `src/tests/RetroX25.Monitor.Desktop.Tests` | The monitor app |
-| `src/tests/RetroX25.Tests` | The switch, trunks (XOT and HDLC), the console tools, and interop tests against the C reference `x25emu` (these need WSL, see above) |
+| `src/tests/RetroX25.Tests` | The switch, trunks (XOT and HDLC), the console tools, and interop tests against the C reference `x25emu` (these need WSL, see above), and the serial-line tests (`SerialHdlcLoopbackTests`, which need two COM ports joined by an HDLC line and skip themselves without them) |
 | `src/tests/RetroX25.Xot.Tests` | The `x25xot` tool: its predefined packets and an XOT loopback |
 
 The protocol itself is tested in RetroIO — `src/tests/RetroIO.Protocols.X25.Tests`, including the shared vectors.

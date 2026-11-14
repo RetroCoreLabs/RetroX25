@@ -123,14 +123,36 @@ Cisco and Desktop samples stay XOT because their peers speak XOT.
   ways, no loss, no reordering; its Switch A stopped and started again (our port redialled and relinked); our
   switch stopped and started again (its port took the new connection and relinked). The two Interop tests in
   `RetroX25.Tests` repeat this when `X25EMU_WSL_HOST` names the machine that runs x25emu.
-- **hdlc-serial: the real serial device is NOT tested.** This machine has no virtual serial pair, and the only
-  serial devices are physical adapters that must not be touched. The framing, LAPB, restart, frame-loss repair and
-  device-loss handling above the device are tested over an in-memory cable through the same seam the real device
-  uses. Opening the device (baud rate, parity, flow control) is not proved. A device that does not exist is refused
-  at start, with an error naming the port and the device; that path runs against the real operating system.
+- **hdlc-serial on real serial ports (checked 2026-11-14).** Two USB serial ports joined by an HDLC line at 307200
+  bit/s: COM10 is an ESP32 board (HDLCGW firmware) and COM18 is a Pico (RC422Dev). The tests are in
+  `SerialHdlcLoopbackTests` in `RetroX25.Tests`. They show:
+  - Frames with a body of 2 to 1022 bytes (1024 with the 2-byte checksum) cross in both directions with every byte
+    unchanged, including frames made only of 0x7E and 0x7D bytes, and with either escaping style (only flag and escape,
+    or every byte below 0x20 as well).
+  - 200 frames written back to back arrive in order and unchanged, **if the receiving port is read the whole time**.
+    A test that wrote all 200 before it read any lost 119 of them: the Pico's buffer filled and it dropped frames.
+  - Both ends can send at the same time.
+  - Our `hdlc-serial` port opens the device and the LAPB link comes up, with `flow = none` and with `flow = rtscts`.
+  - A whole X.25 call across the line between two switches: 100 packets of 128 bytes come back from an echo, in order
+    and unchanged, and the link is not reset.
+  Frames longer than 1024 bytes with the checksum are not promised to work and are not tested as a rule (an Explicit
+  test measures them; it was not run after the board restart below).
+- **Two things to know about these particular boards.**
+  - The ESP32 board restarts into the chip's download mode (it then shows up as `303A:0002` on another COM number
+    and answers nothing) when DTR and RTS change in the order RTS only, both on, DTR only, both off, or when the port is
+    set to 1200 bit/s. A close of the port can complete that order. This is in the board's firmware (Arduino ESP32 core
+    `USBCDC.cpp`, told to us by the firmware's owner) and is kept on purpose so flashing works without buttons. Our
+    switch port sets DTR on at open; which lines Windows moves at open and close was not measured. It happened twice
+    during the first runs of the tests, not in the last two full runs. If it happens, the board has to be restarted
+    (unplug it, or `esptool ... --before no-reset --after hard-reset` on the new port).
+  - The gateway sends its own control frames to the PC: address byte 0xFE, a type, an id, flags and a payload, then a
+    CRC-16 stored without the final inversion. One example is the event text `line receive active`, sent the first time
+    line bytes arrive after the line was idle. They never crossed the line. A normal HDLC receiver sees them as frames
+    with a wrong checksum and drops them, which is what our port does. The tests set them aside (address 0xFE and CRC
+    residue 0x0000) and fail on any other wrong checksum.
+- **Not tested on serial:** other baud rates, parity, stop bits and data bits (the ports are USB, so these settings do
+  nothing there), a real RS-422 UART, unplugging and plugging back, and x25emu's serial trunk against ours.
 - **The other direction, x25emu dialling OUR listening port** (our port as DCE against its DTE): done. x25emu's PAD calls
   our app through its `hdlc-tcp` trunk, and 300 packets through that trunk are counted exactly by our app
   (`X25emuPad_CallsOurApp_ThroughItsHdlcTcpTrunk_...` and `X25emuStream_ThroughItsHdlcTcpTrunk_...` in
   `RetroX25.Desktop.Tests`).
-- **Not done: x25emu's serial trunk.** WSL here has no `socat` and no virtual serial pair exists on the Windows side
-  (checked 2026-11-13; the serial ports listed are physical adapters).

@@ -148,9 +148,9 @@ Both have a test that failed before the fix.
 
 ## Not tested
 
-- **x25emu's serial trunk, and our serial trunk against anything real.** WSL here has no `socat`, and there is no
-  virtual serial pair on the Windows side, so no serial device could be opened for a test. Serial is tested over an
-  in-memory cable only (see [trunk-links.md](trunk-links.md)).
+- **x25emu's serial trunk against ours.** WSL here has no `socat`, and WSL cannot see the Windows COM ports, so x25emu
+  has not been run on a serial line. Our own serial trunk is tested on two real USB serial ports (COM10 and COM18, joined
+  by an HDLC line) and over an in-memory cable; see [trunk-links.md](trunk-links.md).
 
 ## Troubleshooting
 

@@ -25,7 +25,7 @@ log is more convincing.
 
 - **Diagnosing a refused or cleared call** — read the cause and diagnostic rather than guessing.
 - Checking XOT interop: confirm the header and the packet are what RFC 1613 asks for.
-- Watching a handshake in order: restart, call set-up, accept, data, clear.
+- Watching a handshake in order: call set-up, accept, data, clear (an XOT connection carries no restart).
 - **Verifying facility negotiation** — packet and window size, reverse charging and the rest are in the call
   packets and this prints them.
 - Confirming whether a stall is a **window** problem or a lost packet, from the sequence numbers and RR/RNR.
