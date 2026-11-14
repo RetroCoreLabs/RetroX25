@@ -981,7 +981,7 @@ Notes learned on the way:
 - X.28: `COM` means the call is connected. The PAD prints it only when the far end accepts. A call that cannot be
   placed prints a `CLR` line, a call cleared by the far end prints `CLR`, and `PAD>` returns.
 - The main window shows each XOT link as `Connected`, `Listening`, `Far end answers` or `NOT REACHABLE: reason`, and a
-  `Switch:` line for the built-in switch. Below the interface lines an "XOT links" section shows, per XOT peer, whether
+  `Switch:` line for the built-in switch. Below the interface lines a "Trunk links" section shows, per XOT peer, whether
   its TCP connection is up, when it was last up, the failed connects with the last error, the disconnects and the
   bytes in and out; the trunk to the Cisco router is one such block. The app's own two loopback links to its built-in
   switch are one quiet line, `Built-in switch: OK` (red with the reason if a part fails). See the Desktop README,

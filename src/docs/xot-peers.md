@@ -29,10 +29,10 @@ peer, that does both.
 |---|---|
 | Dial out | When a call is routed to the entry, a **new TCP connection** is opened to the peer address and port (1998 unless you change it) and the call is placed on it. Two calls are two connections. The connection is opened when the call needs it, not before. |
 | After the call | When the circuit is cleared, the connection we opened is closed. (The RFC allows keeping it; closing it keeps things simple and leaks nothing.) |
-| No retry timer | If the dial fails, the call fails, the reason is shown in the XOT links panel, and the **next call tries again**. Nothing retries by itself. |
+| No retry timer | If the dial fails, the call fails, the reason is shown in the Trunk links panel, and the **next call tries again**. Nothing retries by itself. |
 | Accept in | The entry listens on its local port. A connection whose **source IP address** is the peer address belongs to the entry, and its call is routed like any other incoming call. |
 | One listening socket | Only one program can listen on a port. Several entries (peer entries and old-style Server entries) may use the same port: they share one listening socket, and each incoming connection goes to the entry whose peer address equals the source address. |
-| Unlisted addresses | A connection from an address that no entry lists is **accepted** as an "unlisted peer" with the default settings, and shown in the XOT links panel as a row `unlisted peer <ip>`. If **Accept only listed peers** is on for any entry on that port, such a connection is **refused**, with the warning `refused: <ip> is not a listed peer` in the log. |
+| Unlisted addresses | A connection from an address that no entry lists is **accepted** as an "unlisted peer" with the default settings, and shown in the Trunk links panel as a row `unlisted peer <ip>`. If **Accept only listed peers** is on for any entry on that port, such a connection is **refused**, with the warning `refused: <ip> is not a listed peer` in the log. |
 
 **Both ways (peer)** is what a NEW entry starts with in the edit dialog, and what the sample configs with a known peer use
 (`x25config-xot-to-switch.json`, and `x25config-embedded-switch.json`, where the old Client and Server pair is now one entry).
@@ -75,7 +75,7 @@ address** of the TCP connection.
 - Anyone who can reach the port can connect from an address you did not list. **Accept only listed peers**
   keeps out the strangers that can be told apart by address; it is not a password.
 
-## The XOT links panel
+## The Trunk links panel
 
 The main window shows **one row per peer**, with both directions counted apart:
 
@@ -138,7 +138,7 @@ the same instant 5 spares stood open. They are not an error.
 - **Kill and restart of the far end** (x25emu switch stopped while a call is up, a call tried while it is down, the
   switch started again): the PAD shows `CLR DER C:9 D:0` (cause 9, out of order); the peer report counts one drop; the
   next call fails with `No connection could be made because the target machine actively refused it.`, counted as one
-  failed dial and shown in the XOT links row as `dialled out: ... failed 1 (last error: ...), dropped 1`; the log has a
+  failed dial and shown in the Trunk links row as `dialled out: ... failed 1 (last error: ...), dropped 1`; the log has a
   line for the failed dial; no timer retries, and the first call after the switch is back dials again and works.
 - **No Restart over XOT:** x25emu drops packets on channel 0 over XOT and answers on its own channel number. Our code
   sends no Restart and no other channel-0 packet over XOT (RFC 1613 section 6.4) and translates channel numbers.
