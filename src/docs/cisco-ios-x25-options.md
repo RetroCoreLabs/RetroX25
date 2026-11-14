@@ -237,7 +237,7 @@ flowchart LR
     S -- "XOT" --> R["Cisco router<br/>23600001 / 23600002"]
 ```
 
-**Config.** `docs/config-samples/x25config-xot-to-switch.json` has the one XOT client interface
+**Config.** `docs/config-samples/x25config-xot-to-switch.json` has the one XOT interface (mode `Both`: it dials out and also accepts)
 (`127.0.0.1:2200`) and the two routes (`2350.*` and `2360.*` to it). Its own address is 99990002. If the
 switch is on another PC, change `RemoteIPAddress`.
 
@@ -245,8 +245,8 @@ switch is on another PC, change `RemoteIPAddress`.
   from `src`. The program takes the config path as its argument (**checked** in `Program.cs`); running this exact
   command was **not** tested for this page.
 - **Desktop, by hand:** in the app, open Configuration → XOT Interfaces and add the same client interface (name
-  `XOT_ToSwitch`, mode Both ways (peer), address `127.0.0.1`, remote port `2200`, local port `1999`), then Configuration → Routing and add the two
-  routes. The README says the configuration survives a restart.
+  `XOT_ToSwitch`, mode Both ways (peer), address `127.0.0.1`, remote port `2200`, local port `1999`), then Configuration → Routing Table and add the two
+  routes. The configuration is not kept when the app closes; save it with Save... in the Configuration window to load it again.
 
 **Calls to try**, in the PAD Client window:
 
@@ -260,7 +260,7 @@ Watch the **Packets** window while you do it: you should see the call request, t
 data packets in both directions.
 
 **Two limits.** The switch and a UI app that runs an XOT *server* cannot both listen on TCP 1998 on the
-same PC (two entries of the SAME app can share a port, see `xot-peers.md`; two programs cannot). And the Desktop's TAD Server window answers calls that come to *it*: to test it from the Cisco,
+same PC (two entries of the SAME app can share a port, see `xot-peers.md`; two programs cannot). And the Desktop's built-in TAD service (its TAD Server Monitor window only lists the sessions) answers calls that come to *it*: to test it from the Cisco,
 stop the switch, point `x25 route ^2343 xot <PC address>` at the PC and call `23430200` (section 10 of
 `cisco-gns3-xot-test.md`).
 

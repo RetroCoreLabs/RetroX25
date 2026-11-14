@@ -8,7 +8,7 @@
 ## What it is
 
 An Avalonia desktop application that puts the whole X.25 stack behind a window: a PAD client you can type in, a
-live packet view, the routing table, full configuration, and and a server window for TAD.
+live packet view, the routing table, full configuration, and a window that lists the sessions of the built-in TAD service.
 
 ## Why you need it
 
@@ -20,16 +20,19 @@ window as they happen. For learning X.25, or for explaining to somebody else why
 than a log file.
 
 It is also the only place several things are **editable rather than configured**: known hosts, routes, serial
-interfaces and XOT interfaces all have edit dialogs, with the configuration surviving a restart. Trying a routing
-change is a dialog rather than an INI edit and a restart.
+interfaces and XOT interfaces all have edit dialogs. The configuration is not kept between runs: save it to a file
+with **Save...** in the Configuration window and load it again, or start the app on a file (see [Starting on a
+configuration file](#starting-on-a-configuration-file)). Trying a routing change is a dialog and Apply, not an INI
+edit and a restart of a program.
 
-And it can be a **server**, not just a client: the TAD server window answers incoming calls,
-which is what you need when the machine on the other end wants to call *you*.
+And it can be a **server**, not just a client: the built-in TAD service answers incoming calls (the *TAD Server
+Monitor* window only lists its sessions), which is what you need when the machine on the other end wants to call *you*.
 
 ## What you can use it for
 
 - **Placing a call and seeing the packets it produced**, side by side.
-- Editing known hosts, routes, serial interfaces and XOT interfaces, with the changes persisted.
+- Editing known hosts, routes, serial interfaces and XOT interfaces, and saving it to a file (**Save...**) and loading it again (**Load...**).
+  Nothing is saved between runs by itself.
 - **XOT to a peer with ONE entry**: the XOT mode **Both ways (peer)** dials out when a call is routed to it
   (a new TCP connection for each call, as RFC 1613 asks) and also accepts connections from the same peer, told
   apart by source IP address. The main window shows one row per peer with both directions counted apart. How it
@@ -59,19 +62,21 @@ which is what you need when the machine on the other end wants to call *you*.
 | Window / tab | What it does |
 |---|---|
 | **Main** | The "is it up?" screen: host information, one line per interface or link (up or down, LAPB link state, far-end machine), the built-in switch, a "Trunk links" section with the real state of every XOT peer and every HDLC trunk, and one line with the uptime and "All links up" or "n link(s) down". No counters. The menus reach everything else |
-| **PAD Client** | An interactive PAD: place a call, type, watch it echo |
+| **PAD Client** (menu: PAD Client Test, Ctrl+5) | An interactive PAD: place a call, type, watch it echo |
 | **Packets** | Decoded packets as they happen, live. The counts in the bottom bar are "In this capture": they count the lines this window holds, not the engine's totals |
-| **Routes** | The configured routing table |
+| **Routes** (Ctrl+4) | The configured routing table |
 | **Status** (Ctrl+1) | The only place for counters: one table with a row per counter (HDLC, LAPB, X.25, and per-link bytes, calls and errors) and a column for the engine's total, then one for each link and each transport interface. **Reset Statistics** button (also View > Reset Statistics) |
 | **Link Status** (Ctrl+L) | Control and state only: the list of links and interfaces, Start, Stop, LAPB Connect and LAPB Disconnect, and the details (state, LAPB state, V(S) V(R) V(A), far-end machine). No counters |
-| **Log** | The log, at the configured level |
+| **Log** (Ctrl+3) | The log, at the configured level |
+| **Configuration** (Tools > Configuration, Ctrl+,) | Nine tabs: General, LAPB, X.25, Telnet PAD, Serial Interfaces, XOT Interfaces, TCP LAPB, Known Hosts, Routing Table. Buttons: Apply, Reset to Defaults, Save... and Load... |
 | **Configuration → Known Hosts** | Add, edit and delete hosts |
-| **Configuration → Routing** | Add and delete routes through a dialog |
+| **Configuration → Routing Table** | Add and delete routes through a dialog |
 | **Configuration → Serial Interfaces** | Add, edit and delete serial interfaces |
 | **Configuration → XOT Interfaces** | The same for XOT interfaces |
+| **Configuration → TCP LAPB** | The same for TCP LAPB interfaces |
 | **Configuration → LAPB / X.25** | Timers and windows. Modulo is fixed at 8 at both layers; see [modulo-128.md](https://github.com/RetroCoreLabs/RetroX25/blob/main/src/docs/modulo-128.md) |
 | **Configuration → Telnet PAD** | Switch the telnet PAD on or off, its port, bind address and maximum sessions; see [A PAD from a normal terminal program](#a-pad-from-a-normal-terminal-program-telnet) |
-| **TAD Server** | Answer terminal calls |
+| **TAD Server Monitor** (Ctrl+6) | Lists the sessions of the built-in TAD service. It does not answer calls itself; the service answers whether or not this window is open |
 | **Simulate Receive** | Inject a frame with no peer present |
 
 ### Starting on a configuration file
@@ -154,6 +159,10 @@ sequenceDiagram
     H-->>W: both rows
     P-->>U: the echo
 ```
+
+The default machine id of the app is `200` (`X25.LocalMachineId` in the Configuration window), so the in-app Help text
+says `CALL 200`. The sample configuration files and the Cisco guide use `23430200` as the id, so the same call there is
+`CALL 23430200`.
 
 ## Related
 
@@ -282,5 +291,6 @@ process id in a `finally` block. The whole class takes about 15 seconds, each te
 | PAD window | 300 typed lines through the built-in switch to an echo tool | Every line comes back once, in order, and the console follows the last line |
 
 The 2-second limit is a hang detector, not a speed target: with the old one-job-per-packet updates the window
-thread was busy for 5 to 27 seconds; now the worst wait seen is under 200 milliseconds. Only the Q bit can be
-set from the tools and the client library, so there is no M-bit or D-bit burst.
+thread was busy for 5 to 27 seconds; now the worst wait seen is under 200 milliseconds. The tools set no Q, M or D bits (they only generate data).
+The client library can set all three, and `QmdBitsTests` in `src/tests/RetroX25.Tests` covers each. Only a Q-bit burst
+test exists here; there is no M-bit or D-bit burst.
