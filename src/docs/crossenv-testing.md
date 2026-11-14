@@ -83,8 +83,8 @@ plain words what is missing.
 | Does x25emu's PAD reach our echo through our switch, counted on both sides? | `X25emuPad_ThroughOurSwitch_ReachesOurEcho_AndTheCallIsCountedOnceOnEachSide` | yes |
 | Packet sizes 16 and 128, windows 1 to 7, modulo 8: every packet byte for byte? | `PacketSizes16And128_WindowSizes1To7_Modulo8_EveryPacketArrivesByteForByte` | yes |
 | Q bit, M-bit chains, D bit | `QBit_MBitChain_DBit_BytesAreEqualAtTheFarEnd_AndTheBitsAreMeasured` | bytes equal at the far end |
-| M-bit chain and D bit, our traffic code to x25emu's echo | `OurChainedDBitBurst_ToX25emuEcho_ComesBackWholeAndInOrder` (`X25emuBitsTests`) | 400 packets back, each once and in order, M on 3 in 4, D on all, all acknowledged |
-| M-bit chain and D bit, x25emu's `x25traffic` to our echo | `X25emuChainedDBitBurst_ToOurEcho_ArrivesWholeAndTheBitsAreKept` (`X25emuBitsTests`) | x25emu's report (`Received: 400`, `Flags back: Q 0  M 300  D 400`) and our counts say the same |
+| M-bit chain and D bit, our client library to x25emu's echo | `OurChainedDBitBurst_ToX25emuEcho_ComesBackWholeAndInOrder` (`X25emuBitsTests`) | 400 packets back, each once and in order, M on 3 in 4, D on all, all acknowledged |
+| M-bit chain and D bit, our client library through x25emu to our echo | `OurChainedDBitBurst_ThroughX25emu_ToOurEcho_ArrivesWholeAndTheBitsAreKept` (`X25emuBitsTests`) | the wire tap decodes both directions (M on 3 packets in 4, D on all, numbers in order) and the echo's counts say the same |
 | Clear causes and reset | `ClearCauses_AndReset_AreCarriedOnAndDecoded` | carried on and decoded |
 | Does x25emu's trace tool decode what we send? | `X25trace_DecodesTheCallRequest_TheDataAndTheClear_WeSend` | yes |
 | `hdlc-tcp` trunk, our end dialling its port | `X25emuHdlcTrunkInteropTests` (in `tests/RetroX25.Tests`) | calls both ways, 3000 packets each way, link loss at either end and recovery |
@@ -183,7 +183,7 @@ we dial to Switch A's access port 2001; its `host` is the WSL address, which cha
 `demo/crossenv-wsl.sh` gives Switch A a route for 2360 out of its XOT trunk, so a call to the router leaves through us.
 Start the network with `crossenv-wsl.sh`, then `x25switch demo\switch-cisco-x25emu.ini`. Then:
 
-- x25emu to the router: in WSL `x25pad -x 127.0.0.1:2001 -a 23400001 -u 01000000`, type `CALL 23600001`, get `R1>`.
+- x25emu to the router: in WSL x25emu's `x25pad -x 127.0.0.1:2001 -a 23400001`, type `CALL 23600001`, get `R1>` (x25emu's PAD has to send the X.29 call user data by itself, as ours does; if the router refuses the call, that is the first thing to look at).
 - The router to x25emu: attach an x25emu echo to Switch A's endpoint port (`x25echo -x 127.0.0.1:2007`) and on the router
   type `pad 23430001` (the router's existing `^2343` route already points at this PC). Without the echo attached,
   x25emu clears the caller after 5 seconds with cause 1, diagnostic 71.

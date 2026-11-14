@@ -166,7 +166,7 @@ Desktop app alone and its own built-in switch. Section 10 has the router lines a
 | 1 | R1 dials our echo service through our switch | Works. Checked again with the final switch file: the bytes sent came back unchanged |
 | 2 | R2 (plain X.25 terminal on a serial cable) dials the echo service, going through R1 | Works. Bytes equal |
 | 3 | Our `x25pad` dials R2 through our switch and R1 | Works. "Call accepted", R2 prompt, `show clock` answered |
-| 4 | Our `x25traffic -u 01000000` dials R2 | Works. Call accepted, packets sent |
+| 4 | Our `x25traffic` dials R2 (measured before the option was removed; today a PAD is called with `x25pad`) | Call accepted, packets sent |
 | 5 | Call storm to the echo service, 30 circuits | Works. 30 of 30 connected, about 500 calls a second |
 | 6 | Telnet into R1 from the PC, then `pad` to the echo service | Works. See section 8, test A4 |
 | 7 | `x25pad` calls R1's own address (23600001) | Works. R1 accepts, prompt `R1>`, `show clock` answered |
@@ -597,17 +597,20 @@ CALL 23600002
 
 You should see `[Connected] Call accepted` and then R2's prompt `R2>`. Type `show clock`; R2 answers with
 the time (on 2026-11-10: `*18:32:55.287 UTC Tue Nov 10 2026`). In the switch log the call request carries the four bytes
-`01 00 00 00` after the addresses. That is the X.29 marker, the first four bytes of call user data. Cisco's
+`01 00 00 00` after the addresses. That is the X.29 protocol identifier, the first four bytes of call user data
+(X.29 clause 4.2). `x25pad` and the Desktop PAD send it on their own for every call; there is no option for it. Cisco's
 PAD refuses a call without it.
 
-**B2. `x25traffic` calls R2.** From `src`:
+**B2. A data generator against R2.** `x25traffic` is a data generator, not a PAD, and has no option for call user data, so
+R2's PAD refuses its call (`Call failed`; R2's debug says `pad_svc_announce: non-standard PID`; cause 0, diagnostic 67).
+To put traffic into R2's PAD use `x25pad` (B1), or `x25pad --telnet-port` and a telnet client. The rest of this
+section is kept as the measurement that was made when the option still existed. From `src`:
 
 ```powershell
-dotnet RetroX25.Traffic\bin\Debug\net10.0\x25traffic.dll -x 127.0.0.1:2200 -d 23600002 -u 01000000 -n 5 -r 2
+dotnet RetroX25.Traffic\bin\Debug\net10.0\x25traffic.dll -x 127.0.0.1:2200 -d 23600002 -n 5 -r 2   # refused today: no call user data
 ```
 
-You should see `Connected.` and a results block. Leave out `-u 01000000` and R2 refuses the call
-(`Call failed`; R2's debug says `pad_svc_announce: non-standard PID`; cause 0, diagnostic 67).
+With the call user data (measured when `-u 01000000` still existed) you saw `Connected.` and a results block.
 The "Delivery" percentage is meaningless here: a PAD answers with its own echoes and prompts, so a run
 showed 700% (35 packets back for 5 sent).
 
@@ -726,7 +729,7 @@ Get-Process -Id <pid> | Select-Object Id, WorkingSet64, Threads, Handles
 
 A working set, thread count or handle count that keeps climbing after the first few minutes is a leak.
 
-**Through the Cisco.** Run the first soak above against R2 (`-d 23600002 -u 01000000`) to keep a call
+**Through the Cisco.** Type into R2's PAD with `x25pad` (or `x25pad --telnet-port`) to keep a call
 open through R1 for hours. Packet counts will not match (the PAD answers with its own bytes); the
 useful checks are that the call stays up and that R1 stays healthy: `show x25 vc` on R1 (standard IOS
 command, not run here) and `show processes cpu` on the laptop's side. Note that Dynamips runs the
@@ -901,7 +904,7 @@ flowchart TD
     W -- "our tools" --> C3{"Switch log shows<br/>clear cause 13?"}
     C3 -- yes --> F4["Caller and service share a port,<br/>or no route: check section 6"]
     C3 -- no --> C4{"Cisco PAD says<br/>non-standard PID<br/>(cause 0, diag 67)?"}
-    C4 -- yes --> F5["Add -u 01000000 to x25traffic"]
+    C4 -- yes --> F5["x25traffic cannot call a PAD:<br/>use x25pad (it sends the call user data itself)"]
     C4 -- no --> F6["Run the switch with -v -v<br/>and read the packets"]
 ```
 
@@ -914,7 +917,7 @@ flowchart TD
 | Serial port looped back to itself | LAPB stayed in SABMSENT, never came up | Use R2 |
 | Switch exits at once, "Could not find file -c" | The switch has no `-c` option | Give the ini path as the only argument |
 | Switch clears every local call with cause 13 | Caller and service on the same port | Give the service its own port and an exact route |
-| `x25traffic` call refused by a Cisco PAD | No call user data | Add `-u 01000000` |
+| `x25traffic` call refused by a Cisco PAD | x25traffic is a data generator and sends no call user data | Call the PAD with `x25pad`, which sends it itself |
 | Data stops after a few packets | The old switch hang (9.4) | Use a switch built with the fixed RetroIO |
 
 ## 12. Checking the router side

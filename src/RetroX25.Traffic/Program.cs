@@ -38,15 +38,6 @@ namespace RetroX25.Traffic
         private static long _recvPkts;
         private static long _recvBytes;
 
-        // The header bits the packets came back with (what the far end kept), and the numbering check.
-        private static long _recvQ;
-        private static long _recvM;
-        private static long _recvD;
-        private static readonly DeliveryTracker _tracker = new DeliveryTracker();
-
-        // Which header bits to put on data packets (--qbit, --mbit-chain, --dbit).
-        private static readonly TrafficFlags _flags = new TrafficFlags();
-
         // Storm connect counter, updated from the connected callback.
         private static long _stormConnects;
 
@@ -60,9 +51,6 @@ namespace RetroX25.Traffic
         // Run flag toggled by Ctrl+C and by stream-mode clear.
         private static volatile bool _running = true;
         private static bool _callMode;
-
-        // Call user data put in every Call Request (null = none). Set with -u.
-        private static byte[]? _callUserData;
 
         /// <summary>
         /// Program entry point.
@@ -114,33 +102,6 @@ namespace RetroX25.Traffic
                     case "-C":
                         callMode = true;
                         break;
-                    case "-u":
-                        // Call user data as hex, for example 01000000 = the X.29 PAD marker a Cisco PAD wants.
-                        if (i + 1 >= args.Length) { return Usage(); }
-                        try
-                        {
-                            _callUserData = Convert.FromHexString(args[++i]);
-                        }
-                        catch (FormatException)
-                        {
-                            Console.Error.WriteLine("-u needs an even number of hex digits, for example 01000000");
-                            return 1;
-                        }
-                        break;
-                    case "--qbit":
-                        _flags.QBit = true;
-                        break;
-                    case "--dbit":
-                        _flags.DBit = true;
-                        break;
-                    case "--mbit-chain":
-                        if (i + 1 >= args.Length || !TrafficFlags.TryParseChain(args[++i], out int chain))
-                        {
-                            Console.Error.WriteLine("--mbit-chain needs a packet count from 2 to " + TrafficFlags.MaxChain);
-                            return 1;
-                        }
-                        _flags.Chain = chain;
-                        break;
                     case "-v":
                         verbosity++;
                         break;
@@ -169,10 +130,6 @@ namespace RetroX25.Traffic
             {
                 Interlocked.Increment(ref _recvPkts);
                 Interlocked.Add(ref _recvBytes, length);
-                if (q) { Interlocked.Increment(ref _recvQ); }
-                if (m) { Interlocked.Increment(ref _recvM); }
-                if (d) { Interlocked.Increment(ref _recvD); }
-                _tracker.Record(data, length);
             });
 
             Console.CancelKeyPress += (sender, e) =>
@@ -239,7 +196,7 @@ namespace RetroX25.Traffic
             });
 
             Console.WriteLine($"Calling {called}...");
-            X25Vc? vc = client.CallWait(called, 5000, _callUserData);
+            X25Vc? vc = client.CallWait(called, 5000);
             if (vc == null)
             {
                 Console.Error.WriteLine("Call failed");
@@ -247,16 +204,6 @@ namespace RetroX25.Traffic
             }
 
             Console.WriteLine("Connected.\n");
-
-            int circuitSize = client.GetPacketSizeOut(vc);
-            if (!_flags.Fits(pktSize, circuitSize))
-            {
-                Console.Error.WriteLine(
-                    $"--mbit-chain needs full packets (-s {circuitSize} here) unless --dbit is also given: " +
-                    "X.25 4.3.3 allows the more data mark on a partial packet only together with the D bit.");
-                client.Clear(vc);
-                return 1;
-            }
 
             byte[] payload = new byte[pktSize];
             for (int i = 0; i < pktSize; i++)
@@ -285,11 +232,7 @@ namespace RetroX25.Traffic
                     continue;
                 }
 
-                // Number the packet, then send it with the bits this packet should carry. A refused send
-                // (window full) tries the same number again.
-                DeliveryTracker.Stamp(payload, sent);
-                _flags.For(sent, out bool qBit, out bool mBit, out bool dBit);
-                if (client.Send(vc, payload, pktSize, qBit, mBit, dBit))
+                if (client.Send(vc, payload, pktSize, false))
                 {
                     sent++;
                     sentBytes += pktSize;
@@ -344,15 +287,6 @@ namespace RetroX25.Traffic
                 Console.WriteLine($"Delivery:  {100.0 * recvPkts / sent:F1}%");
             }
 
-            // Numbering check: distinct numbers back, repeats, and numbers that came after a higher one.
-            Console.WriteLine($"Numbered:  {_tracker.Unique} distinct, {_tracker.Duplicates} repeated, {_tracker.OutOfOrder} out of order");
-
-            // The bits the far end handed back with each packet (what it kept of what we sent).
-            if (_flags.Any)
-            {
-                Console.WriteLine($"Flags back: Q {Interlocked.Read(ref _recvQ)}  M {Interlocked.Read(ref _recvM)}  D {Interlocked.Read(ref _recvD)} of {recvPkts} packets");
-            }
-
             // Wait until the far end has acknowledged every packet before clearing. X.25 4.5 lets the network
             // throw away data sent just before a clear, and the program ends right after this: without the
             // wait, the last few packets of a run could be lost and the run still said "Sent: N".
@@ -360,10 +294,6 @@ namespace RetroX25.Traffic
             if (_running && !client.WaitForAcknowledgement(vc, 5000))
             {
                 Console.WriteLine("Warning:   the far end did not acknowledge every packet within 5 seconds");
-            }
-            else if (_running && _flags.DBit)
-            {
-                Console.WriteLine($"Confirmed: all {sent} packets sent with the D bit were acknowledged by the far end");
             }
 
             client.Clear(vc);
@@ -436,7 +366,7 @@ namespace RetroX25.Traffic
             // Phase 1: open circuits (paced to the call-setup rate).
             for (int i = 0; i < numCalls && _running; i++)
             {
-                X25Vc? vc = client.Call(called, _callUserData);
+                X25Vc? vc = client.Call(called);
                 if (vc == null)
                 {
                     failed++;
@@ -577,13 +507,7 @@ namespace RetroX25.Traffic
                 "    -p pkts    Packets per call (default 3)\n" +
                 "  Common:\n" +
                 "    -s size    Packet size (default 128)\n" +
-                "    -u hex     Call user data in hex (01000000 = PAD marker, needed to call a Cisco PAD)\n" +
-                "    -v         Verbose\n" +
-                "  Data packet bits (stream mode):\n" +
-                "    --qbit            Send every packet as qualified data (Q bit)\n" +
-                "    --mbit-chain N    Send each message as N linked packets (M bit on all but the last),\n" +
-                "                      N = 2 to 16; needs -s equal to the circuit's packet size unless --dbit is given\n" +
-                "    --dbit            Ask for delivery confirmation (D bit) on every packet");
+                "    -v         Verbose");
             return 1;
         }
     }

@@ -212,7 +212,7 @@ Our side can call the router's own PAD, or a host behind the router.
 |---|---|---|---|
 | `x25pad`, `CALL 23600001` | R1's own PAD (prompt `R1>`) | the call reaches R1 over XOT: on our switch a route for `2360` to the trunk that dials R1 (`port.2`) | **Tested** |
 | `x25pad`, `CALL 23600002` | the PAD of R2, through R1 and the cable | option B | **Tested** |
-| `x25traffic -u 01000000 -d 23600002` | R2, sends data | `-u 01000000` is the call user data a Cisco PAD wants (the X.29 marker); without it R2 clears the call | **Tested** |
+| `x25traffic -d 23600002` | R2 | Refused: a Cisco PAD wants the X.29 call user data (`01 00 00 00`) and x25traffic, a data generator, sends none. Use `x25pad`, which sends it itself | **Tested** (refusal measured) |
 
 On our switch `port.2` is a "dialling" port: it connects out to the router's TCP port 1998 when a call needs it.
 That is why the router's address is in `switch-cisco.ini` (`host` in `port.2`).

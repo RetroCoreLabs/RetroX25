@@ -82,6 +82,66 @@ namespace RetroX25.Tests
             Assert.That(host.GetStatus().Sessions, Is.EqualTo(0), "the session ends when the telnet client closes");
         }
 
+        /// <summary>
+        /// A PAD call carries the X.29 call user data (01 00 00 00) by itself: nothing is typed or switched on for it. The
+        /// Call Request is decoded off the wire between the telnet PAD and the switch. A router's PAD refuses a call without it.
+        /// </summary>
+        [Test]
+        public void TelnetPadCall_CarriesTheX29CallUserData_Automatically()
+        {
+            using SwitchXotHarness.Running sw = SwitchXotHarness.StartTwoPortSwitch();
+            using X25Client echo = StartPrefixEcho((ushort)sw.P1.BoundPort);
+            using XotWireTap tap = new XotWireTap("127.0.0.1", sw.P0.BoundPort);
+
+            int telnetPort = FreePort();
+            using TelnetPadHost host = new TelnetPadHost("127.0.0.1", (ushort)tap.Port, 0, NullLogger.Instance, NullLogger.Instance);
+            Assert.That(host.Start(new TelnetPadConfig { Enabled = true, Port = telnetPort, BindAddress = "127.0.0.1" }), Is.True, host.GetStatus().Text);
+
+            using TcpClient telnet = new TcpClient();
+            telnet.Connect(IPAddress.Loopback, telnetPort);
+            NetworkStream stream = telnet.GetStream();
+            stream.ReadTimeout = 200;
+            StringBuilder seen = new StringBuilder();
+            Assert.That(ReadUntil(stream, seen, "PAD", 5000), Is.True, "Saw: " + seen);
+            Send(stream, "CALL 23410001\r");
+            Assert.That(ReadUntil(stream, seen, "COM", 5000), Is.True, "Saw: " + seen);
+
+            System.Collections.Generic.List<TappedPacket> packets = tap.Packets();
+            int calls = 0;
+            for (int i = 0; i < packets.Count; i++)
+            {
+                if (packets[i].FromClient && packets[i].Info.PacketType == RetroIO.Protocols.X25.Models.X25PacketType.CallRequest)
+                {
+                    calls++;
+                    Assert.That(packets[i].Info.CallUserData, Is.EqualTo(new byte[] { 0x01, 0x00, 0x00, 0x00 }), tap.Dump());
+                }
+            }
+
+            Assert.That(calls, Is.EqualTo(1), tap.Dump());
+        }
+
+        /// <summary>
+        /// The command-line PAD (keyboard mode builds its PAD the same way as telnet mode) puts the same call user data on its
+        /// Call Request.
+        /// </summary>
+        [Test]
+        public void CommandLinePad_CallRequest_CarriesTheX29CallUserData()
+        {
+            using SwitchXotHarness.Running sw = SwitchXotHarness.StartTwoPortSwitch();
+            using X25Client echo = StartPrefixEcho((ushort)sw.P1.BoundPort);
+            using XotWireTap tap = new XotWireTap("127.0.0.1", sw.P0.BoundPort);
+
+            Program.OpenPad("127.0.0.1", (ushort)tap.Port, 0, NullLogger.Instance, out X25Client client, out RetroIO.Protocols.X25.Modules.PadClient pad);
+            using (client)
+            using (pad)
+            {
+                Assert.That(pad.Connect("23410001"), Is.True);
+                Assert.That(SpinWait.SpinUntil(() => tap.Packets().Exists(p => !p.FromClient && p.Info.PacketType == RetroIO.Protocols.X25.Models.X25PacketType.CallAccepted), 5000), Is.True, tap.Dump());
+                TappedPacket call = tap.Packets().Find(p => p.FromClient && p.Info.PacketType == RetroIO.Protocols.X25.Models.X25PacketType.CallRequest)!;
+                Assert.That(call.Info.CallUserData, Is.EqualTo(new byte[] { 0x01, 0x00, 0x00, 0x00 }), tap.Dump());
+            }
+        }
+
         private static X25Client StartPrefixEcho(ushort switchPort)
         {
             X25Client echo = new X25Client { ServiceName = "prefix-echo" };

@@ -11,6 +11,9 @@ Drives load through an X.25 network and reports what arrived. Two modes: **strea
 sends a continuous series of data packets, and **call storm** (`-C`), which opens and tears down circuits as fast
 as you ask.
 
+It is a data generator and nothing else. It is not a PAD: to talk to a PAD (a router's, for example) use `x25pad`,
+which sends the X.29 call user data by itself.
+
 ## Why you need it
 
 One call by hand proves a path exists. It says nothing about a thousand packets a second, two thousand open
@@ -51,8 +54,7 @@ x25traffic -x host:port -d address [options]
 
   Stream mode (default):  -n count (0=infinite)   -r rate pkts/sec (0=max)
   Call storm mode (-C):   -C   -n calls   -r calls/sec   -p pkts per call (default 3)
-  Common:                 -s size (default 128)   -u hex   -v
-  Packet bits (stream):   --qbit   --mbit-chain N   --dbit
+  Common:                 -s size (default 128)   -v
 ```
 
 | Option | Meaning |
@@ -64,16 +66,7 @@ x25traffic -x host:port -d address [options]
 | `-r rate` | Per second. `0` = as fast as possible |
 | `-p pkts` | Packets per call in storm mode. Default 3 |
 | `-s size` | Packet size. Default 128 |
-| `-u hex` | Call user data to put in every Call Request, as hex digits. Default none. `-u 01000000` is the X.29 PAD marker; a Cisco router's PAD refuses a call without it. A PAD answers with echoes and prompts, so the delivery percentage means nothing against one; use the echo service for that |
 | `-v` | Verbose |
-| `--qbit` | Stream mode: send every packet as qualified data (Q bit) |
-| `--mbit-chain N` | Stream mode: send each message as N linked packets, N from 2 to 16 (the M bit is set on all but the last). Needs `-s` equal to the circuit's packet size unless `--dbit` is also given: X.25 4.3.3 allows the more-data mark on a partial packet only together with the D bit |
-| `--dbit` | Stream mode: ask for delivery confirmation (D bit) on every packet. When the far end has acknowledged everything, the report says so |
-
-Every stream packet carries its number in the first four bytes. The report shows how many distinct numbers came
-back, how many came twice and how many arrived after a higher one (`Numbered:` line), and, when a bit was asked
-for, how many packets came back with Q, M and D still set (`Flags back:` line). A far end that echoes byte for
-byte keeps them: `--mbit-chain 4` against such an echo returns M on 3 packets in 4.
 
 Each call in a storm (and the first call of a stream) uses a TCP connection of its own, as RFC 1613 section 5 asks.
 
@@ -82,7 +75,6 @@ x25traffic -x 127.0.0.1:2200 -d 23520001 -n 1000 -r 100     # 1000 packets at 10
 x25traffic -x 127.0.0.1:2200 -d 23520001 -s 16              # small packets
 x25traffic -x 127.0.0.1:2200 -d 23520001 -C -n 200 -r 20 -p 5   # a call storm
 x25traffic -x 127.0.0.1:2200 -d 23520001 -n 0               # until Ctrl-C
-x25traffic -x 127.0.0.1:2200 -d 23520001 -n 2000 -r 0 --mbit-chain 4 --dbit   # chains of 4, delivery confirmed
 ```
 
 ## The two modes

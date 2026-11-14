@@ -114,6 +114,9 @@ namespace RetroX25.Desktop.Tests
 
             public string? CalledAddress { get; private set; }
 
+            /// <summary>The call user data of the Call Request the router received (null before a call).</summary>
+            public byte[]? CallUserData { get; private set; }
+
             public volatile bool ClearSeen;
 
             /// <summary>When set, a call is refused with a Clear Indication carrying this cause.</summary>
@@ -230,6 +233,7 @@ namespace RetroX25.Desktop.Tests
                         digits.Append((char)('0' + digit));
                     }
 
+                    CallUserData = RetroIO.Protocols.X25.Models.X25PacketParser.ParsePacket(packet).CallUserData;
                     CalledAddress = digits.ToString();
                     if (RefuseCause.HasValue)
                     {
@@ -367,6 +371,10 @@ namespace RetroX25.Desktop.Tests
             WaitUntil(() => router.CalledAddress != null, "the call to reach the router",
                 () => viewModel.ConsoleText + "\n--- app log ---\n" + AppLog(provider));
             Assert.That(router.CalledAddress, Is.EqualTo("23600001"));
+
+            // A PAD call carries the X.29 protocol identifier on its own: 01 and three zero octets. Nothing is typed or
+            // switched on for it. The router's PAD refuses a call without it.
+            Assert.That(router.CallUserData, Is.EqualTo(new byte[] { 0x01, 0x00, 0x00, 0x00 }), "the Call Request of a PAD call carries the X.29 call user data");
             WaitUntil(() => viewModel.ConsoleText.Contains("R1>"), "the router's prompt in the window");
 
             // A command in the call goes to the far side and the answer comes back.

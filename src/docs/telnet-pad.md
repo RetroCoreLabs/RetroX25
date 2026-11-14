@@ -60,6 +60,10 @@ stays off):
 **There is no login.** Anyone who can reach the port can place X.25 calls through your engine. Keep the bind
 address at `127.0.0.1` unless you want other computers to use it.
 
+The command-line program `x25pad` has the same server: `x25pad -x host:port --telnet-port 2323 [--telnet-bind addr]`.
+The port and the bind address mean exactly what they mean here, with the same defaults (`127.0.0.1`; the port has no
+default there: giving `--telnet-port` is what switches it on).
+
 Changes take effect when you press **Apply** in the Configuration window: the engine restarts, and every open
 telnet session is closed.
 

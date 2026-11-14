@@ -48,7 +48,7 @@ x25pad [-x host:port] [--telnet-port N [--telnet-bind addr]] [-v]
 |---|---|
 | `-x host:port` | The XOT peer. Default `localhost:1998` |
 | `--telnet-port N` | Do not use the keyboard. Listen for telnet on port N. Every telnet connection gets its own X.28 PAD and its own XOT connection to the peer; closing the telnet connection clears its call. It is the same telnet PAD server the Desktop app has |
-| `--telnet-bind addr` | Address to listen on with `--telnet-port`. Default `127.0.0.1` (this PC only). There is no login: do not bind a public address |
+| `--telnet-bind addr` | Address to listen on with `--telnet-port`. Default `127.0.0.1` (this PC only). It is the same setting as the Desktop app's telnet PAD *Bind address*, with the same default and the same meaning (`0.0.0.0` lets other computers connect). There is no login: do not bind a public address |
 | `-v` | More verbosity; repeat for more |
 
 ```powershell

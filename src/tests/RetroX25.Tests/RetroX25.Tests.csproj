@@ -39,7 +39,7 @@
     <ProjectReference Include="..\..\RetroX25.Echo\RetroX25.Echo.csproj" />
     <!-- Referenced for the telnet PAD host (telnet-port option); the app's Main is not run. -->
     <ProjectReference Include="..\..\RetroX25.Pad\RetroX25.Pad.csproj" />
-    <!-- Referenced for the traffic flags and the numbering check; the app's Main is not run. -->
+    <!-- Referenced so x25traffic.exe is built next to the tests (the option test starts it); the app's Main is not run here. -->
     <ProjectReference Include="..\..\RetroX25.Traffic\RetroX25.Traffic.csproj" />
   </ItemGroup>
 
