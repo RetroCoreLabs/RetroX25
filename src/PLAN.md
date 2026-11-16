@@ -26,6 +26,29 @@ Tested 2026-11-14 on two real USB serial ports joined by an HDLC line (see `docs
   512 are the most the gateway line can carry.
 - Waits for: a real UART or a serial pair visible from WSL, and someone to pull the cable.
 
+### A1a. Full speed both ways through the Cisco: not proven on real equipment
+`X25emuTraffic_..._FullSpeed20000` (2026-11-15, idle sleep 1 ms, serial windows 7) passes: 20 000 of 20 000 back, none
+lost, but the last echo arrives about 8 minutes after a 205-second send. Found from the packets in the middle of the run
+(our trunk capture and `debug x25 interface Serial1/0` on R1, same 2 seconds):
+- R1 is the slow point. Our window to R1 was full (7 unacknowledged) after every data packet we sent and for 1.76 s of
+  3 s; R1 acknowledged our data at about 24 a second while sending us 117 a second. R1 had only 1 to 3 packets
+  unacknowledged towards R2, so neither R2 nor the window held it back.
+- Our side behaves correctly in the capture: never more than 7 outstanding, every R1 packet acknowledged within about
+  0.1 ms.
+- One way only (`_OneWayFullSpeed`), R1 carries about 119 packets a second, the same as the way out keeps in the two-way
+  run; the way back gets what is left.
+- During the run each Dynamips process uses 100% of one host core (laptop: Intel i7-11800H). IOS reports 2% process CPU.
+- Not known: whether a real Cisco does the same. The emulator runs out of host CPU, so this bench cannot say.
+- Decided 2026-11-15: accepted for now. GNS3 stays the bench for calls, facilities and correctness up to 40 packets a
+  second both ways.
+- Prove: the same tests on two real 25xx routers. The configs, the load script, the test commands and the packet-reading
+  steps are in `docs/cisco-ios-x25-options.md` section 9.
+- Waits for: Ronny to set up the hardware.
+
+### A1. One reading not explained
+During a 10-minute run on 2026-11-15, R1's circuit showed 339 packets each way while R2's showed 9/7 for what looked like
+the same call. Read once, not repeated. Prove or drop: read both routers' `show x25 vc` in the same second during a run.
+
 ### A6. Housekeeping
 - The work is committed by topic in both repositories and not pushed. RetroX25 pushes from WSL (Windows has no
   GitHub SSH key).
