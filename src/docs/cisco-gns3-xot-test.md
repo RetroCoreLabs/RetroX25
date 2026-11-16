@@ -243,7 +243,7 @@ Project name `X25Test`. Both routers are the same model.
 | Template | Cisco 7200 | Cisco 7200 |
 | Image | c7200-adventerprisek9-mz.124-24.T5 | the same |
 | RAM / NVRAM | 512 MB / 512 KB | the same |
-| Idle-PC | 0x606df838 | the same |
+| Idle-PC | 0x0 (off) for speed tests; 0x606df838 saves laptop CPU | the same |
 | Idle sleep (`idlesleep`) | 1 ms (GNS3's default is 30) | the same |
 | Slot 0 | C7200-IO-FE (one FastEthernet port) | the same |
 | Slot 1 | PA-4T+ (four serial ports) | the same |
@@ -258,6 +258,14 @@ packets on a beat of about 32 ms (every timestamp in `debug x25` fell on it, 202
 packet and its acknowledgement up to one beat, so with window 7 a call through R2 and R1 carried only about 26 to 29
 packets a second each way. Set to 1 ms (node properties, or the GNS3 server's node API), the same call carried 127
 kbit/s each way. The router still sleeps when idle; the cost is some more laptop CPU while traffic runs.
+
+**After the routers are restarted, the beat can come back.** On 2026-11-16, after both routers had been restarted, GNS3
+reported `idlesleep` 1 on both (its log: "idlesleep updated from 30 to 1" at start), yet our trunk capture showed data
+arriving on a beat of about 30.5 ms again and one-way full speed fell to 58 kbit/s in each direction. Setting idle-PC to
+`0x0` on both routers while they ran (node API, property `idlepc`) removed the beat at once: 127 and 121 kbit/s one way,
+and both ways at once 57 packets a second each way with every echo back. Without an idle-PC each Dynamips process uses a
+whole host core all the time. Why the 1 ms idle sleep did not hold after the restart is not known. Before a speed test,
+check the beat: if `X25_TRUNK_TRACE` shows data arriving every 30 ms or so, set idle-PC to 0x0.
 
 Other node: **Cloud1**, a cloud object bound to the laptop's **wired network card** (on this laptop a
 USB Ethernet adapter). Wi-Fi was not tried.
