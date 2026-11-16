@@ -38,6 +38,7 @@
          firewall decides inbound connections program by program. -->
     <Compile Include="..\RetroX25.Tests\Interop\X25emuEnvironment.cs" Link="Interop\X25emuEnvironment.cs" />
     <Compile Include="..\RetroX25.Tests\Interop\XotWireTap.cs" Link="Interop\XotWireTap.cs" />
+    <Compile Include="..\RetroX25.Tests\Interop\RawXotCaller.cs" Link="Interop\RawXotCaller.cs" />
     <Compile Include="..\RetroX25.Tests\Interop\X25emuEchoPool.cs" Link="Interop\X25emuEchoPool.cs" />
     <Compile Include="..\RetroX25.Tests\Interop\X25emuMonitor.cs" Link="Interop\X25emuMonitor.cs" />
   </ItemGroup>

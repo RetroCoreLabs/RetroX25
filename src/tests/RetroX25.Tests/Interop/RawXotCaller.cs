@@ -197,8 +197,9 @@ namespace RetroX25.Tests
         /// <param name="packetSizeCode">The facility code for the packet size: 4 = 16 bytes, 7 = 128 bytes, 8 = 256 bytes.</param>
         /// <param name="window">The window size, 1 to 7.</param>
         /// <param name="timeoutMs">How long to wait for the Call Accepted.</param>
+        /// <param name="callUserData">Call user data to send with the request, for example the X.29 marker a Cisco PAD needs; none when null.</param>
         /// <returns>True when a Call Accepted came; otherwise the answer (a Clear) is in <see cref="Received"/>.</returns>
-        internal bool Call(string called, string calling, byte packetSizeCode, byte window, int timeoutMs)
+        internal bool Call(string called, string calling, byte packetSizeCode, byte window, int timeoutMs, byte[]? callUserData = null)
         {
             List<byte> packet = new List<byte> { (byte)(0x10 | (Channel >> 8 & 0x0F)), (byte)(Channel & 0xFF), 0x0B };
             packet.Add((byte)((calling.Length << 4) | called.Length));
@@ -206,6 +207,11 @@ namespace RetroX25.Tests
             packet.AddRange(PackBcd(calling));
             packet.Add(6);
             packet.AddRange(new byte[] { 0x42, packetSizeCode, packetSizeCode, 0x43, window, window });
+            if (callUserData != null)
+            {
+                packet.AddRange(callUserData);
+            }
+
             SendRaw(packet.ToArray());
             return SpinWait.SpinUntil(() =>
             {
