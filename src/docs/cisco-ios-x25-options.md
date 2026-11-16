@@ -289,6 +289,200 @@ than the window allows. Cisco's default window is 2, and the call packet shows i
 | Image does not take the commands | Image has no X.25/XOT, or an older syntax (`ip` instead of `xot`) | **From Cisco** |
 | Long run: circuit up but silent | Dead TCP connection that nobody noticed | **From Cisco** (keepalives) |
 
+## 9. The automatic tests on two real 25xx routers
+
+This is the same layout as the GNS3 bench on 2026-11-15, written for two real routers, so that the tests in
+`RetroX25.Desktop.Tests` (class `X25emuPadToOurTadViaCiscoTests`) and `RetroX25.Tests` (class
+`CiscoR1SwitchNegotiationTests`) run against hardware unchanged. The one question GNS3 could not answer (`PLAN.md`
+A1a) is whether a real Cisco carries full speed in both directions at once; the emulated R1 used a whole laptop core and
+let the way back run 3 to 5 times slower than the way out.
+
+**Nothing in this section has been run on a 25xx.** The configs are the GNS3 ones (**Tested** on 12.4) with the 25xx
+interface names from Cisco's own 2500 examples (`Ethernet0`, `Serial0`). A 2501 has one Ethernet (AUI on some models,
+needs a transceiver) and two serial ports (**not verified** for your units).
+
+![The Windows PC with x25emu and our switch, two Cisco 25xx routers on the LAN joined by a serial X.25 cable, and the two call paths the tests check](images/cisco-25xx-bench.svg)
+
+### 9.1 The two configurations
+
+Use free addresses on your LAN; the ones below are the bench's. 192.168.1.180 is the Windows PC.
+
+R1:
+
+```
+hostname R1
+service pad to-xot
+service pad from-xot
+no logging console
+logging buffered 64000
+x25 routing
+!
+interface Ethernet0
+ ip address 192.168.1.155 255.255.255.0
+ no shutdown
+!
+interface Serial0
+ no ip address
+ encapsulation x25 dce
+ x25 address 23600001
+ x25 win 7
+ x25 wout 7
+ clock rate 64000
+ no shutdown
+!
+x25 route ^2350 xot 192.168.1.180
+x25 route ^23600002$ interface Serial0
+x25 route ^2343 xot 192.168.1.180
+x25 host R1 23600001
+!
+line vty 0 4
+ no login
+end
+```
+
+R2:
+
+```
+hostname R2
+no logging console
+logging buffered 64000
+x25 routing
+!
+interface Ethernet0
+ ip address 192.168.1.156 255.255.255.0
+ no shutdown
+!
+interface Serial0
+ no ip address
+ encapsulation x25
+ x25 address 23600002
+ x25 win 7
+ x25 wout 7
+ no shutdown
+!
+x25 route ^2343 interface Serial0
+x25 host R2 23600002
+!
+line vty 0 4
+ no login
+end
+```
+
+| Line | Why it is there (all measured on the GNS3 bench) |
+|---|---|
+| `x25 win 7`, `x25 wout 7` on both serial ends | The serial default is 2. With 2/2, R1 kept only 2 or 3 packets unacknowledged towards R2 although the call asked for 7. A change waits for a restart of the line: `clear x25 Serial0` (it says "Parameter change held until a RESTART event"). |
+| `x25 routing` on R2 | R2 must switch calls between XOT and the cable; with it on, R2 also accepts XOT on TCP 1998. |
+| `x25 route ^2343 interface Serial0` on R2 | x25emu calls R2; R2 sends the call over the cable to R1. A Cisco never passes a call from XOT straight to XOT, so x25emu → R1 → PC alone is cleared with cause 13, diagnostic 64 (`cisco-learnings.md`). |
+| `logging buffered 64000` | The packet debug is read with `show logging`; a small buffer holds only a fraction of a second at full speed (R2 on the bench kept 0.25 s). On a 25xx with little DRAM a smaller number may be needed (**not verified**). |
+| `clock rate 64000` | The DCE end supplies the clock. On a real line this is the real line speed: 128-octet packets at full speed both ways need about 130 kbit/s each way, so 64 000 will be the limit on hardware (the emulator did not enforce it). Try the highest speed your cable and ports allow. |
+
+### 9.2 Loading the configuration by script
+
+The console is a serial port at 9600 8N1 on most Cisco routers (**not verified** for your units), and after the first
+config `line vty 0 4` / `no login` lets a script use telnet instead. Either way the script only types lines and reads
+what comes back, waiting for the prompt (`#` or `(config...)#`) before the next line. Pasting a whole config at once can
+drop characters on a 9600 console; one line per prompt does not.
+
+A sketch in Python (**not run**; it is the same send-a-line, wait-for-the-prompt pattern that drove the GNS3
+consoles, with pyserial for the console port; `pip install pyserial`):
+
+```python
+import re, socket, sys, time
+import serial   # pyserial; only for the console port
+
+PROMPT = re.compile(rb"[>#]\s*$")
+
+def open_line(where):
+    if where.startswith("COM") or where.startswith("/dev/"):
+        return serial.Serial(where, 9600, timeout=0.2)            # console cable
+    host, port = (where.split(":") + ["23"])[:2]
+    s = socket.create_connection((host, int(port)), 5)             # telnet to the vty
+    s.settimeout(0.2)
+    return s
+
+def read(line):
+    try:
+        return line.read(4096) if hasattr(line, "read") else line.recv(4096)
+    except (socket.timeout, TimeoutError):
+        return b""
+
+def send(line, text, wait=10.0):
+    data = (text + "\r").encode()
+    line.write(data) if hasattr(line, "write") else line.sendall(data)
+    out, end = b"", time.time() + wait
+    while time.time() < end:
+        chunk = read(line)
+        out += chunk
+        if PROMPT.search(out):
+            break
+    return out.decode("latin-1")
+
+# usage: python cisco_load.py COM3 r1.txt     or     python cisco_load.py 192.168.1.155 r1.txt
+line = open_line(sys.argv[1])
+send(line, "")                       # wake the prompt
+send(line, "enable")
+send(line, "terminal length 0")
+send(line, "configure terminal")
+for cmd in open(sys.argv[2]).read().splitlines():
+    if cmd.strip() and not cmd.startswith("!") and cmd.strip() != "end":
+        print(send(line, cmd), end="")
+send(line, "end")
+send(line, "clear x25 Serial0")      # makes x25 win / wout take effect
+send(line, "")                       # answers the [confirm]
+print(send(line, "write memory", 30))
+print(send(line, "show x25 route"))
+```
+
+Telnet also sends option bytes (IAC sequences) at the start; IOS answers them and the script can ignore them. A raw
+console needs none of that.
+
+### 9.3 Check before the tests
+
+| On | Command | Must show |
+|---|---|---|
+| R1 and R2 | `show interfaces serial 0` | "line protocol is up" and `input/output window sizes 7/7` |
+| R1 | `show x25 route` | `^2350` and `^2343` to the PC, `^23600002$` to Serial0 |
+| R2 | `show x25 route` | `^2343` to Serial0 |
+| PC | `Test-Connection 192.168.1.155`, `.156` | both answer |
+
+### 9.4 Running the tests
+
+From `src` on the Windows PC (x25emu built in WSL, `X25EMU_TOOLS` is its `tools` folder):
+
+```powershell
+$env:CISCO_R1_HOST = '192.168.1.155'
+$env:CISCO_R2_HOST = '192.168.1.156'
+$env:X25EMU_TOOLS  = '/home/<you>/repos/os/x25emu/tools'
+dotnet test tests\RetroX25.Desktop.Tests -nodeReuse:false --filter "FullyQualifiedName~X25emuPadToOurTadViaCiscoTests"
+dotnet test tests\RetroX25.Tests -nodeReuse:false --filter "FullyQualifiedName~CiscoR1SwitchNegotiationTests"
+```
+
+The tests are marked Explicit, so they run only when named like this. One load case alone:
+`--filter "Name~_FullSpeed20000"` (the case names are `_FullSpeed`, `_20PerSecond`, `_30PerSecond`, `_40PerSecond`,
+`_16Calls`, `_TenMinutes`, `_TenMinutesAt40`, `_FullSpeed20000`, `_OneWayFullSpeed`).
+
+| Test | GNS3 result (2026-11-15) | What to look for on hardware |
+|---|---|---|
+| `..._IsClearedByR1_...` (3 tests) | cleared, cause 13, diagnostic 64 | the same: it is Cisco's documented rule |
+| `..._ThroughR2AndR1_OverTheSerialLine_Connects` | `CON`, TAD banner | the same |
+| `_20PerSecond` to `_40PerSecond`, `_TenMinutesAt40` | 100% back | the same, if the line clock allows it |
+| `_OneWayFullSpeed` | about 119 packets a second | the line speed or the router is now the limit; write down the rate |
+| `_FullSpeed20000` | 100% back, but the last echo about 8 minutes after a 205 s send | **the answer to A1a**: does the way back keep up with the way out? Compare the x25traffic Duration with the test's total time |
+
+### 9.5 Reading the packets if the way back is slow
+
+The same method that found the window and the emulator limit on GNS3:
+
+1. Start `_FullSpeed20000` with `$env:X25_TRUNK_TRACE = '90000-93000'`. The test then prints every packet on our trunk
+   to R1 between 90 and 93 seconds, decoded (P(S), P(R), RR, RNR, REJ, the Q and D bits).
+2. At about 90 seconds, on R1 and R2 at the same time: `clear logging`, `debug x25 interface Serial0`, wait 2 seconds,
+   `undebug all`, then `show logging`.
+3. Count, per router and direction, the data packets and RRs, and after each data packet a router sends, how many are
+   unacknowledged. A window that is full on one side and not on the next shows which leg holds the traffic back.
+
+On GNS3 this showed our side keeping to the window and acknowledging at once, and R1 taking our packets in at about 24
+a second while its window towards R2 was open.
+
 ## Sources
 
 - Cisco, "Configuring X.25 over TCP/IP (XOT)":

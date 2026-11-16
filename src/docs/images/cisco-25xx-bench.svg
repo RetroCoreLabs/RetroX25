@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>RetroX25 against two real Cisco 25xx routers</title>
+  <desc>The Windows PC with x25emu in WSL and our switch or TAD on TCP 1998, two Cisco 25xx routers on the LAN joined by a serial X.25 cable, and the two call paths the tests check: through R2 and the cable (works), and straight through R1 (cleared by Cisco's rule).</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="win" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d4ed8"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <linearGradient id="wsl" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#4c1d95"/>
+    </linearGradient>
+    <linearGradient id="cisco" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e7490"/>
+      <stop offset="1" stop-color="#164e63"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+    <marker id="ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#22c55e"/>
+    </marker>
+    <marker id="bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ef4444"/>
+    </marker>
+    <g id="router">
+      <ellipse cx="0" cy="9" rx="34" ry="10" fill="#0c4a6e"/>
+      <rect x="-34" y="-3" width="68" height="12" fill="#0c4a6e"/>
+      <ellipse cx="0" cy="-3" rx="34" ry="10" fill="#38bdf8"/>
+      <path d="M-17,-3 h34 M0,-10 v14" stroke="#0c4a6e" stroke-width="3" stroke-linecap="round"/>
+    </g>
+  </defs>
+
+  <rect width="1200" height="800" fill="url(#bg)"/>
+
+  <text x="600" y="48" text-anchor="middle" font-size="28" font-weight="700" fill="#f8fafc">RetroX25 against two real Cisco 25xx routers</text>
+  <text x="600" y="76" text-anchor="middle" font-size="15" fill="#94a3b8">The bench of cisco-ios-x25-options.md section 9 · the same tests as on GNS3, unchanged</text>
+
+  <!-- Windows PC -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="110" width="400" height="430" rx="18" fill="#111827" stroke="#334155"/>
+  </g>
+  <text x="60" y="138" font-size="13" font-weight="600" fill="#64748b" letter-spacing="1.5">WINDOWS PC · 192.168.1.180</text>
+
+  <g filter="url(#shadow)"><rect x="70" y="158" width="340" height="150" rx="14" fill="url(#wsl)"/></g>
+  <text x="240" y="190" text-anchor="middle" font-size="19" font-weight="700" fill="#fff">x25emu in WSL (C)</text>
+  <rect x="92" y="208" width="140" height="44" rx="9" fill="#5b21b6" stroke="#c4b5fd" stroke-opacity="0.5"/>
+  <text x="162" y="236" text-anchor="middle" font-size="15" font-weight="600" fill="#fff">x25pad</text>
+  <rect x="248" y="208" width="140" height="44" rx="9" fill="#5b21b6" stroke="#c4b5fd" stroke-opacity="0.5"/>
+  <text x="318" y="236" text-anchor="middle" font-size="15" font-weight="600" fill="#fff">x25traffic</text>
+  <text x="240" y="284" text-anchor="middle" font-size="12" fill="#ddd6fe">calls by XOT · caller 23400055 / 99990001</text>
+
+  <g filter="url(#shadow)"><rect x="70" y="330" width="340" height="180" rx="14" fill="url(#win)"/></g>
+  <text x="240" y="362" text-anchor="middle" font-size="19" font-weight="700" fill="#fff">RetroX25 (C#)</text>
+  <text x="240" y="384" text-anchor="middle" font-size="13" fill="#bfdbfe">listens for XOT on TCP 1998</text>
+  <rect x="92" y="402" width="296" height="40" rx="9" fill="#1e40af" stroke="#93c5fd" stroke-opacity="0.5"/>
+  <text x="240" y="427" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">TAD 23430200 · test echo 23430201</text>
+  <rect x="92" y="452" width="296" height="40" rx="9" fill="#1e40af" stroke="#93c5fd" stroke-opacity="0.5"/>
+  <text x="240" y="477" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">echo service 23500001</text>
+
+  <!-- LAN -->
+  <rect x="548" y="128" width="24" height="420" rx="12" fill="#334155"/>
+  <text x="560" y="118" text-anchor="middle" font-size="13" font-weight="700" fill="#cbd5e1">LAN</text>
+  <text x="560" y="568" text-anchor="middle" font-size="12" fill="#94a3b8">192.168.1.0/24</text>
+  <path d="M440,420 H548" stroke="#64748b" stroke-width="5"/>
+  <path d="M572,215 H700" stroke="#64748b" stroke-width="5"/>
+  <path d="M572,470 H700" stroke="#64748b" stroke-width="5"/>
+  <text x="636" y="205" text-anchor="middle" font-size="12" fill="#94a3b8">Ethernet0</text>
+  <text x="636" y="460" text-anchor="middle" font-size="12" fill="#94a3b8">Ethernet0</text>
+
+  <!-- R1 -->
+  <g filter="url(#shadow)"><rect x="700" y="128" width="460" height="180" rx="16" fill="url(#cisco)"/></g>
+  <use href="#router" x="752" y="168"/>
+  <text x="800" y="166" font-size="20" font-weight="700" fill="#fff">R1 · Cisco 25xx</text>
+  <text x="800" y="187" font-size="13" fill="#a5f3fc">192.168.1.155 · X.25 23600001</text>
+  <text x="724" y="222" font-size="12.5" fill="#e0f2fe">x25 route ^2350 xot 192.168.1.180</text>
+  <text x="724" y="241" font-size="12.5" fill="#e0f2fe">x25 route ^2343 xot 192.168.1.180</text>
+  <text x="724" y="260" font-size="12.5" fill="#e0f2fe">x25 route ^23600002$ interface Serial0</text>
+  <text x="724" y="290" font-size="12" fill="#a5f3fc">Serial0: x25 dce · clock rate · x25 win 7 · x25 wout 7</text>
+
+  <!-- R2 -->
+  <g filter="url(#shadow)"><rect x="700" y="390" width="460" height="160" rx="16" fill="url(#cisco)"/></g>
+  <use href="#router" x="752" y="430"/>
+  <text x="800" y="428" font-size="20" font-weight="700" fill="#fff">R2 · Cisco 25xx</text>
+  <text x="800" y="449" font-size="13" fill="#a5f3fc">192.168.1.156 · X.25 23600002</text>
+  <text x="724" y="486" font-size="12.5" fill="#e0f2fe">x25 routing</text>
+  <text x="724" y="505" font-size="12.5" fill="#e0f2fe">x25 route ^2343 interface Serial0</text>
+  <text x="724" y="533" font-size="12" fill="#a5f3fc">Serial0: x25 (DTE) · x25 win 7 · x25 wout 7</text>
+
+  <!-- serial cable -->
+  <path d="M1110,308 V390" stroke="#facc15" stroke-width="7" stroke-linecap="round"/>
+  <text x="1100" y="345" text-anchor="end" font-size="12" font-weight="600" fill="#fde68a">serial X.25 cable</text>
+  <text x="1100" y="362" text-anchor="end" font-size="11" fill="#fde68a">DCE end on R1</text>
+
+  <!-- call paths -->
+  <g transform="translate(40,600)">
+    <rect width="1120" height="170" rx="16" fill="#0b1220" stroke="#334155"/>
+    <text x="24" y="32" font-size="15" font-weight="700" fill="#e2e8f0">The two call paths the tests check</text>
+
+    <g transform="translate(24,52)">
+      <rect width="150" height="40" rx="9" fill="#5b21b6"/><text x="75" y="26" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">x25emu</text>
+      <path d="M152,20 H218" stroke="#22c55e" stroke-width="4" marker-end="url(#ok)"/><text x="185" y="12" text-anchor="middle" font-size="11" fill="#86efac">XOT</text>
+      <rect x="222" width="110" height="40" rx="9" fill="#0e7490"/><text x="277" y="26" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">R2</text>
+      <path d="M334,20 H400" stroke="#22c55e" stroke-width="4" marker-end="url(#ok)"/><text x="367" y="12" text-anchor="middle" font-size="11" fill="#fde68a">serial</text>
+      <rect x="404" width="110" height="40" rx="9" fill="#0e7490"/><text x="459" y="26" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">R1</text>
+      <path d="M516,20 H582" stroke="#22c55e" stroke-width="4" marker-end="url(#ok)"/><text x="549" y="12" text-anchor="middle" font-size="11" fill="#86efac">XOT</text>
+      <rect x="586" width="170" height="40" rx="9" fill="#1d4ed8"/><text x="671" y="26" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">our TAD / echo</text>
+      <text x="780" y="18" font-size="13" font-weight="700" fill="#22c55e">connects</text>
+      <text x="780" y="35" font-size="12" fill="#94a3b8">no router passes XOT straight to XOT</text>
+    </g>
+
+    <g transform="translate(24,108)">
+      <rect width="150" height="40" rx="9" fill="#5b21b6"/><text x="75" y="26" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">x25emu</text>
+      <path d="M152,20 H400" stroke="#ef4444" stroke-width="4" stroke-dasharray="9 6" marker-end="url(#bad)"/><text x="277" y="12" text-anchor="middle" font-size="11" fill="#fca5a5">XOT</text>
+      <rect x="404" width="110" height="40" rx="9" fill="#0e7490"/><text x="459" y="26" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">R1</text>
+      <path d="M516,20 H582" stroke="#ef4444" stroke-width="4" stroke-dasharray="4 7" stroke-opacity="0.5"/>
+      <g transform="translate(549,20)"><circle r="12" fill="#7f1d1d" stroke="#ef4444" stroke-width="2"/><path d="M-5,-5 L5,5 M5,-5 L-5,5" stroke="#fecaca" stroke-width="3" stroke-linecap="round"/></g>
+      <rect x="586" width="170" height="40" rx="9" fill="#1d4ed8" opacity="0.45"/><text x="671" y="26" text-anchor="middle" font-size="14" font-weight="600" fill="#fff" opacity="0.6">our TAD</text>
+      <text x="780" y="18" font-size="13" font-weight="700" fill="#ef4444">cleared, cause 13 diag 64</text>
+      <text x="780" y="35" font-size="12" fill="#94a3b8">Cisco's rule: XOT in, XOT out is refused</text>
+    </g>
+  </g>
+</svg>

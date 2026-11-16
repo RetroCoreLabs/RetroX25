@@ -1,7 +1,7 @@
 # The guides
 
 One line for each guide in this folder. Each program also has its own page next to its code (see the
-[main README](../../README.md)); these guides cover things that are bigger than one program.
+main `README.md` at the top of the repository); these guides cover things that are bigger than one program.
 
 ## How the programs fit together
 

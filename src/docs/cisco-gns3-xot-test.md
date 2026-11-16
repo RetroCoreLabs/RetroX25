@@ -175,6 +175,9 @@ Desktop app alone and its own built-in switch. Section 10 has the router lines a
 | 8 | R2 holds an echo call open while `x25pad` calls R2 | Works |
 | 9 | A Cisco `pad` calls the TAD server of the RetroX25 runtime (section 10) | Works (checked with the old text-mode program, since removed; the Desktop app runs the same engine): banner, `HELP`, echo and `QUIT` answered, no reset. A stale build had a window fault, see section 10 |
 | 10 | A burst of data packets in both directions at once (`x25traffic` to the echo service) | Works after the fix in section 9.4. 100 000 packets of 128 bytes, 100% back, about 13 Mbit/s sent. Needs the fixed switch DLL (see 9.4) |
+| 11 | `pad 23430200` on R1's prompt reaches the TAD of the Desktop app's runtime (checked 2026-11-14 with the Desktop app's engine, `OurTad_WaitsForACallFromR1sOwnPrompt_AndAnswersIt`) | Works: banner, `TAD>`, echo, `QUIT` clears |
+| 12 | x25emu's `x25pad` (or our raw XOT caller) calls 23430200 **through** R1 | **Cannot work, by Cisco's design.** R1 clears with cause 13, diagnostic 64 and never dials: a call that arrived over XOT is not sent on to an XOT route. Pinned by `X25emuPadToOurTadViaCiscoTests` (checked 2026-11-15). See [cisco-learnings.md](cisco-learnings.md) |
+| 13 | x25emu's `x25pad` calls 23430200 through **R2 and R1**: XOT into R2, the serial cable to R1, XOT from R1 to our TAD | Works (checked 2026-11-15, `X25emuPad_CallingOurTadThroughR2AndR1_OverTheSerialLine_Connects`): `CON`, the TAD banner at the pad, our TAD accepts. No router passes XOT straight to XOT, so neither clears it |
 
 ## 2. The bench
 
@@ -207,6 +210,7 @@ flowchart LR
 | R2 X.25 address | 23600002 |
 | Windows PC | 192.168.1.180 (from DHCP, so it can change; if it does, fix the `x25 route` line in R1) |
 | R1 on the LAN | 192.168.1.155 (a free address on this LAN; pick one that is not in use) |
+| R2 on the LAN | 192.168.1.156 (the same; only needed for calls from x25emu through R2 and R1) |
 | Laptop | 192.168.1.134 |
 
 ### Why GNS3 runs on a Linux laptop and not on Windows
@@ -240,6 +244,7 @@ Project name `X25Test`. Both routers are the same model.
 | Image | c7200-adventerprisek9-mz.124-24.T5 | the same |
 | RAM / NVRAM | 512 MB / 512 KB | the same |
 | Idle-PC | 0x606df838 | the same |
+| Idle sleep (`idlesleep`) | 1 ms (GNS3's default is 30) | the same |
 | Slot 0 | C7200-IO-FE (one FastEthernet port) | the same |
 | Slot 1 | PA-4T+ (four serial ports) | the same |
 | Console port | 5101 (GNS3 picks it; check it in the GNS3 window) | 5103 |
@@ -248,10 +253,23 @@ Idle-PC is a number that stops the emulator from using a whole CPU core while th
 nothing. The value belongs to one image on one host. On another machine, right-click the router in
 GNS3 and choose "Idle-PC finder".
 
+**Idle sleep must be low for any speed test.** With GNS3's default `idlesleep` of 30 ms, both routers only handled
+packets on a beat of about 32 ms (every timestamp in `debug x25` fell on it, 2026-11-15). Each router on the way holds a
+packet and its acknowledgement up to one beat, so with window 7 a call through R2 and R1 carried only about 26 to 29
+packets a second each way. Set to 1 ms (node properties, or the GNS3 server's node API), the same call carried 127
+kbit/s each way. The router still sleeps when idle; the cost is some more laptop CPU while traffic runs.
+
 Other node: **Cloud1**, a cloud object bound to the laptop's **wired network card** (on this laptop a
 USB Ethernet adapter). Wi-Fi was not tried.
 
-Links: Cloud1 (wired card) to R1 FastEthernet0/0, and R1 Serial1/0 to R2 Serial1/0.
+Second cloud: **Cloud2**, bound to the same wired card. A GNS3 cloud bound to one card has only one port, and R1
+uses Cloud1's, so R2 gets a cloud of its own (added 2026-11-15).
+
+Links: Cloud1 (wired card) to R1 FastEthernet0/0, Cloud2 (the same card) to R2 FastEthernet0/0, and R1
+Serial1/0 to R2 Serial1/0.
+
+On the laptop itself a ping to a router's LAN address gets no answer: the laptop does not see frames its own
+card sends to the clouds. Ping the routers from another machine on the LAN, such as the Windows PC.
 
 The serial cable is what lets R2 act as a plain X.25 terminal. R2 knows nothing about XOT; R1 turns
 its calls into XOT calls.
@@ -296,6 +314,8 @@ interface Serial1/0
  no ip address
  encapsulation x25 dce
  x25 address 23600001
+ x25 win 7
+ x25 wout 7
  serial restart-delay 0
  clock rate 64000
 !
@@ -336,6 +356,7 @@ end
 | `x25 route ^23600002$ interface Serial1/0` | A call for exactly 23600002 goes out of the serial cable to R2. This is how calls from our side reach R2. |
 | `x25 host R1 23600001` | Gives the router's own PAD an address to use as the calling address. |
 | `encapsulation x25 dce` and `clock rate 64000` | R1 is the network side of the cable, so it also supplies the clock. |
+| `x25 win 7` and `x25 wout 7` (on R2 too) | The serial line's default window is 2 each way. Calls through R2 and R1 ask for 7 and `show x25 vc` says 7, but with the 2/2 default R1 was seen keeping only 2 or 3 packets unacknowledged towards R2 while 5 waited. With the defaults at 7, full speed went from 55% to 72.5% delivered (still at the 30 ms idle sleep). A change is held until the line restarts: `clear x25 Serial1/0`. |
 | `no logging console` | Keeps debug output off the console. Read it with `show logging`. |
 | `line vty 0 4` / `no login` | Anyone may open a virtual terminal without a password. This is a lab; do not copy it to a real network. |
 
@@ -349,17 +370,22 @@ hostname R2
 !
 no ip domain lookup
 !
+x25 routing
+!
 interface FastEthernet0/0
- no ip address
- shutdown
+ ip address 192.168.1.156 255.255.255.0
+ duplex half
 !
 interface Serial1/0
  no ip address
  encapsulation x25
  x25 address 23600002
+ x25 win 7
+ x25 wout 7
  serial restart-delay 0
  no shutdown
 !
+x25 route ^2343 interface Serial1/0
 x25 host R2 23600002
 !
 line con 0
@@ -375,8 +401,13 @@ line vty 0 4
 end
 ```
 
-R2 has no `x25 routing` and no PAD service lines: it is an ordinary X.25 host on the end of a cable.
-`encapsulation x25` with no `dce` makes it the terminal side (DTE), the opposite of R1.
+`encapsulation x25` with no `dce` makes R2 the terminal side (DTE) of the cable, the opposite of R1. For calls from
+our side R2 is an ordinary X.25 host on the end of the cable.
+
+Added 2026-11-15 and saved, for calls from x25emu to our TAD: `x25 routing`, the LAN address, and
+`x25 route ^2343 interface Serial1/0`. With `x25 routing` on, R2 also accepts XOT calls on TCP 1998. A call
+from x25emu for 2343... comes in over XOT and leaves on the serial cable to R1. R1 receives it from a serial
+line, not from XOT, so its own `^2343 xot` route sends it on to our TAD.
 
 ## 6. The RetroX25 side
 
@@ -731,6 +762,42 @@ Get-Process -Id <pid> | Select-Object Id, WorkingSet64, Threads, Handles
 
 A working set, thread count or handle count that keeps climbing after the first few minutes is a leak.
 
+**Through R2 and R1, measured 2026-11-15.** `X25emuTraffic_ThroughR2AndR1_ToAnEchoOnOurSwitch_EveryPacketComesBack`
+runs x25emu's own `x25traffic` in WSL. The calls go by XOT to R2, over the serial cable to R1, by XOT to our C# switch on
+TCP 1998, and to an echo on the switch's access port at 23430201 that returns every packet. 128-octet packets, window 7:
+
+With the bench as described above (idle sleep 1 ms, serial windows 7):
+
+| Run (x25traffic options) | Result |
+|---|---|
+| `-n 200 -r 0` (full speed) | 200 of 200 back, 127 kbit/s each way |
+| `-n 600 -r 20` | 600 of 600 back, 20 kbit/s each way |
+| `-n 900 -r 30` | 900 of 900 back, 30 kbit/s each way |
+| `-n 1200 -r 40` | 1200 of 1200 back, 40 kbit/s each way |
+| `-C -n 16 -r 2 -p 3` (16 calls, 3 packets each) | 16 of 16 connected, 16 of 16 cleared |
+| `-n 12000 -r 20` (10 minutes, measured with idle sleep 30 ms) | 12 000 of 12 000 back, none lost, doubled or out of order, 606.8 s |
+| `-n 24000 -r 40` (10 minutes) | 24 000 of 24 000 back, none lost, doubled or out of order, 614.8 s |
+| `-n 20000 -r 0` (full speed, long) | 20 000 of 20 000 back, none lost. Sent in about 205 s, but the last echo came back about 8 minutes after the start: under full load both ways the way back runs at about 24 to 42 packets a second against about 117 out. Open, `PLAN.md` A1a |
+| `-n 6000 -r 0`, echo sends nothing back (`_OneWayFullSpeed`) | 6000 of 6000 reach our switch, about 119 packets (122 kbit/s) a second |
+
+**Where the full-speed limit is (2026-11-15).** Read from our trunk capture and R1's serial debug in the same 2 seconds
+of a long run: R1 takes in our packets from XOT only about 24 times a second while it sends us 117 a second; our window to
+R1 is full most of the time and R1's window to R2 is not. Our side keeps to the window and acknowledges at once. Each
+Dynamips process runs at 100% of one laptop core while this happens, so the limit is inside the emulated R1, and this
+bench cannot say whether a real Cisco has it. That needs real Cisco hardware.
+
+Before the two bench changes, 40 a second and full speed failed (34 to 94% back): the way back ran at about 26 to 29
+packets a second, the echo's packets queued on our side, and x25traffic gave up on them. How it was found, from the
+packets: our trunk to R1 showed R1 acknowledging our packets only as it passed them on; R1's serial debug showed R1
+keeping 2 or 3 packets unacknowledged towards R2 (the line's default window 2) and every timestamp on a 32 ms beat (the
+idle sleep). Without the routers (x25emu straight to our switch, same test) both cases passed at once, 12 Mbit/s.
+
+x25emu's `x25traffic` also had to be fixed: it waited a fixed 2 seconds after its last send for the echoes and counted
+the rest as lost even while they were still arriving (a full-speed run read 97.5% with all 200 sent back). It now waits
+until 2 seconds pass with nothing new. A call storm of more than 16 calls cannot be run from one x25emu client: it
+holds at most 16 TCP connections (`X25C_MAX_CONNS`), and XOT uses one per call. The echo in the test must be opened with
+`NumVcs` above the number of calls; the client's default is 8.
+
 **Through the Cisco.** Type into R2's PAD with `x25pad` (or `x25pad --telnet-port`) to keep a call
 open through R1 for hours. Packet counts will not match (the PAD answers with its own bytes); the
 useful checks are that the call stays up and that R1 stays healthy: `show x25 vc` on R1 (standard IOS
@@ -801,6 +868,12 @@ flowchart LR
 
 The TAD runtime listens on **1998**, the same port our switch's trunk port uses, so run **either** the switch
 or the TAD runtime, not both, on this PC. Going through the switch was not tried.
+
+**Only a call that R1 starts itself can reach the TAD this way.** A call that comes INTO R1 over XOT (from x25emu, from
+our switch, from any XOT caller) and matches the `^2343 xot` route is cleared by R1 with cause 13, diagnostic 64; Cisco
+does not pass an XOT call on to an XOT destination (measured 2026-11-15, see [cisco-learnings.md](cisco-learnings.md)).
+Send such a call to R2 (192.168.1.156) instead: R2 passes it over the serial cable, and from there R1 sends it on
+to the TAD (section 1, test 13).
 
 The entry in the sample is a `Server` entry (it only listens). Since 2026-11-12 the Configuration window also
 offers **Both ways (peer)**: the same entry, with R1's address as the peer, also dials R1 when a call is routed to
