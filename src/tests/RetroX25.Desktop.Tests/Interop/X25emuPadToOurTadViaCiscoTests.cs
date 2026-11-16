@@ -293,7 +293,10 @@ namespace RetroX25.Desktop.Tests
                 // NumVcs: the client takes 8 calls at once by default, which a call storm of 16 would overrun.
                 echo.Open(new X25ClientConfig { Host = "127.0.0.1", Port = access.BoundPort, LocalAddress = "23430201", Framing = X25ClientFraming.Xot, NumVcs = 64 }, NullLogger.Instance);
 
-                List<string> command = new List<string> { X25emuEnvironment.ToolPath("x25traffic"), "-x", router + ":1998", "-d", "23430201" };
+                // X25_TRAFFIC_CALLED: the number x25traffic calls. 23430201 by default; a router can rewrite another number to it on the
+                // way (x25 route ... substitute-dest), which lets the same echo be reached by a different path through the routers.
+                string called = Environment.GetEnvironmentVariable("X25_TRAFFIC_CALLED") ?? "23430201";
+                List<string> command = new List<string> { X25emuEnvironment.ToolPath("x25traffic"), "-x", router + ":1998", "-d", called };
                 command.AddRange(arguments.Split(' ', StringSplitOptions.RemoveEmptyEntries));
                 using X25emuEnvironment.LinuxProcess traffic = new X25emuEnvironment.LinuxProcess(string.Empty, command.ToArray());
                 bool finished = traffic.WaitForExit(timeoutMs);
