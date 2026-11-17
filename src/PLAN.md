@@ -177,3 +177,29 @@ x25emu. What is left:
 - RetroIO `src/tests/demo/` is a dead copy of an old demo (its README now says so).
 - x25emu: `HANDOFF-pvc.md` (untracked, not ours) is out of date; the "Multi-connection access ports" line in its README
   was not confirmed.
+
+## F. After SINTRAN X.25 works: bring x25emu and the C# switch into step, then test all three
+
+Ready since 2026-11-17: the SINTRAN K COSMOS X.25 link runs against the C# switch, SINTRAN as DTE and the
+switch port as DCE (NDInsight `Installation/Communication/X.25/COSMOS-X25-OPTION-C00/README.md`, "The right
+pairing"). Still to do first, on the SINTRAN side: PAD-to-TAD through the switch.
+
+### F1. Port to x25emu what changed in the C# switch on 2026-11-16 (or show it is already right there)
+
+- `hdlc-tcp` port: `tcp = listen | dial`, which end opens the TCP connection, separate from `mode = dte | dce`
+  (not written = as before: DCE listens, DTE dials). C#: `PortTcpRole`, `PortConfig.TcpListens`,
+  `SwitchConfigLoader`, `HdlcTcpSwitchPort`; tests `SwitchTcpRoleTests`.
+- LAPB, ITU dialect: a DM answering our SABM clears "our SABM is waiting"; with crossing SABMs, T1 enters
+  information transfer instead of sending the SABM again (X.25 2.4.4.1, 2.4.5.11.1). C#: `LapbLayer.cs`;
+  tests `LapbItuLinkSetupTests`.
+- LAPB station: "data transfer" only once the engine says the link is up. C#: `LapbStation.SyncState`;
+  test `CrossingSabms_DataTransferOnlyOnceTheUaToOursArrives`.
+- UA F bit copies the SABM's P bit (another session's change, same day). C#: `LapbLayer.cs`.
+Proved by: the same cases as unit tests in x25emu, each vector taken from the X.25 text.
+
+### F2. Thorough tests across all three
+
+C# switch, x25emu and GNS3/Cisco, every pair in both directions, on XOT and on hdlc-tcp where the peer has it:
+link set-up (one SABM, crossing SABMs, SABM refused with DM), keepalive polls over minutes, restart, calls,
+data with sequence wrap, clear. Then SINTRAN X.25 against each of the three. Proved by: decoded captures of
+every run kept with the results in `docs/crossenv-testing.md`.
