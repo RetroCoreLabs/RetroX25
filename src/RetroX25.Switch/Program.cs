@@ -154,6 +154,9 @@ namespace RetroX25.Switch
             {
                 ISwitchPort p = node.Ports[i];
                 p.DataReceived += (port, lci, data, length, q, m, d) => mgmt.OnPortData(port, lci, data, length, q, m, d);
+                // A cleared call ends its management session; without this a later call on the same channel was
+                // answered by the old console (see ManagementHost.OnPortCallCleared).
+                p.CallCleared += mgmt.OnPortCallCleared;
             }
 
             cli.ClearVcHandler = (portId, lci) => ClearVc(node, portId, lci);

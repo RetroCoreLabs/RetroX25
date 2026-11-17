@@ -171,6 +171,36 @@ namespace RetroX25.Switch
         }
 
         /// <summary>
+        /// Ends the management session on a channel when its call is cleared, whoever cleared it.
+        /// </summary>
+        /// <remarks>
+        /// Wire this to every port's <see cref="ISwitchPort.CallCleared"/>. A management call has no stitch, so the
+        /// switch's general clear handling (and with it <see cref="OnCallClear"/>) never reaches it. Before this
+        /// existed only a QUIT typed in the console removed a session: when the caller cleared, the session stayed,
+        /// and the next call on the same port and channel was joined by the old console, which answered its data
+        /// (measured 2026-11-17 with SINTRAN's X.29 PAD on channel 1031).
+        /// </remarks>
+        /// <param name="port">
+        /// The port the call was on.
+        /// </param>
+        /// <param name="lci">
+        /// The logical channel that cleared.
+        /// </param>
+        /// <param name="cause">
+        /// Clearing cause (unused).
+        /// </param>
+        /// <param name="diagnostic">
+        /// Diagnostic code (unused).
+        /// </param>
+        public void OnPortCallCleared(ISwitchPort port, ushort lci, byte cause, byte diagnostic)
+        {
+            lock (_lock)
+            {
+                _sessions.Remove(Key(port.Id, lci));
+            }
+        }
+
+        /// <summary>
         /// Pushes a call-setup event to monitoring and subscribed sessions.
         /// </summary>
         /// <param name="callingAddress">
