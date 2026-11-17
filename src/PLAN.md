@@ -40,8 +40,9 @@ Measured 2026-11-16 on GNS3 (idle sleep 1 ms, idle-PC off, serial windows 7):
 
 ### A2. RetroIO test that fails only in a full run
 `ASabmOnAnUpLink_ResetsTheLink_RestartsX25_AndIsCounted` failed once in the full X.25 suite (2026-11-17, 5 s, after
-1240 others passed) and passed three times alone (about 130 ms). Cause not found yet: find what it waits on by time
-instead of by event.
+1240 others passed) and passed three times alone (about 130 ms). A second full run the same day passed (1253 passed,
+0 failed). The first failure's message was not kept, so which of its waits ran out is not known. Next: when it fails
+again, keep the full test output (the assertion names the step), then find what that step waits on.
 
 ### A6. Housekeeping
 - The work is committed by topic in both repositories and not pushed. RetroX25 pushes from WSL (Windows has no
