@@ -83,6 +83,8 @@ monitor_port = 4101
 name = Switch Alpha
 location = Local Lab
 mgmt_addr = 23400000
+# One record line per call, in the state folder (the switch runs there); the billing test reads it.
+cdr_file = calls.cdr
 
 [user.0]
 name = admin
@@ -251,6 +253,17 @@ port = 4
 name = pad_users
 addr_start = 23400000
 addr_end = 23409999
+
+# x25traffic always calls from 99990001; the billing test bills its calls to this account in both switches.
+[account.1]
+name = traffic
+addr_start = 99990000
+addr_end = 99999999
+
+# Reached only by naming the NUI (x25pad -n CARD7); the billing test checks it stops at Switch A.
+[account.2]
+name = card7
+nui = CARD7
 EOF
 
 cd "$STATE" || exit 2

@@ -20,22 +20,22 @@ namespace RetroX25.Desktop.Views;
 
 /// <summary>
 /// The Status window (Ctrl+1): the one place that shows the counters, as one table with a row for each
-/// counter and a column for the engine's total and for each link and each transport interface.
+/// counter and a column for the engine's total and for each link and each transport interface; and under
+/// it the accounts of the built-in switch, a column for each account.
 /// </summary>
 /// <remarks>
-/// The columns depend on the links and interfaces that exist, so the table is built here in code
-/// instead of in the layout file. The cells are named <c>Cell_row_column</c> (row and column count
-/// from 0; column 0 is the total) and the row names <c>Label_row</c>, so a test can find them.
+/// The columns depend on the links, interfaces and accounts that exist, so the tables are built here in
+/// code instead of in the layout file. The counter cells are named <c>Cell_row_column</c> (row and column
+/// count from 0; column 0 is the total) and the row names <c>Label_row</c>; the account cells
+/// <c>AccountCell_row_column</c> and <c>AccountLabel_row</c>, so a test can find them.
 /// </remarks>
 public partial class StatusWindow : Window
 {
     private static readonly FontFamily NumberFont = new FontFamily("Consolas,Courier New");
 
-    // What the table on the screen was built from; when it is the same shape the cells are only updated.
-    private string _shape = string.Empty;
-
-    // The cell controls of the table on the screen, row by row.
-    private readonly List<TextBlock[]> _cells = new List<TextBlock[]>();
+    // The counters table and the accounts table, each with what it was built from and its cells.
+    private readonly TableOnScreen _counters = new TableOnScreen("TableHost", string.Empty, "Counter");
+    private readonly TableOnScreen _accounts = new TableOnScreen("AccountsHost", "Account", "Account figure");
 
     /// <summary>
     /// Creates the window and loads its layout, with no view-model attached.
@@ -56,8 +56,9 @@ public partial class StatusWindow : Window
     {
         DataContext = viewModel;
 
-        // Show the table now, and again each time the view-model has a new one.
-        ShowTable(viewModel.Table);
+        // Show the tables now, and again each time the view-model has a new one.
+        ShowTable(_counters, viewModel.Table);
+        ShowTable(_accounts, viewModel.AccountsTable);
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
         Closed += (sender, e) => viewModel.PropertyChanged -= OnViewModelPropertyChanged;
 
@@ -74,27 +75,44 @@ public partial class StatusWindow : Window
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(StatusWindowViewModel.Table) && sender is StatusWindowViewModel vm)
+        if (sender is not StatusWindowViewModel vm)
         {
-            ShowTable(vm.Table);
+            return;
+        }
+
+        if (e.PropertyName == nameof(StatusWindowViewModel.Table))
+        {
+            ShowTable(_counters, vm.Table);
+        }
+        else if (e.PropertyName == nameof(StatusWindowViewModel.AccountsTable))
+        {
+            ShowTable(_accounts, vm.AccountsTable);
         }
     }
 
-    // Puts the table on the screen. A table with the same columns and rows as the one shown only gets
-    // new cell texts; a different one (a link came or went) is built again.
-    private void ShowTable(StatisticsTable table)
+    // Puts a table on the screen. A table with the same columns and rows as the one shown only gets
+    // new cell texts; a different one (a link or an account came or went) is built again. A table with
+    // no columns (no accounts) is shown as nothing.
+    private void ShowTable(TableOnScreen screen, StatisticsTable table)
     {
-        Border? host = this.FindControl<Border>("TableHost");
+        Border? host = this.FindControl<Border>(screen.HostName);
         if (host == null)
         {
             return;
         }
 
-        string shape = ShapeOf(table);
-        if (shape != _shape || host.Child == null)
+        if (table.Headers.Count == 0)
         {
-            host.Child = BuildGrid(table);
-            _shape = shape;
+            host.Child = null;
+            screen.Shape = string.Empty;
+            return;
+        }
+
+        string shape = ShapeOf(table);
+        if (shape != screen.Shape || host.Child == null)
+        {
+            host.Child = BuildGrid(screen, table);
+            screen.Shape = shape;
             return;
         }
 
@@ -103,7 +121,7 @@ public partial class StatusWindow : Window
             StatisticsRow row = table.Rows[r];
             for (int c = 0; c < row.Cells.Length; c++)
             {
-                SetCell(_cells[r][c], row.Cells[c], row.IsProblem);
+                SetCell(screen.Cells[r][c], row.Cells[c], row.IsProblem);
             }
         }
     }
@@ -125,9 +143,9 @@ public partial class StatusWindow : Window
         return text.ToString();
     }
 
-    private Grid BuildGrid(StatisticsTable table)
+    private static Grid BuildGrid(TableOnScreen screen, StatisticsTable table)
     {
-        _cells.Clear();
+        screen.Cells.Clear();
         int columns = table.Headers.Count;
 
         Grid grid = new Grid();
@@ -142,11 +160,11 @@ public partial class StatusWindow : Window
         // Header row: the name of each column and, under it, what kind it is.
         int gridRow = 0;
         grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-        grid.Children.Add(Place(new TextBlock { Text = "Counter", FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 0, 12, 6) }, gridRow, 0, 1));
+        grid.Children.Add(Place(new TextBlock { Text = screen.CornerText, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 0, 12, 6) }, gridRow, 0, 1));
         for (int c = 0; c < columns; c++)
         {
             StackPanel head = new StackPanel { Margin = new Thickness(8, 0, 0, 6), HorizontalAlignment = HorizontalAlignment.Right };
-            head.Children.Add(new TextBlock { Name = "Header_" + c, Text = table.Headers[c], FontWeight = FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Right });
+            head.Children.Add(new TextBlock { Name = screen.NamePrefix + "Header_" + c, Text = table.Headers[c], FontWeight = FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Right });
             head.Children.Add(new TextBlock { Text = table.Kinds[c], FontSize = 10, Opacity = 0.6, HorizontalAlignment = HorizontalAlignment.Right });
             grid.Children.Add(Place(head, gridRow, c + 1, 1));
         }
@@ -171,7 +189,7 @@ public partial class StatusWindow : Window
             grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
             TextBlock label = new TextBlock
             {
-                Name = "Label_" + r,
+                Name = screen.NamePrefix + "Label_" + r,
                 Text = row.Label,
                 FontSize = 12,
                 Margin = new Thickness(0, 1, 12, 1)
@@ -190,7 +208,7 @@ public partial class StatusWindow : Window
             {
                 TextBlock cell = new TextBlock
                 {
-                    Name = "Cell_" + r + "_" + c,
+                    Name = screen.NamePrefix + "Cell_" + r + "_" + c,
                     FontFamily = NumberFont,
                     FontSize = 12,
                     Margin = new Thickness(8, 1, 0, 1),
@@ -201,7 +219,7 @@ public partial class StatusWindow : Window
                 grid.Children.Add(Place(cell, gridRow, c + 1, 1));
             }
 
-            _cells.Add(rowCells);
+            screen.Cells.Add(rowCells);
         }
 
         return grid;
@@ -231,5 +249,27 @@ public partial class StatusWindow : Window
         Grid.SetColumn(control, column);
         Grid.SetColumnSpan(control, columnSpan);
         return control;
+    }
+
+    // One table on the screen: the panel it goes in, the start of its control names, the text over its
+    // first column, what it was last built from, and its cell controls row by row.
+    private sealed class TableOnScreen
+    {
+        public TableOnScreen(string hostName, string namePrefix, string cornerText)
+        {
+            HostName = hostName;
+            NamePrefix = namePrefix;
+            CornerText = cornerText;
+        }
+
+        public string HostName { get; }
+
+        public string NamePrefix { get; }
+
+        public string CornerText { get; }
+
+        public string Shape { get; set; } = string.Empty;
+
+        public List<TextBlock[]> Cells { get; } = new List<TextBlock[]>();
     }
 }

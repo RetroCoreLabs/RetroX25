@@ -95,6 +95,7 @@ public sealed class EmbeddedSwitchService : IDisposable
     private readonly EmbeddedSwitchOptions _options;
     private readonly ILogger _logger;
     private SwitchNode? _node;
+    private CdrFileWriter? _cdrWriter;
     private string _failure = string.Empty;
     private IReadOnlyList<PortConfig> _configuredPorts = Array.Empty<PortConfig>();
 
@@ -141,6 +142,35 @@ public sealed class EmbeddedSwitchService : IDisposable
     }
 
     /// <summary>
+    /// The switch's accounts with their running totals (read-only); empty while the switch is not running. The Status
+    /// window shows them; nothing here changes them.
+    /// </summary>
+    public IReadOnlyList<SwitchAccount> Accounts
+    {
+        get
+        {
+            SwitchNode? node = _node;
+            return node != null ? node.Accounts : Array.Empty<SwitchAccount>();
+        }
+    }
+
+    /// <summary>
+    /// The call record file the running switch writes (<c>cdr_file</c>); empty when it writes none or is not running.
+    /// The bill window starts with it.
+    /// </summary>
+    public string CdrFile => _node?.Config.CdrFile ?? string.Empty;
+
+    /// <summary>
+    /// The price list the running switch names (<c>tariff_file</c>); empty when it names none or is not running.
+    /// </summary>
+    public string TariffFile => _node?.Config.TariffFile ?? string.Empty;
+
+    /// <summary>
+    /// The running switch's name (<c>name</c> in [switch]), printed at the head of a bill; empty when not set.
+    /// </summary>
+    public string NetworkName => _node?.Config.Name ?? string.Empty;
+
+    /// <summary>
     /// Starts the switch when the setting asks for it. Does nothing otherwise, and does nothing when it
     /// is already running.
     /// </summary>
@@ -169,6 +199,14 @@ public sealed class EmbeddedSwitchService : IDisposable
             SwitchCore core = new SwitchCore(node);
             GC.KeepAlive(core);
 
+            // The call record file named by cdr_file (same columns as the C emulator's x25switch). An error opening it
+            // is a failed start, like a port that does not start, rather than a switch that bills nothing.
+            if (!string.IsNullOrEmpty(config.CdrFile))
+            {
+                _cdrWriter = new CdrFileWriter(config.CdrFile);
+                core.CdrRecorded += _cdrWriter.Write;
+            }
+
             // A port that does not start is an error, not something to run on without (the same rule
             // as the x25switch program): the failure is kept and shown in the main window.
             List<string> failed = new List<string>();
@@ -187,6 +225,9 @@ public sealed class EmbeddedSwitchService : IDisposable
                     node.Ports[i].Stop();
                 }
 
+                _cdrWriter?.Dispose();
+                _cdrWriter = null;
+
                 _failure = "port(s) " + string.Join(", ", failed) + " did not start (for a listening port: is it already in use, for example by an x25switch program? for a serial port: can the device be opened? The log has the reason)";
                 _logger.LogError("Built-in switch: {Failure}", _failure);
                 return false;
@@ -200,6 +241,8 @@ public sealed class EmbeddedSwitchService : IDisposable
         }
         catch (Exception ex)
         {
+            _cdrWriter?.Dispose();
+            _cdrWriter = null;
             _failure = ex.Message;
             _logger.LogError(ex, "Built-in switch failed to start from {File}", _options.ConfigFile);
             return false;
@@ -239,5 +282,9 @@ public sealed class EmbeddedSwitchService : IDisposable
         {
             node.Ports[i].Stop();
         }
+
+        // After the ports, so the calls their stopping clears are written too.
+        _cdrWriter?.Dispose();
+        _cdrWriter = null;
     }
 }

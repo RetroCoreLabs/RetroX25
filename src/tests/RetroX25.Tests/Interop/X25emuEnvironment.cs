@@ -58,6 +58,9 @@ namespace RetroX25.Tests
 
         internal static string? WindowsHost => Environment.GetEnvironmentVariable("X25EMU_WINDOWS_HOST");
 
+        /// <summary>The WSL folder the network runs in (demo/crossenv-test.ps1); Switch A's call records are <c>calls.cdr</c> there.</summary>
+        internal static string? State => Environment.GetEnvironmentVariable("X25EMU_STATE");
+
         private static string? Distro => Environment.GetEnvironmentVariable("X25EMU_WSL_DISTRO");
 
         internal static int OurXotPort => IntVariable("X25EMU_OUR_XOT_PORT", 2210);

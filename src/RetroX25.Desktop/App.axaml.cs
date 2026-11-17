@@ -203,6 +203,7 @@ public partial class App : Application
         services.AddTransient<RoutesWindowViewModel>();
         services.AddTransient<SimulateReceiveWindowViewModel>();
         services.AddTransient<LinkStatusWindowViewModel>();
+        services.AddTransient<InvoiceWindowViewModel>();
 
         // Configuration Routing Tab ViewModels
         services.AddTransient<SerialInterfacesTabViewModel>();

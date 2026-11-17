@@ -165,6 +165,7 @@ public static class StatisticsReader
     private const string Lapb = "LAPB (data link)";
     private const string X25 = "X.25 (packets and calls)";
     private const string PerLink = "Per link and interface";
+    private const string Accounts = "Accounts (built-in switch)";
 
     /// <summary>
     /// Reads the engine and builds the table.
@@ -396,6 +397,55 @@ public static class StatisticsReader
             connErrors[0] = Number(sumConn);
             timeoutErrors[0] = Number(sumTimeoutErrors);
             protocolErrors[0] = Number(sumProtocol);
+        }
+
+        return table;
+    }
+
+    /// <summary>
+    /// Builds the billing table of the built-in switch: one column for each account, one row for each figure. The
+    /// figures are the switch's own account totals, the same ones <c>show x25 account</c> and <c>GET_ACCOUNTS</c> give,
+    /// so the window, the console and the record file agree (see docs/billing.md).
+    /// </summary>
+    /// <remarks>
+    /// These are the bill. "Reset Statistics" resets the engine's counters, not these: a bill is never zeroed from a
+    /// screen.
+    /// </remarks>
+    /// <param name="accounts">The switch's accounts, in their order; empty for none.</param>
+    /// <returns>The table; it has no columns when there are no accounts.</returns>
+    public static StatisticsTable BuildAccounts(IReadOnlyList<RetroIO.Protocols.X25.Switch.Model.SwitchAccount> accounts)
+    {
+        StatisticsTable table = new StatisticsTable();
+        for (int i = 0; i < accounts.Count; i++)
+        {
+            RetroIO.Protocols.X25.Switch.Model.SwitchAccount a = accounts[i];
+            table.Headers.Add(a.Name);
+            table.Kinds.Add(a.Nui.Length > 0 ? "NUI " + a.Nui : a.AddrStart + " to " + a.AddrEnd);
+        }
+
+        string[] up = AddRow(table, Accounts, "Calls up now", false);
+        string[] made = AddRow(table, Accounts, "Calls made", false);
+        string[] received = AddRow(table, Accounts, "Calls received", false);
+        string[] pSent = AddRow(table, Accounts, "Packets sent", false);
+        string[] pRecv = AddRow(table, Accounts, "Packets received", false);
+        string[] bSent = AddRow(table, Accounts, "Bytes sent", false);
+        string[] bRecv = AddRow(table, Accounts, "Bytes received", false);
+        string[] sSent = AddRow(table, Accounts, "Segments sent", false);
+        string[] sRecv = AddRow(table, Accounts, "Segments received", false);
+        string[] time = AddRow(table, Accounts, "Call time", false);
+        for (int i = 0; i < accounts.Count; i++)
+        {
+            RetroIO.Protocols.X25.Switch.Model.SwitchAccount a = accounts[i];
+            up[i] = Number(a.CallsActive);
+            made[i] = Number(a.CallsMade);
+            received[i] = Number(a.CallsReceived);
+            pSent[i] = Number((long)a.PacketsSent);
+            pRecv[i] = Number((long)a.PacketsReceived);
+            bSent[i] = Number((long)a.BytesSent);
+            bRecv[i] = Number((long)a.BytesReceived);
+            sSent[i] = Number((long)a.SegmentsSent);
+            sRecv[i] = Number((long)a.SegmentsReceived);
+            time[i] = FormatTimeSpan(TimeSpan.FromMilliseconds(a.TotalDurationMs));
         }
 
         return table;

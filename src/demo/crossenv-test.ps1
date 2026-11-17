@@ -38,6 +38,10 @@
 .PARAMETER Filter
   The test filter. Default Category=Interop.
 
+.PARAMETER Configuration
+  The build the tests run from, Debug (default) or Release. Release is a separate output folder, so it still builds
+  while a program started from the Debug folder holds its files open.
+
 .PARAMETER NoStart
   Do not start the network: it is already running (the checker in the tests says what is missing if it is not).
 
@@ -55,6 +59,7 @@ param(
     [int]$OurXotPort = 2210,
     [int]$OurHdlcPort = 2211,
     [string]$Filter = 'Category=Interop',
+    [string]$Configuration = 'Debug',
     [switch]$NoStart,
     [switch]$CheckOnly
 )
@@ -163,6 +168,8 @@ try {
     $env:X25EMU_WINDOWS_HOST = $WindowsHost
     $env:X25EMU_OUR_XOT_PORT = "$OurXotPort"
     $env:X25EMU_OUR_HDLC_PORT = "$OurHdlcPort"
+    # The WSL folder the network runs in; Switch A writes its call records there (calls.cdr).
+    $env:X25EMU_STATE = $stateDir
     if ($Distro) { $env:X25EMU_WSL_DISTRO = $Distro }
 
     # ---- 4. the tests --------------------------------------------------------------------------------------
@@ -172,7 +179,7 @@ try {
     $exitCode = 0
     foreach ($project in $projects) {
         Write-Host "dotnet test $project --filter $filter"
-        & dotnet test (Join-Path $srcRoot $project) --filter $filter -nodeReuse:false --nologo
+        & dotnet test (Join-Path $srcRoot $project) -c $Configuration --filter $filter -nodeReuse:false --nologo
         if ($LASTEXITCODE -ne 0) { $exitCode = $LASTEXITCODE }
     }
 }

@@ -37,7 +37,10 @@ namespace RetroX25.Tests
             public readonly List<string> Packets = new List<string>();
             public readonly List<(string Where, bool In, X25PacketInfo Info)> Decoded = new List<(string, bool, X25PacketInfo)>();
 
-            public OurSwitch()
+            /// <summary>Every call record our switch wrote, as the line the record file would hold.</summary>
+            public readonly List<string> Records = new List<string>();
+
+            public OurSwitch(AccountConfig? account = null)
             {
                 SwitchConfig config = new SwitchConfig { Dnic = "2350" };
                 config.Routing.AddRoute(new X121Route { Type = X121RouteType.Dnic, Dnic = "2350", DestPort = 0 });
@@ -63,7 +66,13 @@ namespace RetroX25.Tests
                 Trunk.PacketCaptured += (id, inbound, packet) => Record("trunk ", inbound, packet);
                 node.AddPort(Access);
                 node.AddPort(Trunk);
+                if (account != null)
+                {
+                    Assert.That(node.AddAccount(account), Is.True);
+                }
+
                 _core = new SwitchCore(node);
+                _core.CdrRecorded += cdr => { lock (Records) { Records.Add(CdrFileWriter.Format(cdr)); } };
                 Assert.That(Access.Start(), Is.True);
                 Assert.That(Trunk.Start(), Is.True, "the trunk could not start: " + Trunk.LastError);
                 Assert.That(SpinWait.SpinUntil(() => Trunk.PeerConnected, 15000), Is.True,
@@ -203,6 +212,143 @@ namespace RetroX25.Tests
                 Assert.That(clearedAtEcho!.Value.Cause, Is.EqualTo((byte)0));
                 Assert.That(clearedAtEcho.Value.Diagnostic, Is.EqualTo((byte)0));
             }
+        }
+
+        /// <summary>
+        /// Billing through both switches. x25emu's x25traffic (calling address 99990001) sends 20 data packets of 128
+        /// octets from Switch A's access port to an echo behind our switch (23500001), and the echo returns each one. Both
+        /// switches bill the call to an account named <c>traffic</c> covering 99990000-99999999 (the network script gives
+        /// Switch A the same one), and both write a record line.
+        /// </summary>
+        /// <remarks>
+        /// The expected figures are worked from the rules, not taken from either switch: each packet is a whole message
+        /// (M bit off), and ITU-T D.12 counts a message in 64-octet segments rounded up once - ceil(128 / 64) = 2. So each
+        /// direction is 20 packets, 20 x 128 = 2560 octets and 20 x 2 = 40 segments. The columns are those of
+        /// src/docs/billing.md: 7/8 packets, 9/10 bytes, 17/18 segments, 19 the paying account (1-based).
+        /// </remarks>
+        [Test]
+        public void ACallThroughBothSwitches_IsBilledToTheSameAccount_WithTheSameSegments()
+        {
+            X25emuEnvironment.RequireReady();
+            if (string.IsNullOrWhiteSpace(X25emuEnvironment.State))
+            {
+                Assert.Ignore("Set X25EMU_STATE (the WSL folder of the running x25emu network); demo/crossenv-test.ps1 does it.");
+            }
+
+            const int Packets = 20;
+            const int Octets = 128;
+            string cdrPath = X25emuEnvironment.State + "/calls.cdr";
+            int linesBefore = ReadLines(cdrPath).Length;
+
+            using OurSwitch ours = new OurSwitch(new AccountConfig { Name = "traffic", AddrStart = "99990000", AddrEnd = "99999999" });
+            int returned = 0;
+            using X25Client echo = new X25Client { ServiceName = "our-echo" };
+            echo.SetOnIncoming((c, vc) => c.Accept(vc));
+            echo.SetOnData((c, vc, data, length, qBit, mBit, dBit) =>
+            {
+                if (c.Send(vc, data, length, qBit))
+                {
+                    Interlocked.Increment(ref returned);
+                }
+            });
+            echo.Open(new X25ClientConfig { Host = "127.0.0.1", Port = ours.Access.BoundPort, LocalAddress = "23500001", Framing = X25ClientFraming.Xot }, NullLogger.Instance);
+
+            // -r 20: twenty a second, so the echo's replies never wait on a shut window inside the receive callback.
+            using X25emuEnvironment.LinuxProcess traffic = new X25emuEnvironment.LinuxProcess(string.Empty,
+                X25emuEnvironment.ToolPath("x25traffic"), "-x", "127.0.0.1:" + X25emuEnvironment.AccessA, "-d", "23500001",
+                "-n", Packets.ToString(), "-s", Octets.ToString(), "-r", "20");
+            Assert.That(traffic.WaitForExit(60000), Is.True, "x25traffic did not finish:\n" + traffic.Output);
+            Assert.That(Volatile.Read(ref returned), Is.EqualTo(Packets), "the echo did not return every packet:\n" + traffic.Output + "\nours:\n" + ours.Dump());
+
+            Assert.That(SpinWait.SpinUntil(() => { lock (ours.Records) { return ours.Records.Count >= 1; } }, 10000), Is.True, "our switch wrote no record");
+            string[] after = Array.Empty<string>();
+            Assert.That(SpinWait.SpinUntil(() => (after = ReadLines(cdrPath)).Length > linesBefore, 10000), Is.True, "x25emu wrote no record in " + cdrPath);
+            string theirs = after[after.Length - 1];
+            string mine;
+            lock (ours.Records)
+            {
+                Assert.That(ours.Records.Count, Is.EqualTo(1), string.Join("\n", ours.Records));
+                mine = ours.Records[0];
+            }
+
+            TestContext.Progress.WriteLine("x25emu Switch A: " + theirs);
+            TestContext.Progress.WriteLine("our switch:      " + mine);
+            string[] lines = { theirs, mine };
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string[] col = lines[i].Split(',');
+                string who = (i == 0 ? "x25emu: " : "ours: ") + lines[i];
+                Assert.That(col.Length, Is.EqualTo(23), who);
+                Assert.That(col[2], Is.EqualTo("99990001"), "calling address, " + who);
+                Assert.That(col[3], Is.EqualTo("23500001"), "called address, " + who);
+                Assert.That(col[6], Is.EqualTo(Packets.ToString()), "packets forward, " + who);
+                Assert.That(col[7], Is.EqualTo(Packets.ToString()), "packets back, " + who);
+                Assert.That(col[8], Is.EqualTo((Packets * Octets).ToString()), "bytes forward, " + who);
+                Assert.That(col[9], Is.EqualTo((Packets * Octets).ToString()), "bytes back, " + who);
+                Assert.That(col[16], Is.EqualTo((Packets * 2).ToString()), "segments forward, " + who);
+                Assert.That(col[17], Is.EqualTo((Packets * 2).ToString()), "segments back, " + who);
+                Assert.That(col[18], Is.EqualTo("traffic"), "paying account, " + who);
+                Assert.That(col[21], Is.EqualTo("caller"), "who is charged, " + who);
+            }
+        }
+
+        /// <summary>
+        /// A NUI is billed where it enters the network and goes no further. x25emu's PAD, started with <c>-n CARD7</c>,
+        /// calls our echo through Switch A; Switch A bills the account that has that NUI (<c>card7</c>, from the network
+        /// script) and, as X.25 6.21 says ("never transmitted to the remote DTE"), takes the NUI off the call before
+        /// passing it on. Our switch, with no accounts, therefore records no NUI and no paying account.
+        /// </summary>
+        [Test]
+        public void ANui_IsBilledAtTheFirstSwitch_AndDoesNotTravelFurther()
+        {
+            X25emuEnvironment.RequireReady();
+            if (string.IsNullOrWhiteSpace(X25emuEnvironment.State))
+            {
+                Assert.Ignore("Set X25EMU_STATE (the WSL folder of the running x25emu network); demo/crossenv-test.ps1 does it.");
+            }
+
+            string cdrPath = X25emuEnvironment.State + "/calls.cdr";
+            int linesBefore = ReadLines(cdrPath).Length;
+            using OurSwitch ours = new OurSwitch();
+            using X25Client echo = new X25Client { ServiceName = "our-echo" };
+            echo.SetOnIncoming((c, vc) => c.Accept(vc));
+            echo.SetOnData((c, vc, data, length, qBit, mBit, dBit) => c.Send(vc, data, length, qBit));
+            echo.Open(new X25ClientConfig { Host = "127.0.0.1", Port = ours.Access.BoundPort, LocalAddress = "23500001", Framing = X25ClientFraming.Xot }, NullLogger.Instance);
+
+            using X25emuEnvironment.LinuxProcess pad = new X25emuEnvironment.LinuxProcess(string.Empty,
+                X25emuEnvironment.ToolPath("x25pad"), "-x", "127.0.0.1:" + X25emuEnvironment.AccessA, "-a", "23400055", "-n", "CARD7");
+            Assert.That(SpinWait.SpinUntil(() => pad.Output.Contains("PAD ready"), 10000), Is.True, pad.Output);
+            pad.Write("CALL 23500001\r");
+            Assert.That(SpinWait.SpinUntil(() => pad.Output.Contains("\nCON"), 15000), Is.True, "not connected:\n" + pad.Output + "\nours:\n" + ours.Dump());
+            pad.Write("PAID-BY-CARD7\r");
+            Assert.That(SpinWait.SpinUntil(() => CountOf(pad.Output, "PAID-BY-CARD7") >= 1, 10000), Is.True, pad.Output);
+            pad.Write("\u0010");
+            pad.Write("CLR\r");
+
+            Assert.That(SpinWait.SpinUntil(() => { lock (ours.Records) { return ours.Records.Count >= 1; } }, 10000), Is.True, "our switch wrote no record");
+            string[] after = Array.Empty<string>();
+            Assert.That(SpinWait.SpinUntil(() => (after = ReadLines(cdrPath)).Length > linesBefore, 10000), Is.True, "x25emu wrote no record");
+            string[] theirs = after[after.Length - 1].Split(',');
+            string[] mine;
+            lock (ours.Records)
+            {
+                mine = ours.Records[0].Split(',');
+            }
+
+            string both = "x25emu: " + after[after.Length - 1] + "\nours:   " + string.Join(",", mine);
+            TestContext.Progress.WriteLine(both);
+            Assert.That(theirs[2], Is.EqualTo("23400055"), both);
+            Assert.That(theirs[18], Is.EqualTo("card7"), "Switch A bills the NUI's account, not the address range's\n" + both);
+            Assert.That(theirs[19], Is.EqualTo("CARD7"), both);
+            Assert.That(mine[2], Is.EqualTo("23400055"), both);
+            Assert.That(mine[19], Is.Empty, "the NUI reached our switch: X.25 6.21 says it does not travel\n" + both);
+            Assert.That(mine[18], Is.Empty, "our switch has no accounts\n" + both);
+        }
+
+        private static string[] ReadLines(string wslPath)
+        {
+            string text = X25emuEnvironment.RunWsl("cat '" + wslPath + "' 2>/dev/null", 10000, out _);
+            return text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         }
 
         private static int CountOf(string text, string what)

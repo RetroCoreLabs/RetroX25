@@ -57,9 +57,16 @@
             </StackPanel>
         </Border>
 
-        <!-- The table is put into this panel by the code behind. -->
+        <!--
+            The tables are put into these panels by the code behind: the counters, then the accounts of the
+            built-in switch (a column for each account; empty, and hidden, when there are none). The accounts
+            are the bill, so Reset Statistics does not reset them.
+        -->
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <Border Name="TableHost" Margin="12"/>
+            <StackPanel Margin="12" Spacing="16">
+                <Border Name="TableHost"/>
+                <Border Name="AccountsHost"/>
+            </StackPanel>
         </ScrollViewer>
 
     </DockPanel>

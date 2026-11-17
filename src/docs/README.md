@@ -18,6 +18,12 @@ main `README.md` at the top of the repository); these guides cover things that a
 | [xot-peers.md](xot-peers.md) | How XOT peers work: dialling out, accepting in, the source address, and what NAT does. |
 | [modulo-128.md](modulo-128.md) | Why modulo 128 does not work at either layer, and how Cisco uses it. |
 
+## Billing
+
+| Guide | What it says |
+|---|---|
+| [billing.md](billing.md) | Accounts, NUIs and call records in both switches: what X.25 says, the settings, the PAD login, segments, and the record file column by column. |
+
 ## Using the Desktop app
 
 | Guide | What it says |

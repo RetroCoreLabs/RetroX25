@@ -1,6 +1,6 @@
 # RetroX25 plan - outstanding work only
 
-**Next:** B1 (facilities pass through the switch; B and D need it). Push (A6) only after Ronny has looked at the commits.
+**Next:** B1b (segment and duration counting in the C# switch, charging answer, PVC records), then B1c. Push (A6) only after Ronny has looked at the commits.
 
 Rules for this file: finished items are deleted, not ticked. Each item says what to build, how it is proved,
 and what it waits for. What was measured is in `docs/xot-peers.md`, `docs/trunk-links.md`,
@@ -38,6 +38,11 @@ Measured 2026-11-16 on GNS3 (idle sleep 1 ms, idle-PC off, serial windows 7):
   steps are in `docs/cisco-ios-x25-options.md` section 9.
 - Waits for: Ronny to set up the hardware.
 
+### A2. RetroIO test that fails only in a full run
+`ASabmOnAnUpLink_ResetsTheLink_RestartsX25_AndIsCounted` failed once in the full X.25 suite (2026-11-17, 5 s, after
+1240 others passed) and passed three times alone (about 130 ms). Cause not found yet: find what it waits on by time
+instead of by event.
+
 ### A6. Housekeeping
 - The work is committed by topic in both repositories and not pushed. RetroX25 pushes from WSL (Windows has no
   GitHub SSH key).
@@ -55,13 +60,40 @@ What is known (checked 2026-11-14): x25emu already has an X.75 port (`trunk_kind
 The C# switch has none. The Cisco IOS 12.4(24)T5 router has no X.75 command (only `x25 roa`); that no Cisco document says
 "no X.75" is not verified.
 
-### B1. Facilities pass through the switch
-Done 2026-11-14: the window and packet size are negotiated end to end (the onward Call Request asks for what the caller
-asked for, limited to the egress port's `max_packet_size`; the Call Accepted states what the far end agreed to). Every other
-facility is still dropped when the switch relays a call. Billing, X.75 and the hop count all need them to cross.
-- Build: carry the facility block from the incoming Call Request to the outgoing one, and back in Call Connected and
-  Clear. Unknown facilities pass as bytes.
-- Prove: unit test with a known facility block in, the same bytes out; a hop-count facility crosses a three-switch chain.
+### B1a. NUI: what is left (X.28 3.5.15.1.1, 5.2)
+- NUI in a Call Accepted (6.21.3): the C# switch clears the call when no account has it (Annex E, b) row 13: cause 3,
+  diag 84; `SwitchNuiTests.ANuiInTheCallAccepted_IsChecked`, 2026-11-17), and x25emu the same (its call-through-switch
+  test). A valid one now names the called side's account in both switches.
+- PAD users: `ID<nui>` / `IDOFF` done in the C# X.28 2026-11-17 (`X28NuiTests`): the NUI after `ID` is not echoed,
+  keeps its case, is never logged; spaces and control characters are discarded and `-` `,` `+` give `ERR` (3.5.15.1.1);
+  `ID` alone gives `ERR` (no prompting). X.28 defines no reply to a good one, so none is sent.
+  The PAD puts the NUI in every later Call Request as facility 0xC6 (done 2026-11-17; RetroX25.Pad's transport carries
+  it). The runtime PAD transport (RetroIO's internal one) cannot send facilities and refuses the call rather than drop
+  the NUI. `N<nui>-<address>` (also after CALL) done 2026-11-17: no echo inside the N request,
+  for that call only and instead of the ID one; any other facility request gives ERR and no call. Forgetting the NUI when the access path goes:
+  already true by construction - x25pad makes one PadClient per telnet connection (or one for the console), and the
+  NUI lives in it. `x25pad -n nui` done 2026-11-17 (keyboard and each telnet session; `X28.SetNui`, bad one refused before
+  connecting; `PadTelnetTests.TelnetPadStartedWithANui_ItsCallCarriesTheNuiFacility` reads C6 05 "CARD7" off the wire).
+- DTEs (SINTRAN machines and others): either they send NUI selection themselves, or the port's subscription is the
+  identity (6.21: agreed for a period of time). Whether SINTRAN's X.25 software can send NUI is not known; check the
+  SINTRAN X.25 manual in NDInsight.
+- Prove: an X.28 PAD session with `ID` and with `N`.
+
+### B1b. Billing: what is left (X.25 6.22, 7.3.8; D.12)
+A PVC has no Call Request and no Clear, so it carries neither NUI nor charging information; its billing identity is its
+configuration.
+- Annex F (read 2026-11-17): charging information by subscription is one of the facilities that may be tied to a NUI,
+  through NUI override (6.21.2). Neither switch has NUI override, so `charging_info` is per port only.
+
+### B1c. Accounts and billing read-out, the same in both switches (decided 2026-11-16)
+Both switches read the same `[account.N]`, bill by NUI, count D.12 segments, write the same record file, have
+`show x25 account` and `x25 account add NAME range START END | nui NUI` / `x25 account del NAME` (C# since 2026-11-17,
+`SwitchCliTests.Accounts_*`; the C# account table is replaced whole on a change so the core never reads it half
+changed). Both PADs do `ID` / `IDOFF` / `N<nui>-` with no echo; x25emu's `x25pad -n` gives a default NUI.
+- Read out: the C# `GET_ACCOUNTS` answer is x25emu's ACCOUNT line field for field since 2026-11-17
+  (`NmcApiTests.Api_GetAccounts_ByteExact`). The Status window shows the built-in switch's accounts (2026-11-17,
+  `StatusAccountsTests`). An external switch's accounts are not shown, by Ronny's choice (2026-11-17): read them with
+  `show x25 account` or x25nmc.
 
 ### B2. X.75 packets
 Parser and builder for the X.75 utility field (up to 63 octets in Call Request, Call Connected, Clear): transit network
@@ -110,20 +142,74 @@ Found by reading the code on 2026-11-14 (only x25emu's tests were run):
 - Probable defects (read, not run): a Call Request on a PVC gets a Clear instead of a Reset with diagnostic 35 (no code 35
   in the diagnostic list); a Clear Request on a PVC confirms and leaves the PVC unusable.
 
-### C1. Layer
-Unit tests first, each failing before the fix: call packets on a PVC give Reset cause 5 diag 35; Clear Request on a PVC
-leaves it usable; window of 2 holds the third packet; interrupt on a PVC; reset from each side and a reset collision;
-packet on an unassigned channel gives diag 36.
+### C1. Layer: what is left
+Fixed 2026-11-16 (tests failed before): call and clear packets on a PVC get Reset "local procedure error" # 35 and the PVC
+stays usable; every other procedure error on a PVC resets instead of clearing (Table C.4); window of 2 holds the third
+packet; diag 36 on an unassigned channel. Proved in the switch 2026-11-17 (`SwitchPvcTests`): interrupt on a PVC both
+ways (X.25 4.3.7), an interrupt during an outage reset "Out of order", resets from both ends. A reset collision on a
+PVC (4.4.3.3) completes the reset with no confirmation, as DTE and as DCE (`R13_AResetCollisionOnAPvc_...`). Nothing
+left in C1.
 
-### C2. Switch
-Read `pvc_base`, `pvc_count` and `[pvc.N]` (errors for overlap and an unknown port). Build the join, call `AddPvc`, and make
-`show x25 pvc` and the counters show it.
-- Prove: data both ways with no call; link drop gives the far side Reset "out of order" and no Clear; link return gives
-  "remote DTE operational"; five PVCs at once; PVC and calls on one port; Restart resets the PVC without breaking the join.
+### PVC roles (Ronny 2026-11-16: "configure what a pvc client or server means - always follow the x25 spec")
+X.25 has no client or server for a PVC: both DTEs are in data transfer from the start (4.2), and over LAPB the PVC is
+simply there once the link is up. Only XOT has roles, set by RFC 1613 6.5: the XOT that opened the TCP connection is the
+initiator and sends the PVC setup packet with status 0x00; the other is the responder, checks it against its own
+configuration and replies with its own setup packet - status 0x00 is success ("An XOT PVC setup is successful if the
+responder returns a status of 0x00"), 0x13..0x19 a refusal - or closes the TCP connection. After success each XOT
+resets the PVC on its local interface. Configure it as the RFC names it (initiator / responder), on the
+XOT port that carries the PVC, and refuse any other word.
 
-### C3. XOT setup exchange
-The RFC 1613 6.5 setup packet (initiator and responder, refusal codes 0x13, 0x14, 0x16, 0x17, 0x18).
-- Prove: vectors from the RFC; C# against x25emu in both directions.
+### C2. Switch: what is left
+Done 2026-11-16 in RetroIO (unit tests on loopback ports): `pvc_base`, `pvc_count`, `[pvc.N]` with `account =`, refused
+for an unknown port, a channel outside the port's PVC range, PVC and call ranges overlapping, a channel used twice, and
+an XOT port (needs C3); the join at start, billed to the account; data both ways with no call; port down resets the far
+end "Out of order" (0x01) and never clears; data from the far end meanwhile is reset "Out of order"; port back resets it
+"Remote DTE operational" (0x09); a reset crosses. Also fixed: the switch's congestion reset sent 0x05 (local procedure
+error) instead of 0x07 (Table 5-8).
+- Proved on real HDLC ports (LAPB over TCP, `HdlcPvcTests`): five PVCs and a call on one line, each with its own data;
+  a lost line resets the PVCs, never clears them, and they carry data after the restart.
+- Still to check: `show x25 pvc` and the counters with a real PVC; the whole path switch-to-switch through RetroX25.
+- C# PVC billing records done 2026-11-17, the same rule as x25emu: a line every `[switch] pvc_record_minutes`
+  (default 15, 0 off), and a line when a reset or an outage ends the period; the lines add up to the total; a message
+  still open carries into the next period, a reset drops it. Hand-worked figures in `SwitchPvcTests`.
+  The counting and the period line take the stitch's lock (fixed the same day); nothing under it calls a port, so it
+  cannot wait on a port lock. No test forces the two threads to meet - none can make that moment happen on purpose.
+
+### C3. XOT setup exchange: what is left
+Done 2026-11-17: the setup packet itself (`XotPvcSetup` in RetroIO: build, parse, the responder's flow-control check
+giving 0x00 / 0x18 / 0x19), 11 tests on bytes written from the RFC figure. The RFC does not say what goes in the
+packet's GFI/LCN octets; the class keeps whatever is given. x25emu (`src/x25/xot_pvc.c`) writes GFI bits 0 and the
+PVC's channel number there - that is x25emu's choice, not the RFC's; a router capture (C4) is still needed to know what
+a Cisco sends and accepts.
+- Configuration done 2026-11-17: port `iface_name` and `xot_pvc_role = initiator | responder` (any other word refused),
+  `[pvc.N] remote_iface` and `remote_lci`. x25emu has an interface-name field but never reads it from its file - its
+  own gap, to fix there with the same key names.
+- Responder decision done 2026-11-17 (`XotPvcResponder`, 9 tests): 0x00, 0x13, 0x16, 0x17 (already joined, freed
+  when the connection closes), 0x18, 0x19, 0x1A (unreadable, or initiator status not 0x00).
+- `[pvc.N] remote_host` (the far XOT, RFC 1613 6.5) is read; port 1998 when none is given.
+- Responder side in `XotSwitchPort` done 2026-11-17 (`XotPvcPortTests`, over a real socket): answers a setup, binds
+  the PVC to that connection with the far end's channel on the wire, resets it "Remote DTE operational" (0x09), carries
+  data; a refusal is sent and the connection closed; a lost connection resets the PVC "Out of order" (0x01), never clears.
+- Initiator side done 2026-11-17 (`StartPvcSetup`): dials, sends the setup, joins on 0x00, tries again after
+  `PvcSetupRetryMs` (5 minutes, the RFC's suggestion) on a refusal, a close without reply, or a lost connection. A PVC
+  packet with no joined connection is not sent anywhere. Proved C# to C#: data both ways; refusal retried.
+- Loader and switch done 2026-11-17: PVCs on XOT ports are accepted; an initiator end must have `remote_host`,
+  `remote_iface`, `remote_lci` (refused otherwise); the switch starts the setup for an initiator end at start.
+  A PVC with XOT at both ends is refused: one set of remote_* settings names one far XOT.
+- Proved 2026-11-17: a whole switch (XOT responder port + loopback port) carries a PVC from a far C# XOT initiator.
+- 0x14 "Destination interface is not up" done 2026-11-17: the C# switch answers it while the port of the PVC's other
+  end is out of order (the same mark X.25 4.6 resets by). x25emu answers 0x14 when its own XOT port is inactive.
+- Proved 2026-11-17 (`CrossEnvXotPvcTests`, CrossEnvLive): the C# initiator is answered 0x00 by the x25emu switch
+  and the PVC takes data. Windows' 127.0.0.1 does not reach a WSL listener on this machine; the test dials WSL's own
+  address. Not yet checked: the data coming out of x25emu's other PVC end.
+- Proved 2026-11-17: x25emu as the initiator into the C# switch - `x25traffic -P 1 -I Serial1` (new PVC mode, see
+  x25emu) is answered 0x00 and its 5 packets come out of the switch's other port. x25emu's switch is responder only (`xot_pvc_respond`); its initiator
+  is the client library (`client_pvc_setup_send`, used by x25traffic, x25echo, x25pad). So: C# initiator to the
+  x25emu switch, and x25traffic as initiator to the C# switch. The rest of the old line: the exchange in `XotSwitchPort` - a `[pvc.N]` end on an XOT port names the far XOT (host), the far
+  interface name and LCN; the initiator dials and sends the setup, the responder checks interface (0x13), PVC (0x16),
+  already connected (0x17) and flow control, replies or closes; then both reset the PVC locally. Retry after a refusal
+  waits (RFC suggests 5 minutes). The loader then stops refusing PVCs on XOT ports.
+- Prove: C# against x25emu in both directions; C# to C#.
 
 ### C4. Router
 Read the Cisco page for `x25 pvc (XOT)` first (it could not be fetched; the syntax is not verified). Then a PVC to R1,
@@ -134,28 +220,43 @@ Read the Cisco page for `x25 pvc (XOT)` first (it could not be fetched; the synt
 
 ## D. Billing and call records
 
-Found 2026-11-14: x25emu counts 64-octet segments per call and per account, bills by address range or by NUI (billing
-login in the call), and returns charging information on clear; its call record line lacks segments, account and NUI, and
-it ignores reverse charging. The C# switch has a call-record event and address-range accounts only, and nothing writes
-the file. Standards read: X.25 (facilities 6.18 to 6.22, 7.3.6 to 7.3.8), X.75 (5.3.x), D.11, D.12. Not read: D.10, D.13,
-and no real call record from an old network was found.
+Standards read: X.25 (facilities 6.18 to 6.22, 7.3.6 to 7.3.8), X.75 (5.3.x), D.11, D.12. Not read: D.10, D.13, and no
+real call record from an old network was found.
 
-### D1. Decide the call clock
-D.11 counts from Call Connected; x25emu counts from when the call is joined. Pick one, write it down, make both match.
+### D2. Record format v2: the columns still missing
+Both switches write 23 columns (2026-11-16): the old 14, then connect time, connected duration (D.11 charges from Call
+Connected), segments each way, account, NUI, reverse charging, who is charged, charging answer given. Still to add, on
+the end: why the line was written (call end, PVC period, PVC reset - a DTE reset has cause 0, the same as a
+period end, so today the line cannot tell them apart), facilities, clearing network, transit list. Document the format in `docs/` (part of the B1c billing guide).
 
-### D2. Record format v2
-Keep the 14 existing columns, add on the end: connect time, connected duration, segments each way, account, NUI, reverse
-charge, who is charged, facilities, charging requested, clearing network, transit list. Document it in `docs/`.
+### D2b. C# switch: telnet console login
+Since 2026-11-17 RetroIO's `TelnetCliServer` asks for a `[user.N]` login (three tries) and checks the level, unless
+`mgmt_open = 1` (now read and saved by the C# switch) - `Server_AsksForALogin_AndALevel0UserMayOnlyLook`. Still to do:
+- RetroX25.Switch `Program.cs` already passes the users and `mgmt_open`, but builds only once RetroIO is packed to the
+  local feed (the constructor changed).
+### D3. C# switch: reverse charging refused
+A call asking for reverse charging to a DTE that has not agreed to accept it is cleared with cause 0x19 (6.19). Needs a
+per-port "accepts reverse charging" setting, in both switches.
 
-### D3. C# switch
-In this order, each with unit tests: write the record file (the setting exists, nothing writes it); count segments
-(complete packet sequence rule, X.25 4.3.5, round up per message); parse reverse charging, NUI and charging request;
-choose the account by NUI before the address range and strip the NUI before relaying; reverse charging accepted or
-refused with cause 0x19; charging information returned on clear.
-
-### D4. Tariffs and bills
-Prices in whole minor units (no floating point) in a tariff section; a small tool reads a record file and prints a bill per
-account. The record stays facts only; prices are applied by the tool.
+### D4. Tariffs and bills (decided by Ronny 2026-11-17)
+- One price file (`tariff.conf`), the same prices for every account: monthly fee, fee per call, price per time unit
+  connected (D.11), price per 1000 segments (D.12); a second set for calls to another network (X.75); an off-peak
+  discount by time of day. Whole minor units, no floating point.
+- One C# piece in RetroIO reads the record file and the price file and works out the bill. The C# switch console
+  prints it (`show x25 invoice <account>`), and the RetroX25 app shows it in a window laid out like a printed bill.
+  x25emu only writes the record file, which the C# code reads.
+- A call is "another network" when its called address (the calling one, if the called side pays) starts with a
+  DNIC that is not ours (`home_dnic`): the record has no column for it, and the X.75 call identifier is kept by a call
+  passing through, so it cannot tell. Those calls get their own part of the bill, with the call identifier on each
+  line. No settlement between networks.
+- Prove: unit tests against bills worked out by hand; one bill from a record file x25emu wrote.
+- Built 2026-11-17: RetroIO `Switch/src/Billing` (price list, record reader, bill, printed layout), `show x25
+  invoice`, `tariff_file`, the app's Bill window (Ctrl+7), column 24 (called side's account) in both switches;
+  tests `InvoiceTests` (hand-worked bills, and one from lines x25emu wrote) and `InvoiceWindowTests`.
+- Still to read: D.10 (general tariff principles) - not on disk. The price structure is from memory, not a source.
+- `docs/billing.md`'s switch.conf example puts comments after values (`nui_required = yes ; ...`). RetroIO's
+  `IniConfig` takes such a comment as part of the value. Not checked: what x25emu's loader does with it, and so
+  whether the example or the C# reader is the one to change.
 
 ### D5. Across networks
 The calling network bills its subscribers (X.75 section 3). Every switch writes its own record with the call identifier so

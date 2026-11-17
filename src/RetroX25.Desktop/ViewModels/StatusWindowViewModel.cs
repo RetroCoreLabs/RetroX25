@@ -31,7 +31,15 @@ namespace RetroX25.Desktop.ViewModels;
 public partial class StatusWindowViewModel : ViewModelWithLogger
 {
     private readonly IRuntimeService _runtimeService;
+    private readonly EmbeddedSwitchService? _embeddedSwitch;
     private System.Threading.Timer? _refreshTimer;
+
+    /// <summary>
+    /// Gets or sets the billing table of the built-in switch: a column for each account. It has no columns when there
+    /// is no built-in switch or it has no accounts. Reset Statistics does not touch it: it is the bill.
+    /// </summary>
+    [ObservableProperty]
+    private StatisticsTable _accountsTable = new StatisticsTable();
     private int _refreshQueued;
 
     /// <summary>Gets or sets the table that is shown now.</summary>
@@ -51,12 +59,15 @@ public partial class StatusWindowViewModel : ViewModelWithLogger
     /// </summary>
     /// <param name="logger">The logger for this view-model.</param>
     /// <param name="runtimeService">The service that owns the engine.</param>
+    /// <param name="embeddedSwitch">The built-in switch, whose accounts are shown; null when the app has none.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="runtimeService"/> is null.</exception>
     public StatusWindowViewModel(
         ILogger<StatusWindowViewModel> logger,
-        IRuntimeService runtimeService) : base(logger)
+        IRuntimeService runtimeService,
+        EmbeddedSwitchService? embeddedSwitch = null) : base(logger)
     {
         _runtimeService = runtimeService ?? throw new ArgumentNullException(nameof(runtimeService));
+        _embeddedSwitch = embeddedSwitch;
 
         // Subscribe to statistics updates
         if (_runtimeService.IsRunning)
@@ -112,6 +123,16 @@ public partial class StatusWindowViewModel : ViewModelWithLogger
         StatisticsTable fresh = StatisticsReader.Build(_runtimeService.Runtime);
         HeaderText = "Counters since the engine started or was last reset. Uptime: " + fresh.UptimeText;
         Table = fresh;
+        RefreshAccounts();
+    }
+
+    // The accounts of the built-in switch, read again. Separate from the engine, so it runs also when only the switch does.
+    private void RefreshAccounts()
+    {
+        AccountsTable = StatisticsReader.BuildAccounts(
+            _embeddedSwitch != null
+                ? _embeddedSwitch.Accounts
+                : Array.Empty<RetroIO.Protocols.X25.Switch.Model.SwitchAccount>());
     }
 
     /// <summary>

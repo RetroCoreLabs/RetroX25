@@ -130,6 +130,24 @@ namespace RetroX25.Switch
             core.CallSetup += mgmt.OnCallSetup;
             core.CallClear += mgmt.OnCallClear;
 
+            // The call record file named by cdr_file, one line per call (same columns as the C emulator's x25switch).
+            // Until 2026-11-16 the setting was read and nothing wrote the file.
+            CdrFileWriter? cdrWriter = null;
+            if (!string.IsNullOrEmpty(config.CdrFile))
+            {
+                try
+                {
+                    cdrWriter = new CdrFileWriter(config.CdrFile);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("x25switch: cannot open the call record file {File}: {Reason}. Exiting.", config.CdrFile, ex.Message);
+                    return 1;
+                }
+
+                core.CdrRecorded += cdrWriter.Write;
+            }
+
             // The management host also sees circuit data (to serve management sessions); the engine ignores
             // data on circuits it has no stitch for.
             for (int i = 0; i < node.Ports.Count; i++)
@@ -231,6 +249,7 @@ namespace RetroX25.Switch
                     node.Ports[i].Stop();
                 }
 
+                cdrWriter?.Dispose();
                 return 1;
             }
 
@@ -251,7 +270,7 @@ namespace RetroX25.Switch
             TelnetCliServer? telnet = null;
             if (config.MgmtPort != 0)
             {
-                telnet = new TelnetCliServer(cli, "0.0.0.0", config.MgmtPort);
+                telnet = new TelnetCliServer(cli, "0.0.0.0", config.MgmtPort, config.Users, config.MgmtOpen);
                 if (telnet.Start())
                 {
                     logger.LogInformation("Management console listening on port {Port}", telnet.Port);
@@ -280,6 +299,9 @@ namespace RetroX25.Switch
             {
                 node.Ports[i].Stop();
             }
+
+            // After the ports: stopping them clears the calls left, and those records are written too.
+            cdrWriter?.Dispose();
             return 0;
         }
 

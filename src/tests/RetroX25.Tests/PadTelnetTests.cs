@@ -121,6 +121,37 @@ namespace RetroX25.Tests
         }
 
         /// <summary>
+        /// x25pad -n CARD7 with --telnet-port: a telnet session starts as if <c>IDCARD7</c> had been typed, so its Call
+        /// Request carries the NUI selection facility (X.25 7.3.7: code C6, a length, the NUI's octets) without anything
+        /// being typed for it. Decoded off the wire between the PAD and the switch.
+        /// </summary>
+        [Test]
+        public void TelnetPadStartedWithANui_ItsCallCarriesTheNuiFacility()
+        {
+            using SwitchXotHarness.Running sw = SwitchXotHarness.StartTwoPortSwitch();
+            using X25Client echo = StartPrefixEcho((ushort)sw.P1.BoundPort);
+            using XotWireTap tap = new XotWireTap("127.0.0.1", sw.P0.BoundPort);
+
+            int telnetPort = FreePort();
+            using TelnetPadHost host = new TelnetPadHost("127.0.0.1", (ushort)tap.Port, 0, NullLogger.Instance, NullLogger.Instance, "CARD7");
+            Assert.That(host.Start(new TelnetPadConfig { Enabled = true, Port = telnetPort, BindAddress = "127.0.0.1" }), Is.True, host.GetStatus().Text);
+
+            using TcpClient telnet = new TcpClient();
+            telnet.Connect(IPAddress.Loopback, telnetPort);
+            NetworkStream stream = telnet.GetStream();
+            stream.ReadTimeout = 200;
+            StringBuilder seen = new StringBuilder();
+            Assert.That(ReadUntil(stream, seen, "PAD", 5000), Is.True, "Saw: " + seen);
+            Send(stream, "CALL 23410001\r");
+            Assert.That(SpinWait.SpinUntil(() => tap.Packets().Exists(p => p.FromClient && p.Info.PacketType == RetroIO.Protocols.X25.Models.X25PacketType.CallRequest), 5000), Is.True, tap.Dump());
+
+            TappedPacket call = tap.Packets().Find(p => p.FromClient && p.Info.PacketType == RetroIO.Protocols.X25.Models.X25PacketType.CallRequest)!;
+            string facilities = BitConverter.ToString(call.Info.Facilities);
+            Assert.That(facilities, Does.Contain("C6-05-43-41-52-44-37"), "C6, length 5, \"CARD7\". " + tap.Dump());
+            Assert.That(seen.ToString(), Does.Not.Contain("CARD7"), "the NUI is never shown to the telnet user");
+        }
+
+        /// <summary>
         /// The command-line PAD (keyboard mode builds its PAD the same way as telnet mode) puts the same call user data on its
         /// Call Request.
         /// </summary>

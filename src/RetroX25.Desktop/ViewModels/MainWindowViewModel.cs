@@ -711,6 +711,15 @@ public partial class MainWindowViewModel : ViewModelWithLogger
     }
 
     [RelayCommand]
+    private void ShowInvoiceWindow()
+    {
+        Logger.LogInformation("Opening Bill Window");
+        var viewModel = _serviceProvider.GetRequiredService<InvoiceWindowViewModel>();
+        var window = new InvoiceWindow(viewModel);
+        _navigationService.OpenWindow(window);
+    }
+
+    [RelayCommand]
     private void ShowRoutesWindow()
     {
         Logger.LogInformation("Opening Routes Window");
@@ -802,6 +811,8 @@ public partial class MainWindowViewModel : ViewModelWithLogger
             "  Monitor LocalTAD sessions on address 200\n" +
             "  View X.3 parameters per session\n" +
             "  Echo service with HELP/STATUS/QUIT commands\n" +
+            "Ctrl+7 - Bill\n" +
+            "  An account's bill for a month, from the call record file and the price list\n" +
             "Ctrl+L - Link Status (start and stop links, LAPB connect and disconnect)\n" +
             "F1 - this help\n" +
             "Alt+F4 - Exit (also File, Exit)\n\n" +

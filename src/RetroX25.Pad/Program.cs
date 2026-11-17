@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using RetroIO.Protocols.X25.Client;
 using RetroIO.Protocols.X25.Modules;
+using RetroIO.Protocols.X25.Protocols;
 using RetroIO.Protocols.X25.Runtime;
 
 namespace RetroX25.Pad
@@ -58,6 +59,7 @@ namespace RetroX25.Pad
             int verbosity = 0;
             int telnetPort = 0;
             string telnetBind = TelnetPadConfig.DefaultBindAddress;
+            string? nui = null;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -85,6 +87,18 @@ namespace RetroX25.Pad
                         if (i + 1 >= args.Length) { return Usage(); }
                         telnetBind = args[++i];
                         break;
+                    case "-n":
+                        // A NUI for every call, as if ID and the NUI had been typed (X.28 5.2); x25emu's x25pad -n.
+                        // Checked here, before anything connects, so a bad one is said at once.
+                        if (i + 1 >= args.Length) { return Usage(); }
+                        nui = args[++i];
+                        if (!X28.TryReadNui(nui, out string cleaned) || cleaned.Length == 0
+                            || string.Equals(cleaned, "OFF", StringComparison.OrdinalIgnoreCase))
+                        {
+                            Console.Error.WriteLine("x25pad: -n: not a NUI (no '-', ',' or '+', not empty, not OFF).");
+                            return 1;
+                        }
+                        break;
                     case "-v":
                         verbosity++;
                         break;
@@ -98,7 +112,7 @@ namespace RetroX25.Pad
 
             if (telnetPort > 0)
             {
-                return RunTelnet(host, port, telnetPort, telnetBind, verbosity, loggerFactory, log);
+                return RunTelnet(host, port, telnetPort, telnetBind, verbosity, loggerFactory, log, nui);
             }
 
             Console.Error.WriteLine($"Connecting to {host}:{port}...");
@@ -121,6 +135,10 @@ namespace RetroX25.Pad
             pad.ConnectionStateChanged += (sender, e) => Console.Error.WriteLine($"[{e.State}] {e.Reason}");
 
             pad.Initialize();
+            if (nui != null)
+            {
+                pad.SetNui(nui);
+            }
 
             Console.Error.WriteLine("Transport connected");
             Console.Write("X.25 PAD ready (XOT mode)\r\n*");
@@ -216,7 +234,7 @@ namespace RetroX25.Pad
         /// Telnet mode: listens on a port and gives every telnet connection its own PAD and its own XOT
         /// connection to the peer. Runs until Ctrl+C.
         /// </summary>
-        private static int RunTelnet(string host, ushort port, int telnetPort, string bind, int verbosity, ILoggerFactory loggerFactory, ILogger log)
+        private static int RunTelnet(string host, ushort port, int telnetPort, string bind, int verbosity, ILoggerFactory loggerFactory, ILogger log, string? nui)
         {
             TelnetPadConfig telnet = new TelnetPadConfig { Enabled = true, Port = telnetPort, BindAddress = bind };
             string? problem = telnet.Validate();
@@ -226,7 +244,7 @@ namespace RetroX25.Pad
                 return 1;
             }
 
-            using TelnetPadHost server = new TelnetPadHost(host, port, verbosity, log, loggerFactory.CreateLogger("x25pad.telnet"));
+            using TelnetPadHost server = new TelnetPadHost(host, port, verbosity, log, loggerFactory.CreateLogger("x25pad.telnet"), nui);
             if (!server.Start(telnet))
             {
                 Console.Error.WriteLine("x25pad: " + server.GetStatus().Text);
@@ -254,10 +272,11 @@ namespace RetroX25.Pad
         /// </returns>
         private static int Usage()
         {
-            Console.Error.WriteLine("Usage: x25pad [-x host:port] [--telnet-port N [--telnet-bind addr]] [-v]");
+            Console.Error.WriteLine("Usage: x25pad [-x host:port] [-n nui] [--telnet-port N [--telnet-bind addr]] [-v]");
             Console.Error.WriteLine("  -x host:port  XOT peer (default localhost:1998)");
             Console.Error.WriteLine("  --telnet-port N    listen for telnet on port N (one PAD and one XOT connection per telnet client)");
             Console.Error.WriteLine("  --telnet-bind addr address to listen on (default 127.0.0.1)");
+            Console.Error.WriteLine("  -n nui        a NUI for every call, as if ID<nui> had been typed (each telnet session too)");
             Console.Error.WriteLine("  -v            Verbose (repeat for more)");
             return 1;
         }
