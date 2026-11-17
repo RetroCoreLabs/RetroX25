@@ -31,6 +31,7 @@ Take a call from the DTE on the left to a DTE on the right. All numbers below ar
    four digits: three for the country and one for the network. If the DNIC is this network's, the rest of the
    number picks the subscriber; if not, the call goes towards another network. In the switch file the
    routes say this: a route by exact address, by address prefix, by DNIC, or a default route.
+   The full rules: [X.121 addresses and X.25 routing](https://github.com/RetroCoreLabs/RetroIO/blob/main/src/RetroIO.Protocols.X25/X121-ADDRESSING.md).
 3. **Switch by switch.** Each switch passes the call on towards the called address. Every link has its own
    **logical channel numbers**, so the same call has a different number on each link. The switch keeps the
    join between the two numbers for as long as the call lasts.
