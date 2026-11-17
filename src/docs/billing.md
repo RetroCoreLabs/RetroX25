@@ -50,19 +50,26 @@ count in the account's calls made. Both switches do this.
 
 ```ini
 [switch]
-cdr_file = calls.cdr          ; the call record file; one line per call
-tariff_file = tariff.conf     ; the price list for bills (C# switch and the app; see "Bills" below)
-pvc_record_minutes = 15       ; a PVC record line every N minutes; 0 turns them off
-segment_size = 64             ; octets in one charging segment, 1 to 4096; D.12's 64 if left out
+; the call record file; one line per call
+cdr_file = calls.cdr
+; the price list for bills (C# switch and the app; see "Bills" below)
+tariff_file = tariff.conf
+; a PVC record line every N minutes; 0 turns them off
+pvc_record_minutes = 15
+; octets in one charging segment, 1 to 4096; D.12's 64 if left out
+segment_size = 64
 
 [port.0]
 type = access
 transport = xot
 port = 1998
-nui_required = yes            ; a call on this port must name a NUI
-; default_nui = CARD7         ; or: calls with no NUI are billed to this one
-; charging_info = yes         ; the DTE here gets the charging answer on every call it pays for,
-;                             ; without asking in the call (X.25 6.22)
+; a call on this port must name a NUI
+nui_required = yes
+; or: calls with no NUI are billed to this one
+; default_nui = CARD7
+; the DTE here gets the charging answer on every call it pays for,
+; without asking in the call (X.25 6.22)
+; charging_info = yes
 
 [account.0]
 name = office line
@@ -78,8 +85,12 @@ src_port = 0
 src_lci = 1
 dst_port = 1
 dst_lci = 1
-account = office line         ; who pays for this permanent circuit
+; who pays for this permanent circuit
+account = office line
 ```
+
+A comment must be on a line of its own. Neither switch strips a comment after a value: it becomes part of
+the value.
 
 A `default_nui` that names no account is refused when the file is loaded.
 

@@ -254,9 +254,6 @@ per-port "accepts reverse charging" setting, in both switches.
   invoice`, `tariff_file`, the app's Bill window (Ctrl+7), column 24 (called side's account) in both switches;
   tests `InvoiceTests` (hand-worked bills, and one from lines x25emu wrote) and `InvoiceWindowTests`.
 - Still to read: D.10 (general tariff principles) - not on disk. The price structure is from memory, not a source.
-- `docs/billing.md`'s switch.conf example puts comments after values (`nui_required = yes ; ...`). RetroIO's
-  `IniConfig` takes such a comment as part of the value. Not checked: what x25emu's loader does with it, and so
-  whether the example or the C# reader is the one to change.
 
 ### D5. Across networks
 The calling network bills its subscribers (X.75 section 3). Every switch writes its own record with the call identifier so
