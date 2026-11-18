@@ -164,6 +164,45 @@ entry that dials Norway's port 0 (TCP 25001) for each call, and one route that s
 The **Packets** window (Ctrl+2) shows the CALL REQUEST with the NUI facility, the CALL CONNECTED and every
 DATA packet as you chat. Every other address in "Every address (NUA)" can be called the same way.
 
+### The same setup by hand, in the app's windows
+
+Without the file, starting from the app's own defaults. Everything is in **Tools → Configuration** (Ctrl+,):
+
+1. **X.25** tab: **Local Machine ID** = `24227001` (the app's own address on Norway's network).
+2. **XOT Interfaces** tab → **Add**:
+
+   | Field | Value | Why |
+   |---|---|---|
+   | Interface Name | `Norway PAD line` | Any name; the route below points at it |
+   | Interface Enabled | on | |
+   | XOT Mode | **Client** | The app only places calls; Norway's PAD line (port 0) listens |
+   | Remote IP Address | `127.0.0.1` | The computer the network runs on |
+   | Remote Port | `25001` | Norway's PAD line |
+   | Remote Machine ID | `24220000` | Norway's switch (only a label here) |
+   | Window size / Packet size | empty | Use the X.25 tab's values (2 and 128, as Norway) |
+   | TCP Keepalive Enabled | on | |
+
+   OK.
+3. **Routing** tab → **Add**: *What do you want to reach?* = **Everything else (default gateway)**,
+   Name `Everything to Norway`, *Send the calls to* = `Norway PAD line`. OK.
+   Every number then goes to Norway, which routes it on; there is no need for a route per country.
+4. **Apply**. The engine restarts on these settings; open windows from before close.
+5. **Save...** to keep it (the app does not remember settings between runs). Saved over
+   `desktop-norway.json`, it is the same file.
+
+Then the PAD window as in steps 3 to 5 above.
+
+### Watching the network in the monitor app
+
+`x25monitor` (or `./x75.ps1 monitor`) shows the switches themselves, not the desktop app: add an endpoint
+`127.0.0.1` port **4201** (Norway), **4202** (England) or **4203** (Germany) and **Connect**. Each switch names its
+neighbours, so one connection draws all three on the map. The **Packet Analyzer** then shows the call from the
+desktop app crossing Norway, the X.75 links and Germany; **Link Status** shows each port's counters, including the
+desktop app's connection on Norway's PAD line.
+
+So a full GUI session is: `./x75.ps1 start`, the desktop app on `desktop-norway.json` for typing, `x25monitor` on
+4201 for watching, and an `./x75.ps1 pad 2` window as the other chat user.
+
 The app's own address is `24227001` (`X25.LocalMachineId` in the file): the chat and Norway's call records
 show it as the caller.
 
