@@ -129,8 +129,9 @@ At the `*` prompt:
 | `STAT` | The state of the call |
 | `SET 2:0` | Set an X.3 parameter (here: echo off) |
 | `HELP` | The commands |
+| `EXIT` (or `QUIT`) | Clear any call and leave `x25pad` |
 
-Ctrl+C ends `x25pad`.
+In a call, Ctrl+P gets you to the `*` prompt. Ctrl+C also ends `x25pad`.
 
 ## The Altos chat
 
@@ -152,8 +153,9 @@ X.29 "set" message at the start of every call. From then on, during this call on
 - the PAD echoes what you type, and Enter echoes as a new line (X.3 parameter 13 = 4), so the replies no longer
   print over your own line;
 - the line is sent when you press Enter, not key by key;
-- you can edit the line before you send it: DEL deletes a character (shown as backspace, space, backspace),
-  Ctrl+X deletes the whole line, Ctrl+R shows it again.
+- you can edit the line before you send it: Backspace or DEL deletes a character (shown as backspace, space,
+  backspace), Ctrl+X deletes the whole line, Ctrl+R shows it again. X.3 knows only the delete character the chat
+  sets (DEL); our PADs take Backspace (BS) as well, because that is what the Backspace key on Windows sends.
 
 When the call ends, for any reason, the PAD goes back to the settings it had before the call, so the next call
 starts the same way whatever the chat changed. Settings you made yourself with `SET` at the `*` prompt before the
@@ -163,7 +165,9 @@ C# one and x25emu's. The message's exact bytes are in `src/docs/altos-chat.md`.
 Whispering works exactly as in the 1987 program, which surprises people:
 
 - `!` takes the **place number** from `.s` (the first column), not a name: `!3 hello` goes to place 3. A name
-  after `!` reads as the number 0, which is usually yourself, so you get your own whisper back.
+  after `!` reads as the number 0, so the whisper goes to whoever is at place 0. When that is you, you get your
+  own whisper back; when it is someone else, `!anything` reaches them, which makes it look as if names work one
+  way only.
 - The receiver sees the **whole line as typed**: `ronny whispers: !3 hello`.
 - Nothing tells you when the place is empty; the whisper simply goes nowhere.
 

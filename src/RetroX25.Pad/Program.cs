@@ -134,6 +134,13 @@ namespace RetroX25.Pad
             pad.CharacterEcho += (sender, e) => Console.Write((char)e.Character);
             pad.ConnectionStateChanged += (sender, e) => Console.Error.WriteLine($"[{e.State}] {e.Reason}");
 
+            // EXIT (or QUIT) at the * prompt: the PAD has cleared any call; end the key loop below.
+            pad.ExitRequested += (sender, e) =>
+            {
+                _running = false;
+                Console.Write("\r\nDisconnected.\r\n");
+            };
+
             pad.Initialize();
             if (nui != null)
             {
