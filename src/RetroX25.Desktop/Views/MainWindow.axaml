@@ -25,6 +25,7 @@
         <KeyBinding Gesture="Ctrl+D5" Command="{Binding ShowPADClientWindowCommand}" />
         <KeyBinding Gesture="Ctrl+D6" Command="{Binding ShowTADServerWindowCommand}" />
         <KeyBinding Gesture="Ctrl+D7" Command="{Binding ShowInvoiceWindowCommand}" />
+        <KeyBinding Gesture="Ctrl+D8" Command="{Binding ShowChatServerWindowCommand}" />
         <KeyBinding Gesture="Ctrl+L" Command="{Binding ShowLinkStatusWindowCommand}" />
         <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding ShowConfigurationWindowCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+Delete" Command="{Binding ClearPacketHistoryCommand}" />
@@ -63,6 +64,7 @@
                 <Separator />
                 <MenuItem Header="PAD _Client Test" Command="{Binding ShowPADClientWindowCommand}" InputGesture="Ctrl+D5" />
                 <MenuItem Header="_TAD Server Monitor" Command="{Binding ShowTADServerWindowCommand}" InputGesture="Ctrl+D6" />
+                <MenuItem Header="C_hat Server Monitor" Command="{Binding ShowChatServerWindowCommand}" InputGesture="Ctrl+D8" />
                 <MenuItem Header="_Simulate Receive..." Command="{Binding ShowSimulateReceiveWindowCommand}" />
             </MenuItem>
 

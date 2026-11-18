@@ -179,6 +179,9 @@ public partial class PADClientWindowViewModel : ViewModelWithLogger
                 case '\r': // Carriage return (ignore)
                     break;
 
+                case (char)0x7F: // DEL prints nothing on a terminal; the PAD echoes it and then shows "\" itself
+                    break;
+
                 default:
                     _consoleBuffer.Append(c);
                     break;
@@ -272,6 +275,15 @@ public partial class PADClientWindowViewModel : ViewModelWithLogger
             if (e.Key == Key.Back)
             {
                 _padClient.OnKey('\b'); // Backspace (0x08)
+                e.Handled = true;
+                return;
+            }
+
+            // The Delete key sends DEL (0x7F), the character the X.28 standard profiles and the Altos chat use as
+            // "character delete" (X.3 parameter 16 = 127). Backspace above stays BS for hosts that edit with BS.
+            if (e.Key == Key.Delete)
+            {
+                _padClient.OnKey((char)0x7F);
                 e.Handled = true;
                 return;
             }

@@ -1,0 +1,48 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RetroX25.Desktop.ViewModels"
+        x:Class="RetroX25.Desktop.Views.ChatServerWindow"
+        x:DataType="vm:ChatServerWindowViewModel"
+        Icon="/Assets/icon.ico"
+        Title="Chat Server Monitor"
+        Width="800" Height="500"
+        MinWidth="600" MinHeight="350">
+
+    <!-- DataGrid StyleInclude - REQUIRED for DataGrid to render -->
+    <Window.Styles>
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+    </Window.Styles>
+
+    <DockPanel LastChildFill="True" Margin="8">
+        <TextBlock DockPanel.Dock="Bottom" Margin="0,8,0,0" Text="{Binding StatusText}" />
+
+        <Grid ColumnDefinitions="3*,8,2*">
+            <DockPanel Grid.Column="0" LastChildFill="True">
+                <TextBlock DockPanel.Dock="Top" FontWeight="Bold" Margin="0,0,0,4" Text="Users" />
+                <DataGrid ItemsSource="{Binding Users}" IsReadOnly="True" AutoGenerateColumns="False"
+                          GridLinesVisibility="Horizontal" CanUserSortColumns="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Place" Binding="{Binding Slot}" Width="60" />
+                        <DataGridTextColumn Header="Nickname" Binding="{Binding Nickname}" Width="*" />
+                        <DataGridTextColumn Header="From" Binding="{Binding From}" Width="140" />
+                        <DataGridTextColumn Header="Channel" Binding="{Binding Channel}" Width="80" />
+                        <DataGridTextColumn Header="Connected" Binding="{Binding ConnectedAt}" Width="90" />
+                        <DataGridTextColumn Header="In for" Binding="{Binding Duration}" Width="80" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+
+            <DockPanel Grid.Column="2" LastChildFill="True">
+                <TextBlock DockPanel.Dock="Top" FontWeight="Bold" Margin="0,0,0,4" Text="Channels in use" />
+                <DataGrid ItemsSource="{Binding Channels}" IsReadOnly="True" AutoGenerateColumns="False"
+                          GridLinesVisibility="Horizontal" CanUserSortColumns="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Channel" Binding="{Binding Channel}" Width="*" />
+                        <DataGridTextColumn Header="Users" Binding="{Binding Users}" Width="70" />
+                        <DataGridTextColumn Header="Password" Binding="{Binding Protected}" Width="90" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>

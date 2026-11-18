@@ -19,7 +19,7 @@ repository; every `file:line` below refers to it. **The original source can be f
 | Question | Decision |
 |---|---|
 | How many users | A setting, default **30** like the original. User 31 gets the original refusal. Tests raise it to 60. |
-| Echo and line editing | **The PAD does it**, as in 1987. On connect the chat server sends an X.29 Set (Q bit) telling the PAD: echo on, forward on CR, editing on. The PAD must obey that as X.3 / X.29 say. Our PADs (C# and x25emu `x25pad`) are checked and fixed where they do not. |
+| Echo and line editing | **The PAD does it**, as in 1987. On connect the chat server sends an X.29 Set (Q bit) telling the PAD: echo on, forward on CR, LF after the echoed CR, editing on. The PAD must obey that as X.3 / X.29 say. Our PADs (C# and x25emu `x25pad`) are checked and fixed where they do not. |
 | C# shape | **Built in**, like the TAD: a service inside the X.25 program with its own address. |
 | C shape | **A separate program**, like `x25tadsrv`: `tools/x25chat.c` dials the switch over XOT. |
 
@@ -125,7 +125,7 @@ Kept, through a log interface.
 - **Settings:** maximum users (default 30), output line end (CR LF), output limit per user, starting nickname,
   pause after "Waiting".
 - **X.3 setup on connect:** the service sends an X.29 Set with the Q bit: echo on (parameter 2 = 1), forward on CR
-  (3 = 2), editing on (15 = 1), and the erase, kill and display characters (16, 17, 18). Exact values are taken from
+  (3 = 2), LF after CR in the echo (13 = 4), editing on (15 = 1), and the erase, kill and display characters (16, 17, 18). Exact values are taken from
   X.3 / X.29 when the code is written, with the clause cited.
 
 **C# (built in).** In `RetroIO.Protocols.X25`: `AltosChatEngine` (pure) and `ChatProtocolService : IProtocolService`

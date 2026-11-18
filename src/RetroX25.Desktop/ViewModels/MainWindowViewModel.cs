@@ -701,6 +701,18 @@ public partial class MainWindowViewModel : ViewModelWithLogger
         _navigationService.OpenWindow(window);
     }
 
+    /// <summary>
+    /// Opens the chat monitor (Ctrl+8): the users and channels of the built-in Altos chat.
+    /// </summary>
+    [RelayCommand]
+    private void ShowChatServerWindow()
+    {
+        Logger.LogInformation("Opening Chat Server Window");
+        var viewModel = _serviceProvider.GetRequiredService<ChatServerWindowViewModel>();
+        var window = new ChatServerWindow(viewModel);
+        _navigationService.OpenWindow(window);
+    }
+
     [RelayCommand]
     private void ShowStatusWindow()
     {

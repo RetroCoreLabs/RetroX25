@@ -41,12 +41,13 @@ terminal and the chat does not take it. The chat ranks above the TAD (priority 1
 ## What the chat asks the PAD to do
 
 On every accepted call the chat first sends one X.29 **set** message (a data packet with the Q bit set), the bytes
-`02 02 01 03 02 0F 01 10 7F 11 18 12 12`:
+`02 02 01 03 02 0D 04 0F 01 10 7F 11 18 12 12`:
 
 | X.3 parameter | Value | Meaning |
 |---|---|---|
 | 2, echo | 1 | the PAD echoes what is typed |
 | 3, forwarding | 2 | the PAD sends the line when CR is typed |
+| 13, linefeed insertion | 4 | the PAD echoes CR as CR LF, so the answer does not overwrite the typed line (X.3 3.13) |
 | 15, editing | 1 | the PAD edits the line before sending it |
 | 16, character delete | 127 | DEL |
 | 17, line delete | 24 | CAN (Ctrl-X) |
@@ -54,6 +55,10 @@ On every accepted call the chat first sends one X.29 **set** message (a data pac
 
 The values of 16, 17 and 18 are the ones both standard profiles of X.28 (12/97) Table 1 use. A terminal whose
 backspace key sends BS (8) does not delete with them; change parameter 16 at the PAD.
+
+When the call ends, the C# PAD goes back to the parameters it had when the call was placed: what you SET at the
+prompt before the call stays, what the chat (or anything during the call) set is dropped. No standard says this;
+it is this PAD's own rule.
 
 ## Running it as the subscriber of a switch
 

@@ -200,6 +200,7 @@ public partial class App : Application
         services.AddTransient<LogWindowViewModel>();
         services.AddTransient<ConfigurationWindowViewModel>();
         services.AddTransient<TADServerWindowViewModel>();
+        services.AddTransient<ChatServerWindowViewModel>();
         // The one routing screen: the Routing window and the Routing tab of the Configuration window.
         services.AddTransient<RoutingViewModel>();
         services.AddTransient<SimulateReceiveWindowViewModel>();
