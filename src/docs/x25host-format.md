@@ -213,8 +213,23 @@ nua = 24229002
 switch = 127.0.0.1:25002
 ```
 
-`x25host --machines machines.ini` (or the demo script) starts one host per `[machine.N]`, each with its
-hostname and address filled in, and stops them all together. Several machines may share one switch port: the
+`x25host --machines machines.ini` runs every `[machine.N]` inside **one process**: each machine has its own
+XOT connection to its switch and its own sessions, each with its hostname and address filled in. One process
+means one PID for the demo script to stop, so Ctrl+C or a stop by PID takes the whole set of machines down at
+once, and one log that says which machine answered which call (each line starts with the hostname).
+
+Kept apart inside the process:
+
+- A machine whose host folder is broken stops the program at start, naming the machine, the file and the line.
+  Nothing starts half-configured.
+- A fault while serving one call clears that call only (cause DTE originated, logged with the hostname). The
+  other calls, on that machine and the others, go on.
+- A switch that is down makes only the machines on it redial; the rest keep answering.
+- The limits below apply per machine; `sessions` is per machine.
+
+The calls are handled as asynchronous tasks, not one operating-system thread per machine: hundreds of idle
+machines then cost almost nothing. The single-machine form `x25host <host-folder> -x ...` stays, for a test or
+for one host by hand. Several machines may share one switch port: the
 switch routes each NUA, and each host answers only its own. The switch ini files can be generated from the same
 list (plan G5), so a large network is one list.
 
