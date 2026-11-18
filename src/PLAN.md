@@ -321,66 +321,117 @@ link set-up (one SABM, crossing SABMs, SABM refused with DM), keepalive polls ov
 data with sequence wrap, clear. Then SINTRAN X.25 against each of the three. Proved by: decoded captures of
 every run kept with the results in `docs/crossenv-testing.md`.
 
-## H. Open X.25 faults from the bug lists (gathered 2026-11-19)
+## H. Open X.25 faults from the bug lists (checked against the standards 2026-11-19)
 
 The faults are written in RetroIO `src/BUGS.md` and x25emu `BUGS.md` (line numbers as of 2026-11-19); this section
-only orders them. None has a failing test yet: each starts with one that fails first. X.75 gaps (RetroIO BUGS 34, 35)
-are B3/B4 above.
+orders them. Every line was checked in the code and against the text: X.25 (10/96), X.29 (12/97), X.28 (12/97),
+X.3 (03/00), X.121 (10/2000), RFC 1613. "Standard: none" means the texts do not cover it. None has a failing test
+yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO BUGS 34, 35) are B3/B4 above.
 
 ### H1. A DTE must survive the switch (x25emu)
-- PVC over XOT not set up again after its TCP connection closes (BUGS 16; X.25 4.6.3, RFC 1613 6.5).
-- A dead switch that never closes the connection is never noticed: no TCP keepalive, no T3 on LAPB lines (BUGS 18;
-  X.25 2.4.9.3).
-- x25pad and the other tools stop when the switch goes; only x25echo, x25tadsrv and x25chat redial (BUGS 21).
-- With redial on, a dial to a host that does not answer blocks every other call for up to 5 s (BUGS 17).
-- The DCE's T10 for a Restart Indication is not run (BUGS 19; Table D.2).
-- A restart confirmation arriving in the ready state is taken as a finished restart instead of an error, diag 17
-  (BUGS 20; Table C.2 r1 #17).
+- PVC over XOT is not set up again after its TCP connection closes, unless the program calls `x25c_pvc` again
+  (BUGS 16; `x25_client.c` 283-307). RFC 1613 6.5: an XOT "MAY retry a failed PVC setup ... (5 minutes is
+  suggested)" - optional. The "Out of order" reset (X.25 4.6.3) already works. Test: close the switch's connection;
+  after it is back, one setup (status 0x00), not a second before the wait.
+- A silent switch (connection never closed): x25emu does set TCP keepalive (`tcp.c` 1071-1096: 60 s idle, 3 x 10 s)
+  and polls an idle LAPB line (`lapb.c` 1262-1270, T3 30 s, then N2 x T1). BUGS 18 is out of date; its X.25 2.4.9.3 is
+  a DCE timer for the physical line and does not apply. RFC 1613 defines no keepalive. Open: a test that pauses the
+  switch and expects every call cleared 0x09 (X.25 4.6.3) within about 90 s; then correct BUGS 18.
+- x25pad, x25nmc and x25traffic stop when the switch goes; only x25echo, x25tadsrv and x25chat set `redial`
+  (BUGS 21, which leaves out x25chat). Standard: none.
+- A dial to a host that does not answer blocks every other call for 5 s per address tried (`tcp.c` 1007-1040), on
+  redial and when a call is placed (BUGS 17). Standard: none.
+- The DCE's T10 is not run (BUGS 19; `x25.c` 1117-1123). Table D.1: 60 s, the first expiry sends the Restart
+  Indication again (#52), the second goes to r1. Test: no answer, expect `10 00 FB 01 34` at 60 s.
+- A DTE restart confirmation in r1 (or r2) is taken as a finished restart (BUGS 20; `x25.c` 1981-1992). Table C.2:
+  ERROR #17 in r1, #18 in r2: discard, send a Restart Indication with "Local procedure error", go to r3. Test: a DCE
+  in r1 gets `10 00 FF`, expects `10 00 FB 01 11`.
 
 ### H2. PAD and host side of X.29 (RetroIO)
-- Host side of X.29: reads go out as bare references, invalid pairs dropped, a bad set answered with an error instead
-  of a parameter indication, error codes not Table 4. The TAD uses this code (BUGS 45; X.29 4.4.5.2/3, Tables 1, 4).
-- Reselection PAD message logged and dropped, no Table 4 g refusal (BUGS 46; X.29 3.6).
-- Recall character other than DLE never recalls (BUGS 47; X.3 3.1).
-- No padding after CR/LF, the PAD has no terminal speed (BUGS 44; X.28 3.5.2, X.3 9/11/14).
-- The console/telnet PAD (`RetroX25.Pad`) has no test of its own; it shares the PAD code the desktop window tests.
+- Host side of X.29 (BUGS 45; `X29.cs` 92-105, 341-355, 373-391, 627-629; used by `TadServer`, `LocalTadProtocol`):
+  a read is sent as bare references, but 4.4.5.3 says "Value fields in read PAD messages are coded as all binary
+  0s"; invalid pairs are dropped and a bad set gets an error message, but the Note to Table 1 says the error bit is
+  set in the parameter indication; the error codes are 01-05, Table 4 has 00, 02, 04, 06, 08, 0A, 0C. Test: a read
+  of 2,3 is `04 02 00 03 00`; `00 82 01` parses as parameter 2 in error, reason 1.
+- Reselection is dropped silently (BUGS 46; `X29.cs` 759-761). A PAD without reselection treats it as invalid
+  (X.29 3.6 Note 2) and answers error `05 02 07` (3.5.2 a). Table 4 g is only for a PAD that has reselection (and 3.6
+  gives its code as 00000110 where Table 4 has 00001100: the 12/97 text contradicts itself). Test: Q=1 `07`, expect
+  `05 02 07`.
+- A recall character other than DLE never recalls (BUGS 47; `X28.cs` 1431-1432), though X.3 3.1 allows a "graphic
+  character defined by the user - represented by decimal 32 to 126" and `X3.cs` 589 accepts it. Test: 1:43, then '+'
+  goes to command mode.
+- No padding anywhere (BUGS 44; `X3.cs` 850-871): X.28 3.5.2; X.3 3.9 (service signals are padded by data rate even
+  when parameter 9 is 0), 3.14 (after LF), 3.11 (speed, read-only; 0 = 110 bit/s). Test: 11 = 0, 9 = 0, a service
+  signal ends CR LF plus padding; 9 = 3, host "A\r" arrives with 3 padding characters.
 
 ### H3. Addresses and routing
-- Escape codes 8, 9, 0 not recognised in number completion, so the own prefix is put in front (RetroIO BUGS 37;
-  X.121 7.9, Table 2).
-- No route for a DNIC gives diag 67, never 121 "Unknown called DNIC" (x25emu BUGS 11; X.25 Annex E).
-- The full international number is always sent, also to countries that want the DCC left out (x25emu BUGS 12;
-  X.121 7.12.3).
-- Addresses over 15 digits (TOA/NPI) not supported (x25emu BUGS 13; X.25 5.2.1).
-- `intl_prefix` and `escape_codes` are switch-wide, not per access port (x25emu BUGS 14).
-- An incoming call routed to another runtime line is never forwarded (RetroIO BUGS 32).
-- Every failure of `PlaceCall` returns 0, so a failed XOT dial may be cleared as "Number busy" (RetroIO BUGS 33;
-  Table C.1 row 31).
-- On a link-manager link a call with no route is cleared 0x00/67, not 0x0D; whether that link should be the DTE is
-  unchecked (RetroIO BUGS 40; Table 5-7 note a).
-- The C# switch can block a port's reader for up to 5 s waiting for a fresh XOT connection (RetroIO BUGS 41).
+- Escape codes are not recognised (RetroIO BUGS 37; `X121RoutingTable.Lookup.cs` 47-66): with a prefix set, a number
+  starting 8, 9 or 0 that is not the prefix gets the own DNIC in front. X.121 7.9: an escape code "indicates that the
+  following digits represent a number from a different numbering plan" and "has to be carried forward through the
+  originating network"; Table 2: 8 F.69 (Note 4: "for further study"), 9 and 0 E.164; Note 3: networks "should also
+  support both 9 and 0". Which escape codes our networks use is still a decision. Test: own DNIC 2422, a prefix that
+  is not 0 or 9, a call to `9...` is not given 2422 in front.
+- A call with the A bit set (TOA/NPI, X.25 5.2.1.2) is misread as an ordinary address (x25emu BUGS 13;
+  `x25_packet.c` 201-240; `X25_GFI_A_BIT` used nowhere). Note 1 after Table C.3 lists it as invalid, row 7: #67.
+  Support it, or clear `10 01 13 13 43` (Local procedure error, #67).
+- An unknown DNIC gets diag 67 (x25emu BUGS 11; `x25switch.c` 600-608). Allowed: the list after Table C.3, row 24
+  "Unknown number / Not obtainable / # 67"; Annex E 121 "Unknown called DNIC" is the more exact code; no clause
+  requires it.
+- The DCC is never left out for a country that asks (x25emu BUGS 12; `x25switch.c` 468-485). X.121 7.12.3: "where
+  a country of destination indicates that it does not wish to receive the Data Country Code ... arrangements should
+  be made to suppress the DCC". Test: route to 2342 marked no-DCC; `234212345` goes as `212345`.
+- `intl_prefix` and `escape_codes` are switch-wide (x25emu BUGS 14; `x25switch.c` 5854-5877). X.121 7.8.2: the use
+  of a prefix is "a national matter"; 7.8.1: prefixes "are not signalled across internetwork or international
+  boundaries", so a call arriving on an X.75 port must not be completed. Possible bug (read, not run): own DNIC 2624,
+  prefix 0, a call to `23421234567` arriving there gets `2624` in front. Test that.
+- An incoming call routed to another runtime line is never forwarded (RetroIO BUGS 32; `X25Router.cs` 537-538,
+  571-592). Standard: none (X.25 covers only the DTE/DCE interface).
+- A failed XOT dial is cleared as "Number busy" #71 (RetroIO BUGS 33; `XotSwitchPort.cs` 804-813,
+  `SwitchCore.cs` 597-607). That row is Table C.3 a) item 31 (not "C.1"), for "No logical channel available"; item
+  30 "Called DTE out of order - Out of order - #0" fits a dial that fails (our reading; the text does not name XOT).
+  Test: a refused dial gives cause 0x09.
+- On a link-manager link the runtime is always the DTE (`ProtocolRuntime.X25Endpoints.cs` 196), so a clear it sends
+  has cause 0x00 (RetroIO BUGS 40). That is the DTE rule (X.25 5.2.4.1.1: "00000000 or 1XXXXXXX"; Table 5-7 note a
+  is about clear indications, not this). Which end is the DTE is set up, not given by the standard (as H7).
+- The C# switch blocks a port's reader up to 5 s waiting for a fresh XOT connection (RetroIO BUGS 41;
+  `XotSwitchPort.cs` 826, 1747-1782). Standard: none (RFC 1613 5 only says one connection per circuit). Test: data on
+  the calling port is forwarded within 100 ms while a dial waits.
 
-### H4. Needs the standard read first (RetroIO)
-- Cause sent in the restart after a LAPB reset on a link that stays up (BUGS 31; Table 5-9, 4.6.5).
-- SINTRAN's Call Request sent before it confirms the switch's restart: the switch routed it, the standard says discard
-  (BUGS 73; X.25 3.3.2, Table C.2 r3). Nothing decided.
-- TAD break strategies 2-6, 8 and a mixed 7 (BUGS 63) and the XMSG/TAD reply sequence number (BUGS 64): need SINTRAN
-  code or a capture.
+### H4. Answered by the standard or the SINTRAN source, not yet built (RetroIO)
+- The restart after a LAPB reset on a link that stays up has cause 0 (BUGS 31; `HdlcSwitchPortBase.cs` 1076,
+  `X25Layer.cs` 870). Table 5-9 allows only 01, 03, 07 from a DCE; 4.6.2 names "reset of the data link layer" as an
+  out of order condition and 4.6.5 says recovery sends "Network operational". So: 0x07. Test: a SABM in data
+  transfer gives `10 00 FB 07 00`.
+- SINTRAN's Call Request sent before it confirms the switch's restart: already fixed, the switch discards it
+  (`X25Layer.cs` 1125-1127; X.25 3.3.2, Table C.2 r3 DISCARD). Left: correct BUGS 73.
+- TAD break strategies (BUGS 63): SINTRAN `BDBREA` (NDInsight `SINTRAN/NPL-SOURCE-2/NPL-CLEAN/20-COS-TAD-POF-CODE.NPL`
+  933-957) cuts a strategy above 7 to 7, sends 23 bytes for 7 and 3 for the others, and the table `BRKTAB` (for
+  strategy 11) or `PBRK7`. What 2-6 and 8 do at the receiving end is not in that routine: still to find.
+  Standard: none.
+- XMSG/TAD reply sequence number (BUGS 64): no capture found; needs one. Standard: none.
 
-### H5. Desktop routing screen (RetroIO)
-- It edits only the desktop JSON routes, not the built-in switch's route table (BUGS 38).
-- Saving drops every `//` comment in the JSON file (BUGS 39).
+### H5. Desktop routing screen (RetroX25)
+- The screen writes the built-in switch's max calls and channel counts into its .ini (`RoutingViewModel.cs` 841),
+  but routes only to the JSON file; the switch's own .ini route table is not shown or edited (BUGS 38; checked only
+  by reading these lines). Standard: none.
+- Save drops `//` comments: read with `JsonCommentHandling.Skip` (`RoutingViewModel.cs` 969-970), written back with
+  `ToJsonString` (1020-1021) (BUGS 39). Standard: none.
 
 ### H6. Tests
-- Most x25emu integration tests use `sw_poll`, but the program runs `sw_start_threaded`: they test code that does not
-  ship (x25emu BUGS 15).
-- `X25emuWindowsTests.WriteSwitchIni` routes a trunk call to an access port (RetroIO BUGS 42).
-- Flaky: `TcpLapbEndToEndTests.Link_AfterStopAndStart_ReturnsToActive` uses fixed port 55612 (RetroIO BUGS 36);
-  `TwoPorts_OverTheLine_LinkUp_CallsAndDataGoBothWays` failed once in 1185 (RetroIO BUGS 90); A2 above.
+- Eight x25emu integration tests (test_hdlc_ppp, test_mesh, test_mgmt_call, test_nmc_dashboard, test_pad_client,
+  test_pad_echo, test_perf, test_soak) use `sw_poll`, one connection per XOT port; the program runs
+  `sw_start_threaded` (`x25switch.c` 10736). They test code that does not ship, and that code breaks RFC 1613 5 ("A
+  separate TCP connection MUST be used for each X.25 virtual circuit") (x25emu BUGS 15).
+- `X25emuWindowsTests.WriteSwitchIni` (257-262) routes 2340-2342 up the x25emu trunk; whether x25emu's port 2007 is
+  an access port is not checked (RetroIO BUGS 42).
+- Flaky: `TcpLapbEndToEndTests` uses fixed port 55612 (line 431; bind port 0 instead) (RetroIO BUGS 36);
+  `TwoPorts_OverTheLine_LinkUp_CallsAndDataGoBothWays` failed once in 1185, no message kept (RetroIO BUGS 90); A2
+  above.
 
 ### H7. Undecided
-- Serial X.25 has no default for which end is DCE or sends the first SABM (RetroIO BUGS 53); two serial paths,
-  `SerialLink` and `SerialLapbLink`, keep or merge (BUGS 54).
+- Serial X.25 has no default for which end is the DCE or sends the first SABM (RetroIO BUGS 53). X.25 2.4.4.1:
+  "Either the DTE or the DCE may initiate data link set-up", and the DCE may send a DM to ask the DTE to start: no
+  default is required. Two serial paths, `SerialLink` and `SerialLapbLink`: keep or merge (BUGS 54), a design choice.
 
 ## G. x25host: fake machines and services from description files (Ronny, 2026-11-18)
 
