@@ -137,6 +137,24 @@ namespace RetroX25.Host
 
                 runner.Start();
                 log.LogInformation("x25host started: {Count} machine(s)", machines.Count);
+
+                // The operator console on stdin (docs/x25host-format.md). With no terminal (stdin closed or
+                // redirected from nothing) ReadLine returns null at once and the process just runs.
+                OperatorConsole console = new OperatorConsole(runner);
+                Thread reader = new Thread(() =>
+                {
+                    string? typed;
+                    while ((typed = Console.In.ReadLine()) != null)
+                    {
+                        Console.Out.Write(console.Execute(typed));
+                        if (console.QuitAsked)
+                        {
+                            runner.Stop();
+                            return;
+                        }
+                    }
+                }) { IsBackground = true, Name = "x25host-console" };
+                reader.Start();
                 runner.Wait();
             }
 

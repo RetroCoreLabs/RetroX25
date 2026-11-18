@@ -440,7 +440,10 @@ description files, nothing in them runs; C# first, then C in x25emu reading the 
 limits) later and in C# only.
 
 - G1. What `x25host` still lacks from `docs/x25host-format.md` ("Many machines at once"): `nui` per machine, the operator console (`--console-port`, `show hosts`,
-  `stop host`, ...); its counters exist already (`HostRunner.StatsLines`, `--stats-log`).
+  `stop host`, ...). Built: the console on stdin with `show hosts`, `show stats`, `help`, `quit`
+  (`OperatorConsole.cs`), and `--stats-log`. Left: `--console-port` (telnet, `[operator.N]` login) and the
+  commands `show host`, `show users`, `show calls`, `stop`/`start`/`restart host`, `logout`, `clear call`,
+  `send`, `reload`, `log`.
 - G3. C `x25host` in x25emu reading the same files (ask the altoschat session before editing x25emu); a test that
   runs both on the same example and compares the screens.
 - G4. JavaScript hosts (C# only). The engine is built: `ScriptedHost` in RetroIO `RetroIO.Protocols.X25.Host`

@@ -139,6 +139,7 @@ namespace RetroX25.Host
                 }
 
                 line.Machines.Add(e.Nua, m);
+                m.Line = line;
                 _machines.Add(m);
             }
         }
@@ -179,6 +180,37 @@ namespace RetroX25.Host
             }
 
             lines.Add(StatsLine("total", total));
+            return lines;
+        }
+
+        /// <summary>
+        /// <c>show hosts</c>: one line per machine, hostname, type, NUA, group, line state (<c>up</c> when its switch
+        /// connection is there, else <c>redialling</c>) and calls now. Read on the machines' own thread, since the
+        /// machines are not thread safe.
+        /// </summary>
+        /// <returns>The lines, or a single line saying the machines did not answer within 2 s.</returns>
+        public List<string> HostLines()
+        {
+            List<string> lines = new List<string>(_machines.Count);
+            using ManualResetEventSlim done = new ManualResetEventSlim(false);
+            Post(() =>
+            {
+                for (int i = 0; i < _machines.Count; i++)
+                {
+                    Machine m = _machines[i];
+                    string state = m.Line != null && m.Line.Client != null ? "up" : "redialling";
+                    lines.Add(string.Create(CultureInfo.InvariantCulture,
+                        $"{m.Entry.Hostname,-12} {m.Entry.Type,-10} {m.Entry.Nua,-15} {m.Entry.Group,-10} {state,-10} calls {m.Host!.SessionCount}"));
+                }
+
+                done.Set();
+            });
+
+            if (!done.Wait(2000))
+            {
+                return new List<string> { "the machines did not answer within 2 s" };
+            }
+
             return lines;
         }
 
@@ -589,6 +621,9 @@ namespace RetroX25.Host
 
             public IHostMachine? Host { get; set; }
 
+            /// <summary>The switch line it answers on.</summary>
+            public HostLine? Line { get; set; }
+
             // The counters of docs/x25host-format.md "The operator console" (show stats), from the start. Written on
             // the client and sender threads, so with Interlocked.
             public long CallsIn;
@@ -668,7 +703,11 @@ namespace RetroX25.Host
             public void Dispose()
             {
                 Stop();
-                _thread?.Join(2000);
+
+                // Until the thread has ended: it may be inside a dial (client.Open) that takes longer than any fixed
+                // wait, and it waits on _stop next. Disposing _stop under it crashed the process (ObjectDisposed in
+                // Run, seen when a runner was disposed while its switch could not be reached).
+                _thread?.Join();
                 Client?.Dispose();
                 _stop.Dispose();
             }
