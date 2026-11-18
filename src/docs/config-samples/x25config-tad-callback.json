@@ -34,6 +34,8 @@
         "Enabled": true,
         "Mode": "Server",
         "LocalPort": 1998,
+        // Channels on this line, and so the TCP connections it holds at once (one per call, plus the spare a caller keeps for arriving calls). A connection over this waits in the TCP backlog until a call ends.
+        "LciCount": 128,
         "RemoteMachineId": "23430001",
         "RequestedWindowSize": null,
         "RequestedPacketSize": null,

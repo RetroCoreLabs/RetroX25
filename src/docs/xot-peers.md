@@ -112,6 +112,22 @@ the sizes they ask for. Left out, the X.25 section of the configuration applies.
 from starting, and the message names the entry. The XOT edit dialog has a box for each (empty = the X.25 settings) and
 refuses a wrong value when you press OK. There is no profile system.
 
+### How many connections an entry holds: `LciCount`
+
+`LciCount` (default 16) is the number of X.25 channels on the line, and for a `Server` or `Both` entry it is
+also the number of TCP connections the entry holds at once. RFC 1613 section 5 gives every call its own TCP
+connection, so one connection slot per channel. An idle connection takes a slot too: a caller such as x25emu
+or RetroIO's `X25Client` keeps one spare connection open for calls that arrive, so a caller that holds N calls
+at once needs N + 1.
+
+When every slot is taken the next connection is **not accepted**: it waits in the TCP backlog, and it is
+accepted as soon as a call ends and its connection closes. It is never accepted and then closed (which the
+caller sees as its call lost, cause 9). This is how x25emu's XOT port works (`tools/x25switch.c`: a port has
+`conn_max` = its channel count, and the listener is only looked at while a slot is free). On a port that
+several entries share, the socket accepts while any entry on it has room; a connection that then belongs to
+an entry that is full is held open and unread until that entry has a slot. Before 2026-11-18 the limit was a
+fixed 100 and a connection over it was accepted and closed.
+
 Read from real bytes against x25emu (`TwoPeers_WithDifferentSizes_PutTheirOwnSizesInTheCallRequest`): a peer set to window 2 and
 packet size 256 puts `42 08 08 43 02 02` in its Call Request, a peer set to window 5 and packet size 64 puts
 `42 06 06 43 05 05`, and the Packet window shows the same bytes. The facility 0x42 carries the packet size as a power of two
