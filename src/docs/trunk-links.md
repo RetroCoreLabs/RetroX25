@@ -52,7 +52,7 @@ All are keys of a `[port.N]` section.
 | `baud` | hdlc-serial, 300 to 921600 | 9600 |
 | `databits`, `parity`, `stopbits` | hdlc-serial: 7 or 8, `none`/`odd`/`even`, 1 or 2 | 8, none, 1 |
 | `flow` | hdlc-serial: `rtscts` or `none` | `rtscts` |
-| `lci_base`, `lci_count` | The logical channel numbers the port carries calls on (1 to 4095). A port carries as many calls at once as it has channels. | 1, 16 |
+| `lci_base`, `lci_count` | The logical channel numbers the port carries calls on (1 to 4095). A port carries as many calls at once as it has channels. Without `lci_count` a port (trunk or access) gets every channel from `lci_base` up to 4095; a set range that goes past 4095 is refused. | 1, every channel up to 4095 (16 before 2026-11-18) |
 | `window_size`, `packet_size` | X.25 defaults for the port | 2, 128 |
 | `lapb_t1` | Time to wait for an acknowledgement before sending again, milliseconds (100 or more) | 3000 |
 | `lapb_t2` | Delay before an acknowledgement is sent on its own, milliseconds; 0 = send it at once. Must be smaller than T1. | 0 |

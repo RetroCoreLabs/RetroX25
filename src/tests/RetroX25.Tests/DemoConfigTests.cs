@@ -16,7 +16,7 @@ namespace RetroX25.Tests
     /// <remarks>
     /// A port carries as many calls at once as it has logical channels. <c>x25traffic</c> in
     /// call-storm mode holds up to 2048 calls open together (<c>NumVcs</c> in its Program.cs), so a
-    /// demo access port with the default of 16 channels can only carry 16 of them and the storm
+    /// demo access port with the old default of 16 channels (the default is every channel up to 4095 since 2026-11-18) can only carry 16 of them and the storm
     /// measures refusals instead of the switch.
     /// </remarks>
     [TestFixture]

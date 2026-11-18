@@ -119,7 +119,9 @@ backup_ports = nordic
 ```
 
 Defaults follow the switch configuration specification: window size **2**, packet size **128**, LCI base **1**,
-count **16**, TCP port **1998**. A file shorter than you expect is not necessarily incomplete.
+count **every channel from the base up to 4095** (16 before 2026-11-18), TCP port **1998**. `max_calls` in
+`[switch]` limits the calls the whole switch carries at once; 0 or absent = no limit, and the call over the limit
+is cleared with Network congestion (cause 5). A file shorter than you expect is not necessarily incomplete.
 
 A port carries as many calls at once as it has logical channels (`lci_base`, `lci_count`). XOT gives every call its
 own TCP connection (RFC 1613 section 5) and the channel number a peer puts on the wire has no meaning, so the switch

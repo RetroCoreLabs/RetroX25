@@ -17,8 +17,12 @@ using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using RetroIO.Protocols.X25;
+using RetroIO.Protocols.X25.Common;
+using RetroIO.Protocols.X25.PacketLayer;
 using RetroIO.Protocols.X25.Routing;
 using RetroIO.Protocols.X25.Runtime;
+using RetroIO.Protocols.X25.Switch;
 using RetroX25.Desktop.Services;
 
 namespace RetroX25.Desktop.ViewModels;
@@ -84,6 +88,21 @@ public partial class RoutingViewModel : ViewModelWithLogger
     private bool _hasUnsavedChanges;
 
     /// <summary>
+    /// The switch-wide call limit as typed: digits, 0 = no limit. Empty is read as 0.
+    /// </summary>
+    [ObservableProperty]
+    private string _maxCallsText = "0";
+
+    [ObservableProperty]
+    private string _maxCallsError = string.Empty;
+
+    [ObservableProperty]
+    private string _switchSettingsText = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasSwitchFile;
+
+    /// <summary>
     /// The arrival-port choice that means "a call placed on this node".
     /// </summary>
     public const string PlacedHere = "(placed on this node)";
@@ -104,9 +123,21 @@ public partial class RoutingViewModel : ViewModelWithLogger
     public ObservableCollection<string> ArrivalPorts { get; } = new ObservableCollection<string>();
 
     /// <summary>
+    /// Every line with its channel count: the built-in switch's ports (from its .ini file) and this app's own lines.
+    /// </summary>
+    public ObservableCollection<LineRow> Lines { get; } = new ObservableCollection<LineRow>();
+
+    /// <summary>
     /// The file Save writes; null when the app was started without one. Set from the command line by the app.
     /// </summary>
     public string? ConfigFilePath { get; set; }
+
+    /// <summary>
+    /// The built-in switch's .ini file (the <c>EmbeddedSwitch</c> section's <c>ConfigFile</c>): where the max calls
+    /// setting and the switch ports' channel counts are read from and saved to. Null when the app names none. Set
+    /// from the configuration by the app; a test sets its own and then calls <see cref="LoadFromConfig"/>.
+    /// </summary>
+    public string? SwitchFilePath { get; set; }
 
     /// <summary>
     /// Where Save writes, in words.
@@ -135,6 +166,9 @@ public partial class RoutingViewModel : ViewModelWithLogger
     /// <param name="dialogService">
     /// For the delete confirmation and errors.
     /// </param>
+    /// <param name="switchOptions">
+    /// The built-in switch setting; its .ini file holds the max calls setting and the switch ports.
+    /// </param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when an argument is null.
     /// </exception>
@@ -142,12 +176,19 @@ public partial class RoutingViewModel : ViewModelWithLogger
         ILogger<RoutingViewModel> logger,
         RuntimeConfig config,
         IRuntimeService runtimeService,
-        IDialogService dialogService) : base(logger)
+        IDialogService dialogService,
+        EmbeddedSwitchOptions switchOptions) : base(logger)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _runtimeService = runtimeService ?? throw new ArgumentNullException(nameof(runtimeService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+        if (switchOptions == null)
+        {
+            throw new ArgumentNullException(nameof(switchOptions));
+        }
+
         ConfigFilePath = App.ConfigFilePath;
+        SwitchFilePath = switchOptions.ConfigFile.Length > 0 ? switchOptions.ConfigFile : null;
         LoadFromConfig();
     }
 
@@ -210,8 +251,166 @@ public partial class RoutingViewModel : ViewModelWithLogger
 
         RebuildRows();
         UpdateOwnNetworkText();
+        string switchProblem = LoadLinesAndSwitchSettings();
         HasUnsavedChanges = false;
-        StatusText = Routes.Count + " route(s)";
+        StatusText = Routes.Count + " route(s)" + (switchProblem.Length > 0 ? ". " + switchProblem : string.Empty);
+    }
+
+    // The Lines list and the max calls field: the built-in switch's ports and [switch] max_calls from its .ini
+    // file, then this app's own lines. Returns why the switch file could not be read, or empty.
+    private string LoadLinesAndSwitchSettings()
+    {
+        _loading = true;
+        string problem = string.Empty;
+        try
+        {
+            Lines.Clear();
+            MaxCallsText = "0";
+            MaxCallsError = string.Empty;
+            HasSwitchFile = false;
+            if (SwitchFilePath != null)
+            {
+                try
+                {
+                    SwitchConfig sw = SwitchConfigLoader.LoadFile(SwitchFilePath);
+                    HasSwitchFile = true;
+                    MaxCallsText = sw.MaxCalls.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    for (int i = 0; i < sw.Ports.Count; i++)
+                    {
+                        PortConfig pc = sw.Ports[i];
+                        string name = pc.Name.Length > 0 ? pc.Name : "port." + pc.Id;
+                        string kind = (pc.Type == PortType.Trunk ? "trunk" : "access") + ", " + TransportWord(pc.Transport);
+                        Lines.Add(new LineRow(this, LineSource.SwitchPort, i, "port." + pc.Id, name, kind, pc.LciBase,
+                            pc.LciCountIsSet ? pc.LciCount : (ushort?)null, editable: true));
+                    }
+                }
+                catch (Exception ex) when (ex is IOException || ex is InvalidDataException || ex is UnauthorizedAccessException)
+                {
+                    problem = "The built-in switch's file " + Path.GetFileName(SwitchFilePath) + " could not be read: " + ex.Message;
+                }
+            }
+
+            X25RoutingConfig r = _config.Routing;
+            for (int i = 0; i < r.XotInterfaces.Count; i++)
+            {
+                XotInterfaceConfig x = r.XotInterfaces[i];
+                Lines.Add(new LineRow(this, LineSource.AppXot, i, x.Name, x.Name, "this app, XOT", x.LciBase,
+                    x.LciCountIsSet ? x.LciCount : (ushort?)null, editable: true));
+            }
+
+            // Serial and TCP LAPB lines have no channel setting: their packet layer always gets the default range.
+            for (int i = 0; i < r.SerialInterfaces.Count; i++)
+            {
+                Lines.Add(new LineRow(this, LineSource.AppFixed, i, r.SerialInterfaces[i].Name, r.SerialInterfaces[i].Name,
+                    "this app, serial", 1, null, editable: false));
+            }
+
+            for (int i = 0; i < r.TcpLapbInterfaces.Count; i++)
+            {
+                Lines.Add(new LineRow(this, LineSource.AppFixed, i, r.TcpLapbInterfaces[i].Name, r.TcpLapbInterfaces[i].Name,
+                    "this app, TCP LAPB", 1, null, editable: false));
+            }
+
+            SwitchSettingsText = HasSwitchFile
+                ? "Saved to the built-in switch's file " + Path.GetFileName(SwitchFilePath) + "; the switch reads it when the app starts."
+                : "No built-in switch file is named, so there is no switch-wide limit to set here.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        return problem;
+    }
+
+    private static string TransportWord(PortTransport transport)
+    {
+        switch (transport)
+        {
+            case PortTransport.Xot: return "XOT";
+            case PortTransport.HdlcTcp: return "HDLC over TCP";
+            case PortTransport.HdlcSerial: return "serial";
+            case PortTransport.HdlcPpp: return "HDLC (RFC 1662) over TCP";
+            default: return transport.ToString();
+        }
+    }
+
+    partial void OnMaxCallsTextChanged(string value)
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        MaxCallsError = TryReadMaxCalls(value, out _, out string error) ? string.Empty : error;
+        HasUnsavedChanges = true;
+    }
+
+    /// <summary>
+    /// Reads the max calls field: digits only, empty is 0, 0 is no limit.
+    /// </summary>
+    /// <param name="text">
+    /// The field.
+    /// </param>
+    /// <param name="value">
+    /// The number.
+    /// </param>
+    /// <param name="error">
+    /// Why it was refused, in words.
+    /// </param>
+    /// <returns>
+    /// True when it is a number of calls.
+    /// </returns>
+    public static bool TryReadMaxCalls(string text, out int value, out string error)
+    {
+        string t = (text ?? string.Empty).Trim();
+        value = 0;
+        error = string.Empty;
+        if (t.Length == 0)
+        {
+            return true;
+        }
+
+        for (int i = 0; i < t.Length; i++)
+        {
+            if (t[i] < '0' || t[i] > '9')
+            {
+                error = "Max calls: digits only (0 = no limit).";
+                return false;
+            }
+        }
+
+        if (!int.TryParse(t, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out value))
+        {
+            error = "Max calls: the number is too large.";
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Called by a line when its channel count is edited.
+    /// </summary>
+    internal void LineEdited()
+    {
+        if (!_loading)
+        {
+            HasUnsavedChanges = true;
+        }
+    }
+
+    private string FirstLineError()
+    {
+        for (int i = 0; i < Lines.Count; i++)
+        {
+            if (Lines[i].Error.Length > 0)
+            {
+                return Lines[i].Error;
+            }
+        }
+
+        return string.Empty;
     }
 
     private void AddLines(ObservableCollection<string> into)
@@ -626,6 +825,55 @@ public partial class RoutingViewModel : ViewModelWithLogger
         // would add each route a second time on the next start.
         r.RoutingTable.Clear();
         r.DefaultGateway = null;
+
+        // The channel counts typed for this app's XOT lines (a line with a typing error keeps what it had).
+        for (int i = 0; i < Lines.Count; i++)
+        {
+            LineRow line = Lines[i];
+            if (line.Source == LineSource.AppXot && line.Error.Length == 0 && line.Index < r.XotInterfaces.Count)
+            {
+                r.XotInterfaces[line.Index].LciCountSetting = line.TryRead(out ushort? count, out _) ? count : r.XotInterfaces[line.Index].LciCountSetting;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Writes the max calls setting and the switch ports' channel counts into the built-in switch's .ini file and
+    /// leaves every other line of it (comments too) as it was. A port whose count is empty loses its
+    /// <c>lci_count</c> line, so it gets the default, every channel up to 4095. Max calls 0 is written as 0 when the
+    /// file has the key, and not added when it does not (absent means the same: no limit).
+    /// </summary>
+    /// <param name="path">
+    /// The switch file.
+    /// </param>
+    /// <param name="maxCalls">
+    /// The limit; 0 = none.
+    /// </param>
+    /// <param name="lines">
+    /// The screen's lines; only the switch ports are written.
+    /// </param>
+    public static void WriteSwitchSettingsToFile(string path, int maxCalls, IReadOnlyList<LineRow> lines)
+    {
+        List<string> text = new List<string>(File.ReadAllLines(path));
+        bool hasKey = IniConfig.Parse(text, int.MaxValue).Get("switch", "max_calls") != null;
+        if (maxCalls > 0 || hasKey)
+        {
+            IniConfig.SetValue(text, "switch", "max_calls", maxCalls.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        for (int i = 0; i < lines.Count; i++)
+        {
+            LineRow line = lines[i];
+            if (line.Source != LineSource.SwitchPort || !line.TryRead(out ushort? count, out _))
+            {
+                continue;
+            }
+
+            IniConfig.SetValue(text, line.Section, "lci_count",
+                count.HasValue ? count.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : null);
+        }
+
+        File.WriteAllLines(path, text);
     }
 
     [RelayCommand]
@@ -634,6 +882,19 @@ public partial class RoutingViewModel : ViewModelWithLogger
         if (OwnNetworkError.Length > 0)
         {
             StatusText = "Not saved: " + OwnNetworkError;
+            return;
+        }
+
+        if (!TryReadMaxCalls(MaxCallsText, out int maxCalls, out string maxCallsError))
+        {
+            StatusText = "Not saved: " + maxCallsError;
+            return;
+        }
+
+        string lineError = FirstLineError();
+        if (lineError.Length > 0)
+        {
+            StatusText = "Not saved: " + lineError;
             return;
         }
 
@@ -666,6 +927,21 @@ public partial class RoutingViewModel : ViewModelWithLogger
             {
                 StatusText = "The engine has the new routes, but the file was not written: " + ex.Message;
                 _dialogService.ShowError("Routes not written to the file", ex.Message);
+                return;
+            }
+        }
+
+        if (HasSwitchFile && SwitchFilePath != null)
+        {
+            try
+            {
+                WriteSwitchSettingsToFile(SwitchFilePath, maxCalls, Lines);
+                where += " and " + Path.GetFileName(SwitchFilePath) + " (the built-in switch uses it from its next start)";
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                StatusText = "The routes are saved, but the switch file was not written: " + ex.Message;
+                _dialogService.ShowError("Switch settings not written", ex.Message);
                 return;
             }
         }
@@ -703,6 +979,43 @@ public partial class RoutingViewModel : ViewModelWithLogger
         SetKey(section, "Routes", JsonSerializer.SerializeToNode(routing.Routes));
         SetKey(section, "RoutingTable", new JsonArray());
         SetKey(section, "DefaultGateway", null);
+
+        // The channel count of each XOT line, matched by name; a count that is not set is taken out of the file so
+        // the line keeps the default (every channel up to 4095). Nothing else of a line is touched.
+        string? xotKey = FindKey(section, "XotInterfaces");
+        if (xotKey != null && section[xotKey] is JsonArray xotLines)
+        {
+            for (int i = 0; i < xotLines.Count; i++)
+            {
+                if (xotLines[i] is not JsonObject line)
+                {
+                    continue;
+                }
+
+                string? nameKey = FindKey(line, "Name");
+                string name = nameKey != null ? line[nameKey]?.GetValue<string>() ?? string.Empty : string.Empty;
+                for (int j = 0; j < routing.XotInterfaces.Count; j++)
+                {
+                    if (!string.Equals(routing.XotInterfaces[j].Name, name, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    ushort? count = routing.XotInterfaces[j].LciCountSetting;
+                    string? countKey = FindKey(line, "LciCount");
+                    if (count.HasValue)
+                    {
+                        line[countKey ?? "LciCount"] = count.Value;
+                    }
+                    else if (countKey != null)
+                    {
+                        line.Remove(countKey);
+                    }
+
+                    break;
+                }
+            }
+        }
 
         string text = top.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(path, text);
@@ -778,6 +1091,150 @@ public partial class RoutingViewModel : ViewModelWithLogger
         }
 
         return copy;
+    }
+}
+
+/// <summary>
+/// Where a line of the Lines list comes from, which says where its channel count is saved.
+/// </summary>
+public enum LineSource
+{
+    /// <summary>A port of the built-in switch: <c>lci_count</c> in its .ini file.</summary>
+    SwitchPort,
+
+    /// <summary>One of this app's XOT lines: <c>LciCount</c> in the app's configuration file.</summary>
+    AppXot,
+
+    /// <summary>One of this app's serial or TCP LAPB lines: no channel setting, always the default.</summary>
+    AppFixed,
+}
+
+/// <summary>
+/// One line of the Lines list: a line, what kind it is, and how many logical channels it has.
+/// </summary>
+/// <remarks>
+/// The count is typed as digits; empty means "not set", which gives every channel from the line's first channel
+/// up to 4095 (X.25 3.1; <see cref="X25Channels.DefaultCount"/>). A set count must keep the last channel at or
+/// below 4095.
+/// </remarks>
+public sealed partial class LineRow : ObservableObject
+{
+    private readonly RoutingViewModel _owner;
+
+    [ObservableProperty]
+    private string _channelCountText;
+
+    [ObservableProperty]
+    private string _error = string.Empty;
+
+    /// <summary>
+    /// Creates a line.
+    /// </summary>
+    /// <param name="owner">The screen, told when the count is edited.</param>
+    /// <param name="source">Where the line comes from.</param>
+    /// <param name="index">Its place in its own list (switch ports, or the app's lines of its kind).</param>
+    /// <param name="section">For a switch port its .ini section (<c>port.N</c>); otherwise the line's name.</param>
+    /// <param name="name">The name shown.</param>
+    /// <param name="kind">What kind of line it is, in words.</param>
+    /// <param name="lciBase">The line's first channel.</param>
+    /// <param name="count">The configured count; null when not set.</param>
+    /// <param name="editable">Whether the count can be changed here.</param>
+    public LineRow(RoutingViewModel owner, LineSource source, int index, string section, string name, string kind,
+        ushort lciBase, ushort? count, bool editable)
+    {
+        _owner = owner;
+        Source = source;
+        Index = index;
+        Section = section;
+        Name = name;
+        Kind = kind;
+        LciBase = lciBase == 0 ? (ushort)1 : lciBase;
+        IsEditable = editable;
+        _channelCountText = count.HasValue ? count.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+    }
+
+    /// <summary>Where the line comes from.</summary>
+    public LineSource Source { get; }
+
+    /// <summary>Its place in its own list.</summary>
+    public int Index { get; }
+
+    /// <summary>For a switch port its .ini section; otherwise the line's name.</summary>
+    public string Section { get; }
+
+    /// <summary>The name shown.</summary>
+    public string Name { get; }
+
+    /// <summary>What kind of line it is, in words (access or trunk, and the transport; or "this app, ...").</summary>
+    public string Kind { get; }
+
+    /// <summary>The line's first channel.</summary>
+    public ushort LciBase { get; }
+
+    /// <summary>Whether the count can be changed here.</summary>
+    public bool IsEditable { get; }
+
+    /// <summary>The most channels this line can have: from its first channel up to 4095.</summary>
+    public int Highest => X25Channels.Highest + 1 - LciBase;
+
+    /// <summary>The count the line runs with, in words: the number, or "4095 (default)" when it is not set.</summary>
+    public string ChannelsText
+    {
+        get
+        {
+            if (TryRead(out ushort? count, out _) && count.HasValue)
+            {
+                return count.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            return X25Channels.DefaultCount(LciBase).ToString(System.Globalization.CultureInfo.InvariantCulture) + " (default)";
+        }
+    }
+
+    /// <summary>A hint for the field: the allowed range.</summary>
+    public string Hint => "1-" + Highest + ", empty = default (" + X25Channels.DefaultCount(LciBase) + ")";
+
+    /// <summary>
+    /// Reads the field.
+    /// </summary>
+    /// <param name="count">The count; null for "not set" (empty field).</param>
+    /// <param name="error">Why it was refused, in words.</param>
+    /// <returns>True when it can be saved.</returns>
+    public bool TryRead(out ushort? count, out string error)
+    {
+        count = null;
+        error = string.Empty;
+        string t = (ChannelCountText ?? string.Empty).Trim();
+        if (t.Length == 0)
+        {
+            return true;
+        }
+
+        for (int i = 0; i < t.Length; i++)
+        {
+            if (t[i] < '0' || t[i] > '9')
+            {
+                error = Name + ": channels must be digits (" + Hint + ").";
+                return false;
+            }
+        }
+
+        if (!int.TryParse(t, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int n)
+            || n < 1 || n > Highest)
+        {
+            error = Name + ": channels must be 1 to " + Highest + " (the last channel may be at most 4095, X.25 3.1).";
+            return false;
+        }
+
+        count = (ushort)n;
+        return true;
+    }
+
+    partial void OnChannelCountTextChanged(string value)
+    {
+        Error = TryRead(out _, out string error) ? string.Empty : error;
+        OnPropertyChanged(nameof(ChannelsText));
+        _owner.LineEdited();
     }
 }
 

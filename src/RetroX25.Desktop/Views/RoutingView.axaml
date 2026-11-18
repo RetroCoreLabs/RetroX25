@@ -30,6 +30,56 @@
                            Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                 <TextBlock Text="{Binding OwnNetworkError}" TextWrapping="Wrap" Foreground="#F44336"
                            IsVisible="{Binding OwnNetworkError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <Grid ColumnDefinitions="Auto,80,8,*" Margin="0,4,0,0">
+                    <TextBlock Grid.Column="0" Text="Max calls (whole switch):" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="1" Name="MaxCallsBox" Text="{Binding MaxCallsText}" Watermark="0"
+                             IsEnabled="{Binding HasSwitchFile}"
+                             ToolTip.Tip="The most calls the built-in switch carries at once. 0 = no limit. When it is reached the next call is cleared with Network congestion (cause 5). A call through the switch counts once."/>
+                    <TextBlock Grid.Column="3" Text="0 = no limit" VerticalAlignment="Center" FontSize="12"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </Grid>
+                <TextBlock Text="{Binding SwitchSettingsText}" TextWrapping="Wrap" FontSize="11"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                <TextBlock Text="{Binding MaxCallsError}" TextWrapping="Wrap" Foreground="#F44336"
+                           IsVisible="{Binding MaxCallsError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Lines and their channel counts -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+            <StackPanel Spacing="6">
+                <TextBlock Text="Lines" FontSize="15" FontWeight="SemiBold"/>
+                <TextBlock FontSize="11" TextWrapping="Wrap"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                           Text="How many calls each line can carry at once (its logical channels, X.25 3.1). Leave the field empty for the default: every channel up to 4095. An XOT line also holds one TCP connection per channel."/>
+                <DataGrid Name="LineGrid"
+                          ItemsSource="{Binding Lines}"
+                          AutoGenerateColumns="False"
+                          CanUserSortColumns="False"
+                          CanUserReorderColumns="False"
+                          GridLinesVisibility="Horizontal"
+                          HeadersVisibility="Column"
+                          MaxHeight="180">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Line" Binding="{Binding Name}" Width="160" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="200" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Channels" Binding="{Binding ChannelsText}" Width="130" IsReadOnly="True"/>
+                        <DataGridTemplateColumn Header="Set channels" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="vm:LineRow">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="4,2">
+                                        <TextBox Text="{Binding ChannelCountText}" Width="80" Watermark="default"
+                                                 IsEnabled="{Binding IsEditable}" ToolTip.Tip="{Binding Hint}"/>
+                                        <TextBlock Text="{Binding Error}" Foreground="#F44336" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
             </StackPanel>
         </Border>
 

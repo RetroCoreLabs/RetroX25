@@ -114,8 +114,13 @@ refuses a wrong value when you press OK. There is no profile system.
 
 ### How many connections an entry holds: `LciCount`
 
-`LciCount` (default 16) is the number of X.25 channels on the line, and for a `Server` or `Both` entry it is
-also the number of TCP connections the entry holds at once. RFC 1613 section 5 gives every call its own TCP
+`LciCount` is the number of X.25 channels on the line, and for a `Server` or `Both` entry it is
+also the number of TCP connections the entry holds at once. Leave it out and the line gets every channel from
+`LciBase` up to 4095, the most X.25 allows (X.25 10/96 clause 3.1: group at most 15, channel at most 255,
+channel 0 kept); until 2026-11-18 the default was 16. `LciBase + LciCount - 1` must stay at or below 4095. A
+slot is only a counter, so 4095 of them cost nothing until the connections exist. As a DTE the line places its
+first call on the top channel, 4095, so a far switch port configured with fewer channels needs `LciCount` set
+to match. RFC 1613 section 5 gives every call its own TCP
 connection, so one connection slot per channel. An idle connection takes a slot too: a caller such as x25emu
 or RetroIO's `X25Client` keeps one spare connection open for calls that arrive, so a caller that holds N calls
 at once needs N + 1.
