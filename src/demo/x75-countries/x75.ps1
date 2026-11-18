@@ -4,8 +4,9 @@
   Germany and an echo service in each country. Start it, use it by hand, stop it. See README.md here.
 
 .EXAMPLE
-  ../../build.ps1            # once, from src: builds, tests and publishes every program to src\publish\win-x64
-  ./x75.ps1 start            # start 3 switches, 3 echo services and the Altos chat (no build)
+  ./x75.ps1 build            # take the newest RetroIO packages, build, test and publish to src\publish\win-x64
+  ./x75.ps1 start            # start 3 switches, 3 echo services and the Altos chat; refuses programs older
+                             # than the code (run build first)
   ./x75.ps1 pad 1            # a PAD as test user 1 (NUI 242226500000101); then: CALL 026245890040004
   ./x75.ps1 cli norway       # the management console of a switch (login admin / admin)
   ./x75.ps1 calls            # the call records each switch has written
@@ -19,7 +20,7 @@
 #>
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('start', 'stop', 'status', 'pad', 'cli', 'calls', 'logs', 'monitor')]
+    [ValidateSet('build', 'start', 'stop', 'status', 'pad', 'cli', 'calls', 'logs', 'monitor')]
     [string]$Command = 'status',
     [Parameter(Position = 1)]
     [string]$Arg = '',
@@ -44,9 +45,10 @@ $Monitor = @{ 'norway' = 4201; 'england' = 4202; 'germany' = 4203 }
 # 25003, 25013 and 25024 are the host lines (24221xxx, 23421xxx, 26241xxx), for x25host.
 $AllPorts = 25001, 25002, 25003, 25011, 25012, 25013, 25021, 25022, 25023, 25024, 9201, 9202, 9203, 4201, 4202, 4203
 
+$script:BinDirGiven = [bool]$BinDir
 if (-not $BinDir) { $BinDir = Join-Path $Root 'publish/win-x64' }
 
-# This script builds nothing: the programs come from src\build.ps1 (or the folder given as -BinDir).
+# The programs come from src\build.ps1 (./x75.ps1 build runs it), or from the folder given as -BinDir.
 function Program([string]$Name) {
     $exe = Join-Path $BinDir "$Name.exe"
     if (-not (Test-Path $exe)) { throw "$exe not found - run src\build.ps1 first (or pass -BinDir)" }
@@ -107,11 +109,55 @@ function Start-One([string]$Log, [string]$Exe, [object[]]$ProgramArgs) {
     return $proc
 }
 
+# The newest source the published programs are made from: every .cs, .csproj and .props under src (build output
+# left out), and the restore record of the switch, which changes when a newer RetroIO package is taken.
+function Get-NewestSource {
+    $newest = [datetime]::MinValue
+    foreach ($f in Get-ChildItem $Root -Recurse -File -Include *.cs, *.csproj, *.props) {
+        if ($f.FullName -match '\\(bin|obj|publish)\\') { continue }
+        if ($f.LastWriteTime -gt $newest) { $newest = $f.LastWriteTime }
+    }
+    $assets = Join-Path $Root 'RetroX25.Switch/obj/project.assets.json'
+    if ((Test-Path $assets) -and (Get-Item $assets).LastWriteTime -gt $newest) { $newest = (Get-Item $assets).LastWriteTime }
+    return $newest
+}
+
+# Refuses to start programs older than the code: running an old switch while the code says otherwise looks
+# exactly like a fix that does not work (2026-11-18: a console fix was tested against a switch published hours
+# before it). Only for the default folder; a folder given with -BinDir is the caller's own build.
+function Assert-Fresh {
+    if ($script:BinDirGiven) { return }
+    $newest = Get-NewestSource
+    foreach ($name in 'x25switch', 'x25echo', 'x25service', 'x25pad') {
+        $exe = Program $name
+        $built = (Get-Item $exe).LastWriteTime
+        if ($built -lt $newest) {
+            throw "$exe was published $built, before the newest source ($newest). Run './x75.ps1 build' first."
+        }
+    }
+}
+
+# Takes the newest RetroIO packages from the local feed, then builds, tests and publishes everything with
+# src\build.ps1. The programs cannot be replaced while they run, so the network must be stopped.
+function Build-All {
+    if (Test-Path $PidFile) { throw "The network is running (see $PidFile): './x75.ps1 stop' first - running programs cannot be replaced." }
+    Push-Location $Root
+    try {
+        # A plain restore once kept an older RetroIO package (docs/cisco-gns3-xot-test.md, "Why the forced restore").
+        dotnet restore --force --no-cache
+        if ($LASTEXITCODE -ne 0) { throw 'restore failed' }
+        & (Join-Path $Root 'build.ps1')
+    }
+    finally { Pop-Location }
+}
+
 function Start-All {
     if (Test-Path $PidFile) {
         Write-Host "Already running (see $PidFile). Run './x75.ps1 stop' first."
         return
     }
+
+    Assert-Fresh
 
     # A port already taken (another run of this network, with another -StateDir) would make the wait below see
     # the OTHER run's listener and report a start that did not happen. Refuse instead.
@@ -193,6 +239,7 @@ function Show-Status {
 }
 
 switch ($Command) {
+    'build' { Build-All }
     'start' { Start-All }
     'stop' { Stop-All }
     'status' { Show-Status }

@@ -35,10 +35,13 @@ script and these same files, then dials in. What you start by hand is what the t
 The script builds nothing. Build once from `src`:
 
 ```powershell
-cd src
-./build.ps1              # builds, runs the tests, publishes every program to src/publish/win-x64
-./build.ps1 -SkipTests   # the same without the tests
+./x75.ps1 build          # takes the newest RetroIO packages, builds, tests, publishes to src/publish/win-x64
 ```
+
+`./x75.ps1 build` is `dotnet restore --force --no-cache` followed by `src/build.ps1` (which you can also run
+yourself, `-SkipTests` to leave the tests out). It refuses while the network runs, because a running program
+cannot be replaced. `./x75.ps1 start` refuses programs published before the newest source, so an old build is
+never mistaken for a fix that does not work.
 
 The script runs `x25switch.exe`, `x25echo.exe`, `x25service.exe`, `x25pad.exe` and `x25monitor.exe` from
 `src/publish/win-x64`. Another folder: `-BinDir <folder>`.
