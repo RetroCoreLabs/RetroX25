@@ -1,0 +1,4 @@
+
+ Echomail is polled every night. This box is also reached over Datex-P (X.25),
+ on the RetroX25 demonstration network.
+

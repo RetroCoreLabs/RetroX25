@@ -28,7 +28,7 @@ script and these same files, then dials in. What you start by hand is what the t
 | `germany.ini` | Germany's switch: X.75 from England, the Altos host line, echo |
 | `altos-chat.json` | The Altos chat service (`x25service`), dialling Germany's Altos line |
 | `machines.ini` | The test servers: one `[machine.N]` per server, all run by one `x25host` (see "Test servers") |
-| `hosts/` | The test servers' JavaScript programs (`clock.js`, `guess.js`, `board.js`) |
+| `hosts/` | The test servers' JavaScript programs (`clock.js`, `guess.js`, `board.js`); the host folders are in `src/demo/hosts` |
 | `x75.ps1` | Start, stop, status, PAD, management console, call records, logs |
 | `logs/` | Made on start: one log per program, and each switch's call records (not in git) |
 
@@ -82,6 +82,12 @@ without the DNIC (the national number).
 | 26241001 | `026241001` | Notice board (MUNICHBOARD): pin a line, others on line see it at once | Germany port 3, `x25host` |
 | 23421002 | `023421002` | TOMVAX, a VAX with a DCL command line (log in `GUEST` / `GUEST`) | England port 3, `x25host`, folder `demo/hosts/vax` |
 | 24221002 | `1002` | NORDBBS, a menu bulletin board (log in `GUEST`, any password) | Norway port 3, `x25host`, folder `demo/hosts/bbs` |
+| 24221003 | `1003` | NDOSLO, a Norsk Data ND-100 with SINTRAN III (`ENTER` GUEST, `PASSWORD:` GUEST) | Norway port 3, `x25host`, folder `demo/hosts/sintran` |
+| 23421003 | `023421003` | PPOA1, a Prime with PRIMOS 19.4 (GUEST / PRIME) | England port 3, `x25host`, folder `demo/hosts/primos` |
+| 23421004 | `023421004` | THAMESWWIV, a WWIV bulletin board (GUEST, any password) | England port 3, `x25host`, folder `demo/hosts/wwiv` |
+| 26241002 | `026241002` | ucbvax, a VAX with 4.3BSD Unix (guest / guest) | Germany port 3, `x25host`, folder `demo/hosts/bsd` |
+| 26241003 | `026241003` | ISARBOX, a Maximus FidoNet board (GUEST, any password) | Germany port 3, `x25host`, folder `demo/hosts/maximus` |
+| 26245890040005 | `026245890040005` | The same Altos CHAT 3.1, run as a script (`builtin:altos-chat`), one number above the C# one | Germany port 3, `x25host` (route "Altos scripted") |
 | 24221xxx (other) | `1xxx` | Free for more test servers on Norway's host line; no machine yet: cleared, diagnostic 67 | Norway port 3, TCP 25003 |
 | 23421xxx (other) | `023421xxx` | Free, England's host line | England port 3, TCP 25013 |
 | 26241xxx (other) | `026241xxx` | Free, Germany's host line | Germany port 3, TCP 25024 |
@@ -122,7 +128,8 @@ Every country has one host line, and `x25host` runs all the test servers in one 
   ```
 
   The format is `src/docs/x25host-format.md`. A mistake in a host folder stops `x25host` at start, naming the
-  file and the line.
+  file and the line. The texts of the machines come from `src/docs/research-os.md`; the top of each `host.ini`
+  says which are quoted from the real system and which are made up to fill a gap.
 - **A script** (`type = script`): a small JavaScript program in `hosts/`, for a server that needs logic (a game):
 
 ```ini
@@ -149,7 +156,13 @@ in `board.js`). The full list (`s.send`, `s.clear`, `machine.now`, `machine.afte
 in the README of the RetroIO package `RetroIO.Protocols.X25.Host`. A program cannot reach files, the network or
 other programs, and runs under limits on time and memory; one that fails while serving a call has only that call
 cleared. A program that does not load stops `x25host` at start with the file and the error, as does any mistake
-in `machines.ini` (with the line). The log is `logs/hosts.log`.
+in `machines.ini` (with the line). The log is `logs/hosts.log`. `script = builtin:altos-chat` runs a script that
+comes inside x25host itself.
+
+When a machine ends a call from a PAD (a logout, a goodbye), `x25host` sends the PAD an X.29 invitation to clear
+after the last text, and the PAD clears once it has shown that text (X.29 3.2.1). A clear sent straight away
+could overtake the last text in the network and lose it. If the PAD does not clear within 10 seconds, `x25host`
+clears.
 
 ## Every NUI (who pays)
 

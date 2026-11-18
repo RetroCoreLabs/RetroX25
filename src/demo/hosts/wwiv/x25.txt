@@ -1,0 +1,4 @@
+
+ X.25 is the packet network standard of the CCITT. A caller dials a PAD, the PAD
+ places a call to a 12 to 14 digit address, and the network carries the packets.
+

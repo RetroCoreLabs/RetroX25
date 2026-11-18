@@ -289,6 +289,37 @@ namespace RetroX25.Tests
             Assert.That(c.Cause, Is.EqualTo(0));
         }
 
+        /// <summary>
+        /// A PAD call (call user data 01 00 00 00) is ended with an X.29 invitation to clear after the last text (X.29
+        /// 3.2.1), and the host waits for the PAD to clear: its own clear could overtake that text in the network. The
+        /// test calls without the PAD identifier above, and those calls are cleared at once.
+        /// </summary>
+        [Test]
+        public void APadCall_IsEndedWithAnInvitationToClear_AndThePadClears()
+        {
+            WriteTinyHost();
+            (XotSwitchPort line, XotSwitchPort callers) = BuildSwitch();
+            List<MachineEntry> m = Parse("[defaults]", "library = library",
+                "[machine.0]", "type = tiny", "nua = " + Folder, "switch = 127.0.0.1:" + line.BoundPort);
+            HostRunner runner = new HostRunner(m, NullLogger.Instance);
+            _disposables.Add(runner);
+            runner.Start();
+            Assert.That(SpinWait.SpinUntil(() => runner.AllLinesUp, 10000), Is.True);
+
+            X25Client client = OpenCaller(callers, out Caller c);
+            c.Vc = client.CallWait(Folder, 5000, new byte[] { 1, 0, 0, 0 });
+            Assert.That(c.Vc, Is.Not.Null);
+            Assert.That(c.WaitFor("Username: "), Is.True, c.Text);
+            c.Send("guest\rSECRET\r");
+            Assert.That(c.WaitFor("$ "), Is.True, c.Text);
+            c.Send("logout\r");
+            Assert.That(c.WaitFor("Bye guest.\r\n"), Is.True, c.Text);
+            Assert.That(SpinWait.SpinUntil(() => c.QText.EndsWith("01 ", StringComparison.Ordinal), 5000), Is.True, "no invitation to clear: " + c.QText);
+            Assert.That(c.Cleared.Wait(1000), Is.False, "the host cleared instead of waiting for the PAD");
+            client.Clear(c.Vc!, 0, 0);
+            Assert.That(SpinWait.SpinUntil(() => runner.CallCount == 0, 5000), Is.True, "the host did not see the PAD's clear");
+        }
+
         [Test]
         public void AFullFolderMachine_RefusesTheNextCall_WithCauseDteOriginated()
         {

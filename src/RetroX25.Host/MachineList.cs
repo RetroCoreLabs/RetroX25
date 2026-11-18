@@ -80,6 +80,9 @@ namespace RetroX25.Host
         /// <summary>X.25 (10/96) 5.2.1: at most 15 digits in an address.</summary>
         private const int MaxAddressDigits = 15;
 
+        /// <summary><c>script = builtin:&lt;name&gt;</c>: a script that comes inside the RetroIO host package.</summary>
+        public const string BuiltInPrefix = "builtin:";
+
         /// <summary>Reads and checks a machine list file.</summary>
         /// <param name="path">The list file.</param>
         /// <returns>The machines, in the order of their numbers.</returns>
@@ -287,6 +290,20 @@ namespace RetroX25.Host
                     if (value.Length == 0)
                     {
                         throw new FormatException(where + ": script is empty");
+                    }
+
+                    if (value.StartsWith(BuiltInPrefix, StringComparison.Ordinal))
+                    {
+                        // A script built into RetroIO.Protocols.X25.Host (its scripts folder), e.g. builtin:altos-chat.
+                        string name = value.Substring(BuiltInPrefix.Length);
+                        if (RetroIO.Protocols.X25.Host.HostScripts.Get(name) == null)
+                        {
+                            throw new FormatException(where + ": script " + value + ": no built-in script of that name (there are: "
+                                + string.Join(", ", RetroIO.Protocols.X25.Host.HostScripts.Names()) + ")");
+                        }
+
+                        m.ScriptPath = value;
+                        break;
                     }
 
                     string path = Path.GetFullPath(Path.Combine(baseDirectory, value));

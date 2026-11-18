@@ -450,15 +450,11 @@ limits) later and in C# only.
   Left: the rest of the shared API in
   `docs/x25host-format.md` (send by user name, rooms, `store`, `onMessage`); and the whole x25host process
   under a Windows job object capping memory and CPU (one process runs many machines, so the cap is per process).
-- G5. A library of host folders, one per scenario in `src/docs/research-os.md` (VMS, TOPS-20, RSTS/E, 4.3BSD,
-  SunOS, System V, TSO, VM/370, OS/400 as plain-text screens, SINTRAN III, PRIMOS, Multics, Maximus, WWIV,
-  Citadel, the PAD/network texts...), each ready to copy: its own `host.ini` and text files, a README line saying
-  which texts are verbatim and which reconstructed (from research-os.md), and no fixed address or port (given on
-  the command line or by the network that uses it). Then a way to compose many of them into one large demo
+- G5. A library of host folders, one per scenario in `src/docs/research-os.md`. Done and in the x75 demo:
+  `demo/hosts/vax`, `bbs`, `sintran`, `primos`, `wwiv`, `bsd`, `maximus` (each `host.ini` says which texts are
+  verbatim). Left: TOPS-20, RSTS/E, SunOS, System V, TSO, VM/370, OS/400 as plain-text screens, Multics,
+  Citadel, the PAD/network texts; the host folders still carry an `address`, which the machine list overrides,
+  and should lose it. Then a way to compose many of them into one large demo
   network: a network file that lists countries, switches and which library hosts sit where, and a script that
   turns it into the switch ini files and starts it all (as `demo/x75-countries`, but generated). Every host in
   the library gets a test that logs in and runs its commands.
-- G6. The scripted Altos chat runs on `ScriptedHost` (RetroIO `RetroIO.Protocols.X25.Host`, `scripts/altos-chat.js`)
-  and matches the C# chat byte for byte in `ScriptedAltosChatParityTests`. Left: put it on the network: an
-  `x25host` machine of type `altos-chat` in `demo/x75-countries`, beside the C# one, on its own address
-  (needs G1, the x25host program).

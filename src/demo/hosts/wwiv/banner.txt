@@ -1,0 +1,4 @@
+
+WWIV 4.x BBS - {node}, London
+Type GUEST at the prompt for a guest visit.
+

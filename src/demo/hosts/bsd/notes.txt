@@ -1,0 +1,2 @@
+This is a demonstration 4.3BSD host on the RetroX25 network.
+Try: who, write <user> <text>, wall <text>, finger <user>, cd, ls, cat.

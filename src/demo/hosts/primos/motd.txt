@@ -1,0 +1,2 @@
+{user} (user 39) logged in {date} {time}.
+Welcome to PRIMOS version 19.4.9.

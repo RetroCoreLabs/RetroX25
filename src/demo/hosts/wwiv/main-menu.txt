@@ -1,0 +1,5 @@
+
+ I System News and Info     U View User List
+ C Page Sysop for Chat      G General Text Files
+ O Log Off the System
+

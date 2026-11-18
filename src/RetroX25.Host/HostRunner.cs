@@ -51,6 +51,18 @@ namespace RetroX25.Host
         /// <summary>How often the scripts are given the time.</summary>
         private const int TickMs = 50;
 
+        /// <summary>How long the PAD has to clear after an invitation to clear before the host clears itself.</summary>
+        private const int InvitationWaitMs = 10000;
+
+        /// <summary>X.29 (12/97) 4.4.3: the invitation to clear PAD message is octet 1 only, 0x01, sent with Q = 1.</summary>
+        private static readonly byte[] InvitationToClear = { 0x01 };
+
+        /// <summary>X.29 (12/97) 1.3: a PAD's call carries the protocol identifier 01 00 00 00 in its call user data.</summary>
+        private static bool IsPadCall(byte[] cud)
+        {
+            return cud.Length >= 4 && cud[0] == 1 && cud[1] == 0 && cud[2] == 0 && cud[3] == 0;
+        }
+
         private readonly ILogger _log;
         private readonly List<Machine> _machines = new List<Machine>();
         private readonly List<HostLine> _lines = new List<HostLine>();
@@ -104,7 +116,10 @@ namespace RetroX25.Host
                     settings.Values["nua"] = e.Nua;
                     try
                     {
-                        m.Host = new ScriptedHost(File.ReadAllText(e.ScriptPath), settings, m);
+                        string text = e.ScriptPath.StartsWith(MachineList.BuiltInPrefix, StringComparison.Ordinal)
+                            ? HostScripts.Get(e.ScriptPath.Substring(MachineList.BuiltInPrefix.Length))!
+                            : File.ReadAllText(e.ScriptPath);
+                        m.Host = new ScriptedHost(text, settings, m);
                     }
                     catch (Exception ex)
                     {
@@ -356,7 +371,7 @@ namespace RetroX25.Host
 
         /// <summary>
         /// An X.29 Set of X.3 parameter 2 (echo) to the caller's PAD: message code 0x02, then the pair (2, 1 or 0),
-        /// in a Q-bit data packet (X.29 (11/88) 3.5.4 and 4.4.1).
+        /// in a Q-bit data packet (X.29 (12/97) 3.1 and 1.5.2). By 3.1.2 the PAD first delivers what it already has.
         /// </summary>
         private void SetEcho(int session, bool echo)
         {
@@ -412,11 +427,33 @@ namespace RetroX25.Host
 
                 if (next.Close)
                 {
-                    // X.25 4.5: data sent just before a clear may be lost, so the last data is let through first.
-                    client.WaitForAcknowledgement(vc, 2000);
-                    client.Clear(vc, CauseDteOriginated, 0);
                     _out.TryDequeue(out _);
                     Machine closed = next.Call.Machine;
+                    if (IsPadCall(vc.CallUserData))
+                    {
+                        // X.29 (12/97) 3.2.1: the invitation to clear asks the PAD to clear "after transmission of all
+                        // data previously transmitted to the start-stop mode DTE". A clear of our own could overtake the
+                        // last text: the switch only took it, and X.25 4.5 lets data still on its way be lost when a
+                        // clear passes it. The PAD clears; if it has not within InvitationWaitMs, we do.
+                        client.Send(vc, InvitationToClear, InvitationToClear.Length, qBit: true);
+                        _log.LogInformation("{Host}: call {Session} ended by the machine: invitation to clear sent to the PAD", closed.Entry.Hostname, next.Session);
+                        CallRef ending = next.Call;
+                        X25Client c = client;
+                        _ = Task.Delay(InvitationWaitMs).ContinueWith(_ =>
+                        {
+                            if (!ending.Gone && ending.Vc.Connected)
+                            {
+                                _log.LogWarning("{Host}: the PAD did not clear in {Ms} ms after the invitation; clearing", closed.Entry.Hostname, InvitationWaitMs);
+                                c.Clear(ending.Vc, CauseDteOriginated, 0);
+                            }
+                        }, TaskScheduler.Default);
+                        continue;
+                    }
+
+                    // Not a PAD call: nobody to invite. X.25 4.5: data sent just before a clear may be lost, so the
+                    // last data is let through to the switch first.
+                    client.WaitForAcknowledgement(vc, 2000);
+                    client.Clear(vc, CauseDteOriginated, 0);
                     _log.LogInformation("{Host}: call {Session} cleared by the machine", closed.Entry.Hostname, next.Session);
                     continue;
                 }

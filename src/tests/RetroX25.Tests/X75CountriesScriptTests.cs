@@ -50,6 +50,34 @@ namespace RetroX25.Tests
             Assert.That(exit, Is.EqualTo(0), "x75.ps1 start failed:\n" + output);
         }
 
+        /// <summary>A failed test prints the end of each program's log: the network is shared and deleted at the end.</summary>
+        [TearDown]
+        public void PrintTheLogsOfAFailure()
+        {
+            if (TestContext.CurrentContext.Result.Outcome.Status != NUnit.Framework.Interfaces.TestStatus.Failed || _state.Length == 0)
+            {
+                return;
+            }
+
+            string logs = Path.Combine(_state, "logs");
+            if (!Directory.Exists(logs))
+            {
+                return;
+            }
+
+            string[] files = Directory.GetFiles(logs, "*.log");
+            for (int i = 0; i < files.Length; i++)
+            {
+                string[] lines = ReadShared(files[i]).Split('\n');
+                int from = Math.Max(0, lines.Length - 40);
+                TestContext.Out.WriteLine("---- " + Path.GetFileName(files[i]) + " (last " + (lines.Length - from) + " lines)");
+                for (int j = from; j < lines.Length; j++)
+                {
+                    TestContext.Out.WriteLine(lines[j].TrimEnd('\r'));
+                }
+            }
+        }
+
         [OneTimeTearDown]
         public void StopTheNetwork()
         {
@@ -91,6 +119,99 @@ namespace RetroX25.Tests
 
             Type(anna, ".x\r");
             WaitForText(bjorn, "---guest---");
+        }
+
+        /// <summary>
+        /// The scripted Altos chat (x25host, builtin:altos-chat) answers one number above the C# one: Germany routes
+        /// that exact number to its host line. It is the same conference program, so two callers meet the same way.
+        /// </summary>
+        [Test]
+        public void TwoUsersInNorway_MeetInTheScriptedAltosChat_OneNumberUp()
+        {
+            Caller anna = Call("026245890040005", "242226500000103");
+            Caller bjorn = Call("026245890040005", "242226500000104");
+            Assert.That(anna.Cleared, Is.False, anna.Screen.ToString());
+            Assert.That(bjorn.Cleared, Is.False, bjorn.Screen.ToString());
+            WaitForText(anna, "Conference-utility \"CHAT\"  ver. 3.1");
+            WaitForText(anna, "+++guest+++");
+            WaitForText(bjorn, "+++guest+++"); // both past the welcome pause, as in the C# chat test above
+            Type(anna, "hello from the script\r");
+            WaitForText(bjorn, "guest says: hello from the script");
+            Type(anna, ".x\r");
+            WaitForText(bjorn, "---guest---");
+        }
+
+        /// <summary>
+        /// The other host folders of machines.ini, one login each: SINTRAN III in Norway, PRIMOS and a WWIV board in
+        /// England, 4.3BSD and a Maximus board in Germany.
+        /// </summary>
+        [Test]
+        public void TheOtherMachinesOfMachinesIni_LogInAndAnswer()
+        {
+            Caller nd = Call("1003", "242226500000101");
+            WaitForText(nd, "SINTRAN III - VSX/500 K REVISION 0B");
+            WaitForText(nd, "ENTER ");
+            Type(nd, "guest\r");
+            WaitForText(nd, "PASSWORD: ");
+            Type(nd, "GUEST\r");
+            WaitForText(nd, "@");
+            Type(nd, "terminal-status\r");
+            WaitForText(nd, "  guest   2422700"); // the name as the caller typed it (docs/x25host-format.md, Logins)
+            Type(nd, "logout\r");
+            WaitForText(nd, "-- EXIT --");
+
+            Caller prime = Call("023421003", "242226500000101");
+            WaitForText(prime, "PRIMENET 19.2.7F PPOA1");
+            Type(prime, "guest\r");
+            WaitForText(prime, "Password? ");
+            Type(prime, "prime\r");
+            WaitForText(prime, "Invalid user id or password; please try again.");
+            Type(prime, "guest\r");
+            WaitForText(prime, "Password? ");
+            Type(prime, "PRIME\r");
+            WaitForText(prime, "Welcome to PRIMOS version 19.4.9.");
+            Type(prime, "frob\r");
+            WaitForText(prime, "Invalid command \"FROB\".");
+            Type(prime, "lo\r");
+            WaitForText(prime, "(user 39) logged out");
+
+            Caller wwiv = Call("023421004", "242226500000101");
+            WaitForText(wwiv, "Enter your name or number: ");
+            Type(wwiv, "guest\r");
+            WaitForText(wwiv, "Password: ");
+            Type(wwiv, "x\r");
+            WaitForText(wwiv, "[Sub 1] [Messages from The Management] : ");
+            Type(wwiv, "g\r");
+            WaitForText(wwiv, "About X.25");
+            Type(wwiv, "q\r");
+            Type(wwiv, "o\r");
+            WaitForText(wwiv, "Thanks for calling THAMESWWIV.");
+
+            Caller bsd = Call("026241002", "242226500000101");
+            WaitForText(bsd, "4.3 BSD UNIX (ucbvax) (ttyp0)");
+            Type(bsd, "guest\r");
+            WaitForText(bsd, "Password:");
+            Type(bsd, "guest\r");
+            WaitForText(bsd, "You have mail.");
+            Type(bsd, "cd /usr/guest\r");
+            Type(bsd, "cat notes\r");
+            WaitForText(bsd, "demonstration 4.3BSD host");
+            Type(bsd, "frob\r");
+            WaitForText(bsd, "frob: Command not found.");
+            Type(bsd, "exit\r");
+            WaitForText(bsd, "logout");
+            WaitForInvitationToClear(bsd);
+
+            Caller max = Call("026241003", "242226500000101");
+            WaitForText(max, "What is your name: ");
+            Type(max, "guest\r");
+            WaitForText(max, "Password: ");
+            Type(max, "x\r");
+            WaitForText(max, "[MAIN]: ");
+            Type(max, "y\r");
+            WaitForText(max, "Sorry, but there's no answer.");
+            Type(max, "g\r");
+            WaitForText(max, "thanks for calling.  Please hang up now.");
         }
 
         /// <summary>
@@ -272,6 +393,9 @@ namespace RetroX25.Tests
             public byte SendSeq;
             public byte RecvSeq;
             public bool Cleared;
+
+            /// <summary>The machine ended the call with an X.29 invitation to clear, and this caller cleared.</summary>
+            public bool InvitedToClear;
             public byte ClearCause;
             public byte ClearDiagnostic;
             public readonly StringBuilder Screen = new StringBuilder();
@@ -353,6 +477,46 @@ namespace RetroX25.Tests
                 if (!info.QBit)
                 {
                     c.Screen.Append(Encoding.ASCII.GetString(info.UserData));
+                }
+                else if (info.UserData.Length == 1 && info.UserData[0] == 0x01)
+                {
+                    // An invitation to clear (X.29 (12/97) 3.2.1): as a PAD, clear once everything before it is shown.
+                    // Everything before it has been read, so the screen is complete now.
+                    c.InvitedToClear = true;
+                    Clear(c);
+                    c.Cleared = true;
+                    Assert.That(c.Screen.ToString(), Does.Contain(wanted), "invited to clear before \"" + wanted + "\" arrived");
+                    return;
+                }
+            }
+        }
+
+        // Reads until the machine invites the PAD to clear (X.29 3.2.1), which then clears; a clear by the machine
+        // itself fails, since on a PAD call it could overtake the last text.
+        private static void WaitForInvitationToClear(Caller c)
+        {
+            long deadline = Environment.TickCount64 + 20000;
+            while (!c.InvitedToClear)
+            {
+                Assert.That(Environment.TickCount64, Is.LessThan(deadline), "no invitation to clear; screen so far:\n" + c.Screen);
+                X25PacketInfo info = Read(c.Stream);
+                Assert.That(info.PacketType, Is.Not.EqualTo(X25PacketType.ClearRequest), "the machine cleared instead of inviting the PAD to");
+                if (info.PacketType != X25PacketType.Data)
+                {
+                    continue;
+                }
+
+                c.RecvSeq = (byte)((info.PS + 1) & 7);
+                SendXot(c.Stream, X25PacketBuilder.CreateRR(c.Lci, c.RecvSeq));
+                if (!info.QBit)
+                {
+                    c.Screen.Append(Encoding.ASCII.GetString(info.UserData));
+                }
+                else if (info.UserData.Length == 1 && info.UserData[0] == 0x01)
+                {
+                    c.InvitedToClear = true;
+                    Clear(c);
+                    c.Cleared = true;
                 }
             }
         }

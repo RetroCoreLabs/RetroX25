@@ -1,0 +1,6 @@
+
+ B  Bulletins
+ Y  Yell for the sysop
+ W  Who is on
+ G  Goodbye
+

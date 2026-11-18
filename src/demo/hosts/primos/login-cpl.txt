@@ -1,0 +1,2 @@
+/* LOGIN.CPL - a demonstration file on the RetroX25 network
+&RETURN

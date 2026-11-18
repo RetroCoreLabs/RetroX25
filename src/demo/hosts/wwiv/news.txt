@@ -1,0 +1,4 @@
+
+ This board is reached over X.25 on the RetroX25 demonstration network.
+ England 2342, through the X.75 links to Norway and Germany.
+
