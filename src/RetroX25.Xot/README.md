@@ -1,4 +1,4 @@
-# x25xot — the XOT test application
+# x25xot — the XOT debug tool
 
 <!-- A still screenshot of RetroX25.Xot doing its job. PNG, under 10 MB. Uncomment when
      the capture exists; keep the alt text, it is all a screen reader gets.
@@ -7,8 +7,12 @@
 
 ## What it is
 
-A standalone Terminal.Gui application for testing **XOT** — X.25 over TCP — in either direction. It runs as a
-client, as a server, or interactively with a menu and function keys.
+A **debug tool** for **XOT** — X.25 over TCP. It is not a PAD, a switch or a service, and nothing else in RetroX25
+depends on it. It is a Terminal.Gui program that opens one XOT connection, either as client or as server. You send
+single packets by hand with the function keys or as typed hex, and it shows every packet that comes back, decoded.
+
+Use it when hunting a fault. For a terminal session over X.25 use a real PAD (see "The windows" below), and for a
+check that must keep passing write a unit test, not a session in this tool.
 
 ## Why you need it
 

@@ -19,7 +19,7 @@ program is for, so it stays true when a setting changes.
 | `x25monitor` | [RetroX25.Monitor.Desktop](../RetroX25.Monitor.Desktop/README.md) | A window that watches a whole network. It connects to the monitor port of each switch and shows a map, a live decoded packet view, the state of each port and the logs. | The **network operator's screen**. It is not a device in the drawing. |
 | `x25nmc` | [RetroX25.Nmc](../RetroX25.Nmc/README.md) | A management console that reaches the switches through X.25 itself: it places a call to a switch's management address, signs in, asks for status and can move on to the neighbours it learns about. | The **network management centre**. |
 | `x25trace` | [RetroX25.Trace](../RetroX25.Trace/README.md) | A passive decoder. It sits on an XOT connection, reads what crosses and prints every X.25 packet in readable fields (type, logical channel, addresses, facilities, causes). | A **line analyser** clipped onto a link. |
-| `x25xot` | [RetroX25.Xot](../RetroX25.Xot/README.md) | A text-window test program for XOT (X.25 over TCP, RFC 1613), as client, as server, or interactive with a menu. | A **test router** for the XOT links. |
+| `x25xot` | [RetroX25.Xot](../RetroX25.Xot/README.md) | A debug tool for XOT (X.25 over TCP, RFC 1613). It opens one XOT connection as client or server; you send single packets by hand (function keys or typed hex) and it shows each packet that comes back, decoded. Not a PAD; nothing depends on it. | A **protocol tester** clipped onto an XOT link, for hunting a fault. |
 
 The demo network that starts three switches and an echo service is described in
 [demo/README.md](../demo/README.md).

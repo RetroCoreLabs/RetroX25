@@ -45,7 +45,7 @@ them is a failing test rather than an argument.
 | `x25trace` | Wire tracer: connect or listen, decode, hex dump | [README](src/RetroX25.Trace/README.md) |
 | `x25traffic` | Load generator: streams and call storms | [README](src/RetroX25.Traffic/README.md) |
 | `x25nmc` | Network management console, in-band over X.25 | [README](src/RetroX25.Nmc/README.md) |
-| `x25xot` | XOT client and server, interactive | [README](src/RetroX25.Xot/README.md) |
+| `x25xot` | Debug tool: send single XOT packets by hand and see the answer | [README](src/RetroX25.Xot/README.md) |
 | `x25service` | The X.25 runtime with no window: runs a service (the Altos chat) from a JSON configuration | [README](src/RetroX25.Service/README.md) |
 
 The guides that cover more than one program (trunks, XOT peers, Cisco testing, the telnet PAD) are listed in [src/docs/README.md](src/docs/README.md).

@@ -26,7 +26,7 @@ The source, the build instructions and the releases are on
  - **`x25pad`**, **`x25echo`**, **`x25trace`**, **`x25traffic`** (`RetroX25.Pad`, `.Echo`,
    `.Trace`, `.Traffic`): place calls, answer them, trace the wire, generate load.
  - **`x25nmc`** (`RetroX25.Nmc`): network management console, in-band over X.25.
- - **`x25xot`** (`RetroX25.Xot`): text-mode XOT client and server.
+ - **`x25xot`** (`RetroX25.Xot`): text-mode XOT debug tool: send single packets by hand, as client or server, and see the answer.
 
 These are applications, so this reference covers the types they expose to each other and to
 their tests. The X.25 protocol itself - packet layer, switch engine, routing, client - is
