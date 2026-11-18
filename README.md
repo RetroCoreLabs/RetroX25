@@ -1,13 +1,13 @@
 # RetroX25
 
-**An X.25 network you can run.** Nine applications — a packet switch, two desktop front ends, and six console
-tools — built on the `RetroIO.Protocols.X25.*` packages.
+**An X.25 network you can run.** Ten applications — a packet switch, two desktop front ends, six console
+tools and a service host — built on the `RetroIO.Protocols.X25.*` packages.
 
 [![build](https://github.com/RetroCoreLabs/RetroX25/actions/workflows/build.yml/badge.svg)](https://github.com/RetroCoreLabs/RetroX25/actions/workflows/build.yml)
 [![release](https://img.shields.io/github/v/release/RetroCoreLabs/RetroX25)](https://github.com/RetroCoreLabs/RetroX25/releases)
 [![licence](https://img.shields.io/github/license/RetroCoreLabs/RetroX25)](LICENSE)
 [![downloads](https://img.shields.io/github/downloads/RetroCoreLabs/RetroX25/total)](https://github.com/RetroCoreLabs/RetroX25/releases)
-[Applications](#the-nine-applications) · [Prerequisites](#prerequisites) · [The demo network](#the-demo-network) · [About X.25](#about-x25) · [API reference](https://retrocorelabs.github.io/RetroX25/)
+[Applications](#the-ten-applications) · [Prerequisites](#prerequisites) · [The demo network](#the-demo-network) · [About X.25](#about-x25) · [API reference](https://retrocorelabs.github.io/RetroX25/)
 
 <!-- A 5-15 second recording: the switch running, a call placed from x25pad, the packets
      appearing in x25monitor. Under 10 MB. Uncomment when the capture exists.
@@ -33,7 +33,7 @@ It is also one half of a **two-implementation** arrangement. A C emulator (`x25e
 protocols, the two are trunked together, and both read the same X.25 conformance vectors. A disagreement between
 them is a failing test rather than an argument.
 
-## The nine applications
+## The ten applications
 
 | Application | What it is | README |
 |---|---|---|
@@ -46,6 +46,7 @@ them is a failing test rather than an argument.
 | `x25traffic` | Load generator: streams and call storms | [README](src/RetroX25.Traffic/README.md) |
 | `x25nmc` | Network management console, in-band over X.25 | [README](src/RetroX25.Nmc/README.md) |
 | `x25xot` | XOT client and server, interactive | [README](src/RetroX25.Xot/README.md) |
+| `x25service` | The X.25 runtime with no window: runs a service (the Altos chat) from a JSON configuration | [README](src/RetroX25.Service/README.md) |
 
 The guides that cover more than one program (trunks, XOT peers, Cisco testing, the telnet PAD) are listed in [src/docs/README.md](src/docs/README.md).
 
@@ -54,7 +55,7 @@ The guides that cover more than one program (trunks, XOT peers, Cisco testing, t
 ## Status
 
 No tagged release yet, so the release and download badges above are empty until the first
-`v*` tag is pushed. The nine applications are built and run.
+`v*` tag is pushed. The ten applications are built and run.
 
 - **The whole solution builds in Release with no errors**, and four test projects cover it (see [Tests](#tests)).
 - **Two implementations, one set of vectors.** The C emulator `x25emu` implements the same
@@ -124,9 +125,9 @@ and a troubleshooting list. The Desktop-only variant uses the sample configurati
 | P1 | .NET SDK as pinned in `src/global.json` | Everything | `dotnet --info` |
 | P2 | PowerShell 7+ | `build.ps1`, `demo.ps1` | `$PSVersionTable.PSVersion` |
 | P3 | **RetroIO built and packed to the local feed** (`../localfeed`, beside the repositories) | Restore | `dir ..\localfeed` shows `0.1.0-local.*` |
-| P4 | `.\src\build.ps1` run | Testing the published exes | `dir src\publish\win-x64\*.exe` lists nine |
+| P4 | `.\src\build.ps1` run | Testing the published exes | `dir src\publish\win-x64\*.exe` lists ten |
 | P5 | TCP ports 2200-2203, 2210, 9101-9103, 4001-4003 free, and not reserved by Windows | The demo network | `netstat -ano \| findstr "2200 2201 9101 4001"`; reserved ranges: see [the demo README](src/demo/README.md) |
-| P6 | A Windows desktop session | `RetroX25.exe`, `x25monitor` | Two of the nine are Avalonia apps |
+| P6 | A Windows desktop session | `RetroX25.exe`, `x25monitor` | Two of the ten are Avalonia apps |
 | P7 | A terminal | The console tools | Any modern terminal |
 | P8 | WSL with `x25emu` built | Cross-environment tests only | `wsl -e bash -c 'ls <x25emu folder>/tools/x25switch'` |
 | P9 | Inbound TCP 2210 allowed | Cross-environment tests only | The WSL side dials **in** |
@@ -137,7 +138,7 @@ first publish**. That is expected, not a broken build.
 
 ```powershell
 # from the repository root
-.\src\build.ps1                 # build, test, publish all nine as single self-contained files
+.\src\build.ps1                 # build, test, publish all ten as single self-contained files
 .\src\demo\demo.ps1 start       # three chained switches and an echo service
 .\src\demo\demo.ps1 pad         # a PAD client; at the * prompt:  CALL 23520001
 .\src\demo\demo.ps1 stop        # always stop with the script, never by process name
@@ -257,6 +258,69 @@ proof it routed rather than short-circuited.
 
 `stop` reads and writes `src\demo\.pids`. **Always stop with the script**; if you must kill something, kill the PID
 in that file — never by process name.
+
+---
+
+## The three-country network (X.75)
+
+`src\demo\x75-countries\x75.ps1` starts three national networks joined by X.75 international links, as
+1980s public data networks were: **Norway** (DNIC 2422, the PAD users at the University of Tromsø), **England**
+(PSS, 2342) and **Germany** (Datex-P, 2624, with the Altos CHAT conference at `026245890040004`). Everything is
+in ini and JSON files in that folder; the script only starts and stops the published programs, so the network
+can stay up for testing by hand.
+
+```mermaid
+flowchart LR
+    PAD["x25pad / RetroX25.exe<br/>PAD users, NUI required"]
+    NO["Norway 2422<br/>PAD line 25001<br/>mgmt 9201"]
+    EN["England 2342<br/>mgmt 9202"]
+    DE["Germany 2624<br/>mgmt 9203"]
+    CHAT["x25service<br/>Altos CHAT 26245890040004"]
+    E1["echo 24229001"]
+    E2["echo 23429001"]
+    E3["echo 26249001"]
+
+    PAD -->|"XOT"| NO
+    NO <-->|"X.75"| EN
+    EN <-->|"X.75"| DE
+    DE --> CHAT
+    NO --> E1
+    EN --> E2
+    DE --> E3
+
+    classDef access fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    classDef core   fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
+    classDef svc    fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    class PAD access
+    class NO,EN,DE core
+    class CHAT,E1,E2,E3 svc
+```
+
+```powershell
+# from the repository root, after .\src\build.ps1
+cd src\demo\x75-countries
+./x75.ps1 start          # the three switches, the chat and the echos
+./x75.ps1 pad 1          # a PAD as test user uit-1 (NUI 242226500000101); then: CALL 026245890040004
+./x75.ps1 status         # what runs, by PID
+./x75.ps1 stop
+```
+
+- Calls abroad take the international prefix `0` (X.121): `026245890040004` is the chat in Germany.
+- Every call from Norway must carry a NUI, the account that pays: four test users, `uit-1` to `uit-4`.
+  Norway's console shows each account's calls (`show x25 account`, `show x25 invoice uit-1`).
+- The desktop app can be one of the PAD users too: `RetroX25.exe desktop-norway.json`, then `ID<nui>` and the
+  address in its PAD window.
+- `x25service` is the X.25 runtime as a console program, with no window; here it carries the Altos chat.
+
+[The folder's README](src/demo/x75-countries/README.md) has every address (NUA), every NUI, the management
+commands, the call records, the ports, and a list of checks to do by hand. `X75CountriesScriptTests` start the
+same files with the same script.
+
+**Coming next: fake machines.** `x25host` (planned) answers calls as a described machine: a banner, a login, a
+command line or a menu, from ini and text files and never from code. The format is
+[x25host-format.md](src/docs/x25host-format.md); the texts of real systems of the time (VMS, TOPS-20, Unix, TSO,
+VM/370, SINTRAN III, PRIMOS, ARPANET hosts, PADs, BBSes, the Altos chat) are collected with their sources in
+[research-os.md](src/docs/research-os.md).
 
 ---
 

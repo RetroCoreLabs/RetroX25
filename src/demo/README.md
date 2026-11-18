@@ -27,6 +27,10 @@ their peers speak XOT. See `src/docs/trunk-links.md`.
 The Desktop main window and the monitor show each trunk's LAPB link state, link resets, failed dials,
 frames, retransmissions and calls.
 
+**A second demo: three countries over X.75.** `x75-countries/` holds Norway, England and Germany joined by
+international links, with NUI accounting and the Altos chat. Its own README says how to start it, every
+address and NUI, and how to join it with `x25pad` or the desktop app.
+
 ## Run it
 
 From the repo root:
