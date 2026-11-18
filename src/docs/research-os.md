@@ -26,6 +26,7 @@ not to the system.
 6. BBSes and chat systems: Maximus, WWIV, Citadel, Altos CHAT, the rest
 7. What is still missing, and where to look next
 8. Sources
+9. ARPANET (1969-1983): the machines, TIP/TAC, ITS, TENEX, WAITS, TOPS-10, UCLA TSO
 
 ---
 
@@ -867,3 +868,231 @@ https://discmaster.textfiles.com/file/7505/ftp.wwiv.com.zip/ftp.wwiv.com/pub/WW4
 https://discmaster.textfiles.com/view/553/EuroCD%203.iso/Communication/Citadel_BBS/Docs/cit_helps.lha/cit_hlp.lha/NOVICE.HLP ;
 https://citadel.org/room_and_message_commands.html ;
 https://huggingface.co/datasets/Devilishcode/hacking/blob/main/phrack/issue21/4.txt
+
+---
+
+## 9. ARPANET (1969-1983)
+
+Added 2026-11-18. The best source is **NIC 11863, "Scenarios for using the ARPANET at the ICCC" (October
+1972)**: a booklet of real sessions typed from a TIP, read page by page (marked [verbatim NIC 11863]). Others
+are marked [verbatim per fetch summary] when the fetch tool reported an exact quote that was not seen on the
+page itself.
+
+### 9.1 The machines
+
+The first four nodes (1969): IMP 1 UCLA, SDS Sigma 7, SEX; IMP 2 SRI (Engelbart's ARC), SDS 940, Genie
+(Berkeley Timesharing) running NLS; IMP 3 UCSB, IBM 360/75, OS/MVT (online service "OLS"); IMP 4 University of
+Utah, DEC PDP-10 (TENEX from about 1970). The IMPs were Honeywell DDP-516s. On 29 Oct 1969 the first login,
+UCLA to SRI, crashed after "LO".
+
+Hosts in **RFC 597 "Host Status" (December 1973)**, host numbers octal:
+
+| Host name | Site | Machine | OS |
+|---|---|---|---|
+| UCLA-NMC (1) | UCLA | Sigma 7; PDP-11/45 | SEX; ANTS |
+| UCLA-CCN (101) | UCLA | IBM 360/91 | TSO (session below) |
+| SRI-ARC (2) | SRI | PDP-10 | TENEX, NLS |
+| SRI-AI (102) | SRI | PDP-10 | TENEX |
+| UCSB-MOD75 (3) | UCSB | IBM 360/75 | OLS |
+| UTAH-10 (4) | Utah | PDP-10 | TENEX |
+| BBN-TENEX (105), BBN-TENEXB (205) | BBN | PDP-10 | TENEX |
+| BBN-NCC (50) | BBN | Honeywell H-316 | Network Control Center |
+| MIT-MULTICS (6) | MIT | Honeywell 6180 | Multics |
+| MIT-DMS (106), MIT-AI (206), MIT-ML (306) | MIT | PDP-10 | ITS |
+| RAND-RCC (7) | RAND | IBM 370/158 | - |
+| SDC-LAB (10) | SDC | IBM 370/145 | - |
+| HARV-10 (11), HARV-1 (111), HARV-11 (211) | Harvard | PDP-10, PDP-1, PDP-11 | - |
+| LL-67 (12), LL-TX2 (112) | Lincoln Lab | IBM 360/67, TX-2 | - |
+| SU-AI (13) | Stanford | PDP-10 | SAIL (later called WAITS) |
+| ILL-CAC (14), ILL-NTS (114) | Illinois | PDP-11 | ANTS |
+| CASE-10 (15) | Case | PDP-10 | TENEX |
+| CMU-10A (116), CMU-10B (16) | CMU | PDP-10 | - |
+| I4-TENEX (17) | ILLIAC IV | PDP-10 front end | TENEX |
+| AMES-67 (20) | NASA Ames | IBM 360/67 | - |
+| USC-ISI (126), ISI-DEVTENEX (226) | ISI | PDP-10 | TENEX (TOPS-20 later) |
+| USC-44 (27) | USC | IBM 360/44 | - |
+| CCA-TENEX (37) | CCA | PDP-10 | TENEX + Datacomputer |
+| PARC-MAXC (40) | Xerox PARC | MAXC | TENEX |
+| FNWC (41) | Fleet Numerical Weather Central | CDC 6500 | - |
+| UCSD-CC (43) | UCSD | Burroughs B6700 | - |
+| HAWAII-ALOHA (44) | Hawaii | HP 2100 | - |
+| OFFICE-1 (53) | Office-1 | PDP-10 | TENEX, NLS |
+| UKICS-360 (52) | UK (via UCL) | IBM 360/195 through a PDP-9 | - |
+
+`-` means RFC 597 gives no OS. TIPs (terminal boxes) at Utah, Ames, MITRE, RADC, NBS, USC, BBN, CCA, FNWC,
+ALOHA, NORSAR, UKICS, Tymshare, Rutgers and others. In June 1973 a satellite link joined **NORSAR in Norway**
+(a TIP, NORSAR-TIP 251) through the Tanum earth station in Sweden, with a line on to the **UCL TIP in London**.
+These were IMP links, not X.25. Not yet checked: RFC 820, RFC 952/953 and the March 1977 logical map
+(MIT-MC, SRI-NIC on TOPS-20).
+
+### 9.2 TIP and TAC: how a user got onto the network
+
+TIP, 1972 [verbatim NIC 11863]: `@r` (reset), `@e r` (echo remote), `@L <host#>` (log in to a host), `@c`
+(close). Replies:
+
+```text
+LOGGER
+T R OPEN
+R OPEN T OPEN
+T R CLOSED
+```
+
+TIP messages (TIP user's guide) [verbatim per fetch summary]: `Trying...`, `Open`, `Closed`, `Can't`,
+`Refused`, `Net Trouble`, `Host not responding`, `Host Scheduled Down Until Sat. at 1850 GMT.`,
+`BAD` (unknown command), `NO`, `Host broke the connection`, `TIP GOING DOWN`. A host that cannot be reached:
+`DEAD`.
+
+TAC, 1982 (BBN Report 4780) [verbatim per fetch summary]: banner template `<sitename> TAC <version #>:<port #>`;
+`@O <host>` gives `TCP Trying...` then `Open`; failures `Destination host dead`, `Host down until <day> at
+<hour>:<minutes> <timezone>.`, `Refused`, `Destination Unreachable`, `TAC's IMP down`; close `Closed`,
+`Host closing connection`; unknown command `Bad`; `TAC going down in <mins> mins for <hrs> hrs <mins> mins.`
+
+### 9.3 MIT ITS (MIT-AI, MIT-DMCG)
+
+MIT-AI 1972, after `@L 134` and Ctrl-Z (ITS shows nothing until Ctrl-Z) [verbatim NIC 11863]:
+
+```text
+ITS.761.  DDT.460.
+7. USERS
+```
+
+MIT-DMCG 1972 [verbatim NIC 11863]: `MIT PROJECT MAC DMCG PDP-10.` Log in with `:login iccXXX` (no prompt: "you
+must type the ':'"). `who`:
+
+```text
+TTY UNAME  JNAME  CORE TOTAL IDX
+T07 SYS    SYS    035  035   01
+T13 PDL    T      007  008   03
+T31 ICCXXX HACTRN 001  001   23
+FREE CORE 117/208
+```
+
+Mail to an unknown user: `USER HAS NO DIRECTORY, MAIL GOING TO COM.` Logout: `ITS 761 CONSOLE 31 FREE`.
+
+Modern KA ITS 1651 (PiDP-10) [verbatim per fetch summary]:
+
+```text
+KA ITS.1651. DDT.1548
+TTY 52
+You're all alone, Fair share = 99%
+Welcome to ITS!
+```
+
+### 9.4 TENEX (BBN, SRI-ARC)
+
+[verbatim NIC 11863]
+
+```text
+BBN-TENEX 1.29.6, SYSTEM-A EXEC 1.43
+@ login iccc
+(PASSWORD) iccc
+(ACCOUNT #) 11514
+JOB 1 ON TTY103 2-SEP-72 16:39
+@ sys
+UP 87:19:48  3 JOBS
+LOAD AV   0.34   0.45   1.00
+JOB  TTY  USER       SUBSYS
+1    103  ICCC       EXEC
+9    101  TEITELMAN  LISP
+12   7    TOMLINSON  (PRIV)
+@ day
+SATURDAY SEPTEMBER 2, 1972 17:00:20
+@ logout
+KILLED JOB 1 USER ICCC, ACCT 11514, TTY 103 AT 9/2/72 15:01
+  USED 0:0:9 IN 0:22:10
+```
+
+SRI-ARC: `ARC-TENEX 1.29.00 DATE  ARC EXEC 1.38.00`. `?` lists `COMMANDS ARE:`; `where tomlinson` gives
+`TTY7, JOB 12`; `telnet` gives `USER TELNET 29 MAR 72.  TYPE HELP CR FOR HELP.` and the prompt `#`. The NIC
+Resource Query on ARC-TENEX:
+
+```text
+@nic (Resource Query)
+TYPE ? IF YOU NEED HELP AT ANY POINT.
+-show sri-arc
+(SRI-ARC)        Stanford Research Institute
+                 Augmentation Research Center (ARC)
+                 Network Information Center (NIC)
+```
+
+### 9.5 Stanford WAITS (SU-AI, 1979)
+
+SUAI.TXT[S,NET] [verbatim per fetch summary; the brackets mark what the system typed]:
+
+```text
+[SU-AI WAITS 9.08/C  Assembled 12/16/79]
+[.]login PRJ/PRG
+[Job 2 SU-AI WAITS 9.08/C Assembled 12/16/79]
+[Password=] PASSWORD
+[Saturday 22-Dec-79 1735 71F 22C]
+[.]
+```
+
+Prompt `.`; "There is no general guest account." Logout: Ctrl-C twice, then `kjob`:
+
+```text
+[job NN PRG,PRG Logged off TTY64 17:38 22-Dec-79]
+[0.05 hours, console time]
+[0.00 minutes, cpu time]
+[Kjob]
+```
+
+### 9.6 DEC TOPS-10
+
+[verbatim per fetch summary]
+
+```text
+PITT DEC-1099/A 63A.41B 15:36:41 TTY43 system 1237/1240
+PLEASE LOGIN OR ATTACH
+.LOGIN 10/2162
+JOB 35 PITT DEC-1099/B 63A.431B TTY43 Wed 7-May-80 1619
+Password:
+System ready!
+.
+```
+
+(The `.LOGIN` line is from DEC's LOGIN.DOC example; Pittsburgh's own login line is not shown.) If jobs are
+left detached: `Other jobs detached with same PPN: 37` / `Type job number to ATTACH or carriage-return to LOGIN
+a new job:`. Logout `K/F`:
+
+```text
+JOB 16 [115103,320571] off TTY43 at 2032 9-May-80 Connect=29 Min
+Disk R+W=83+76 Tape IO=0 Saved all files (450 blocks)
+```
+
+### 9.7 UCLA CCN IBM 360/91 TSO (1972)
+
+`@L 65` [verbatim NIC 11863; `X.X`, dates and the `IKJ...` codes are placeholders printed in the booklet]:
+
+```text
+UCLA CCN 360/91 SERVER TELNET.
+VERSION X.X DD DDD 1972
+ENTER COMMAND OR 'HELP':
+tso
+WELCOME TO UCLA CCN TSO
+IKJNJJJA ENTER LOGON -
+logon icc
+ENTER PASSWORD
+IKJNNNNI UUU LOGON IN PROCESS AT T:TT:TT ON DD DD, 1972
+READY
+```
+
+### 9.8 Still to read
+
+NIC 11863 pages 17-20, 23-29, 33-60 (Multics, Harvard PDP-10, SAIL, MATHLAB, UCSB-75 OLS, UCLA-NMC Sigma 7);
+the SDS 940 Terminal User's Guide (901118B, 1968, "Sample Session at the Teletype"); TENEX failure and
+unknown-command texts; a TOPS-10 SYSTAT.
+
+Sources: NIC 11863,
+https://archive.computerhistory.org/resources/access/text/2019/07/102784024-05-001-acc.pdf ;
+RFC 597, https://www.rfc-editor.org/rfc/rfc597.txt ; RFC 386, https://www.rfc-editor.org/rfc/rfc386.html ;
+BBN TIP guide, https://www.walden-family.com/dave/archive/bbn-tip-man.txt ;
+TAC Users' Guide, https://www.saildart.org/TAC[UP,DOC]1 ; SUAI.TXT, https://www.saildart.org/SUAI.TXT[S,NET] ;
+PiDP-10 guide, https://groups.google.com/g/pidp-10/c/-UTX6Jx0bXc ;
+TOPS-10 LOGIN.DOC, https://pdp-10.trailing-edge.com/bb-d549g-sb/01/login.doc.html ;
+Sze, Introduction to DEC System-10,
+https://archive.org/stream/bitsavers_decpdp10Szystem101974_17096596/Sze_Introduction_to_DEC_System-10_1974_djvu.txt ;
+Introduction to ITS, https://josephoswald.nfshost.com/itsinfo/its-intro.html ;
+TENEX 134.DOC, https://bitsavers.mirrorservice.org/bits/BBN/Tenex/134-tenex/134.DOC ;
+SDS 940 guide, https://ftp.mirrorservice.org/sites/www.bitsavers.org/pdf/sds/9xx/940/901118B_940_TerminalUsersGuide_Apr68.pdf ;
+Wikipedia ARPANET, https://en.wikipedia.org/wiki/ARPANET
