@@ -191,9 +191,7 @@ namespace RetroX25.Host
         /// <returns>The lines, or a single line saying the machines did not answer within 2 s.</returns>
         public List<string> HostLines()
         {
-            List<string> lines = new List<string>(_machines.Count);
-            using ManualResetEventSlim done = new ManualResetEventSlim(false);
-            Post(() =>
+            return OnWorker(lines =>
             {
                 for (int i = 0; i < _machines.Count; i++)
                 {
@@ -202,35 +200,120 @@ namespace RetroX25.Host
                     lines.Add(string.Create(CultureInfo.InvariantCulture,
                         $"{m.Entry.Hostname,-12} {m.Entry.Type,-10} {m.Entry.Nua,-15} {m.Entry.Group,-10} {state,-10} calls {m.Host!.SessionCount}"));
                 }
-
-                done.Set();
             });
-
-            if (!done.Wait(2000))
-            {
-                return new List<string> { "the machines did not answer within 2 s" };
-            }
-
-            return lines;
         }
 
         /// <summary>
-        /// <c>show calls</c>: every call now, logged in or not: hostname, calling address, logical channel, since.
-        /// The machine's own state of the call (banner, login, shell, menu) is not shown: the machines do not report
-        /// it yet.
+        /// <c>show calls</c>: every call now, logged in or not: hostname, calling address, logical channel, since, and
+        /// the caller's state (<c>login</c>, <c>shell</c>, <c>menu</c>, <c>room</c>; <c>script</c> for a script
+        /// machine, which does not report one).
         /// </summary>
         /// <returns>The lines, in no particular order; empty when there are no calls.</returns>
         public List<string> CallLines()
         {
-            List<string> lines = new List<string>();
-            foreach (KeyValuePair<int, CallRef> kv in _calls)
+            return OnWorker(lines =>
             {
-                CallRef c = kv.Value;
-                lines.Add(string.Create(CultureInfo.InvariantCulture,
-                    $"{c.Machine.Entry.Hostname,-12} from {(c.Vc.CallingAddress.Length > 0 ? c.Vc.CallingAddress : "-"),-15} lcn {c.Vc.Lcn,-4} since {c.Since:HH:mm:ss}"));
+                foreach (KeyValuePair<int, CallRef> kv in _calls)
+                {
+                    CallRef c = kv.Value;
+                    string state = c.Machine.Host is IHostOperator op && op.TryDescribe(kv.Key, out HostSessionInfo info) ? info.State : "script";
+                    lines.Add(string.Create(CultureInfo.InvariantCulture,
+                        $"{c.Machine.Entry.Hostname,-12} from {(c.Vc.CallingAddress.Length > 0 ? c.Vc.CallingAddress : "-"),-15} lcn {c.Vc.Lcn,-4} since {c.Since:HH:mm:ss} {state}"));
+                }
+            });
+        }
+
+        /// <summary>
+        /// <c>show users</c>: every logged-in session of a host folder machine: hostname, user, calling address,
+        /// logged in since, idle seconds. Bytes in and out per user (in the format's table) are not shown: they are
+        /// counted per machine, not per call.
+        /// </summary>
+        /// <returns>The lines; empty when nobody is logged in.</returns>
+        public List<string> UserLines()
+        {
+            DateTime now = DateTime.Now;
+            return OnWorker(lines =>
+            {
+                foreach (KeyValuePair<int, CallRef> kv in _calls)
+                {
+                    CallRef c = kv.Value;
+                    if (c.Machine.Host is IHostOperator op && op.TryDescribe(kv.Key, out HostSessionInfo info) && info.User.Length > 0)
+                    {
+                        lines.Add(string.Create(CultureInfo.InvariantCulture,
+                            $"{c.Machine.Entry.Hostname,-12} {info.User,-12} from {(c.Vc.CallingAddress.Length > 0 ? c.Vc.CallingAddress : "-"),-15} since {info.LoggedInAt:HH:mm:ss} idle {(int)(now - info.LastInput).TotalSeconds}s"));
+                    }
+                }
+            });
+        }
+
+        /// <summary>
+        /// <c>logout &lt;hostname&gt; &lt;user|*&gt;</c> and <c>send &lt;hostname&gt; &lt;user|*&gt; &lt;text&gt;</c>: the
+        /// logged-in sessions of one host folder machine whose user matches (any case; <c>*</c> every one), given the
+        /// operator's logout or line.
+        /// </summary>
+        /// <param name="hostname">The machine.</param>
+        /// <param name="user">The user, or <c>*</c>.</param>
+        /// <param name="text">The line to send, or null to log out.</param>
+        /// <returns>How many sessions; -1 when no such machine, -2 when it is a script machine.</returns>
+        public int ToUsers(string hostname, string user, string? text)
+        {
+            Machine? m = null;
+            for (int i = 0; i < _machines.Count; i++)
+            {
+                if (string.Equals(_machines[i].Entry.Hostname, hostname, StringComparison.OrdinalIgnoreCase))
+                {
+                    m = _machines[i];
+                }
             }
 
-            return lines;
+            if (m == null)
+            {
+                return -1;
+            }
+
+            if (m.Host is not IHostOperator op)
+            {
+                return -2;
+            }
+
+            int count = 0;
+            OnWorker(_ =>
+            {
+                foreach (KeyValuePair<int, CallRef> kv in _calls)
+                {
+                    if (kv.Value.Machine == m && op.TryDescribe(kv.Key, out HostSessionInfo info) && info.User.Length > 0
+                        && (user == "*" || string.Equals(info.User, user, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        if (text == null)
+                        {
+                            op.OperatorLogout(kv.Key);
+                        }
+                        else
+                        {
+                            op.OperatorSend(kv.Key, text);
+                        }
+
+                        count++;
+                    }
+                }
+            });
+            return count;
+        }
+
+        // Runs fill on the machines' thread (they are not thread safe) and waits up to 2 s for it.
+        private List<string> OnWorker(Action<List<string>> fill)
+        {
+            List<string> lines = new List<string>();
+
+            // Not disposed: after a time-out the worker may still set it (as in OnIncoming).
+            ManualResetEventSlim done = new ManualResetEventSlim(false);
+            Post(() =>
+            {
+                fill(lines);
+                done.Set();
+            });
+
+            return done.Wait(2000) ? lines : new List<string> { "the machines did not answer within 2 s" };
         }
 
         /// <summary>

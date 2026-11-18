@@ -16,7 +16,7 @@ namespace RetroX25.Host
     {
         private static readonly string[] NotBuilt =
         {
-            "show host", "show users", "stop host", "start host", "restart host", "logout", "send", "reload", "log",
+            "show host", "stop host", "start host", "restart host", "reload", "log",
         };
 
         private readonly HostRunner _runner;
@@ -66,11 +66,17 @@ namespace RetroX25.Host
                 case "show calls":
                     List<string> calls = _runner.CallLines();
                     return calls.Count == 0 ? "no calls\n" : Join(calls);
+                case "show users":
+                    List<string> users = _runner.UserLines();
+                    return users.Count == 0 ? "nobody logged in\n" : Join(users);
                 case "help":
                     return "show hosts   one line per machine: hostname, type, NUA, group, state, calls now\n"
                         + "show stats   per machine: calls, refusals, bytes and data packets each way, wrong logins\n"
                         + "show calls   every call now: hostname, calling address, logical channel, since\n"
+                        + "show users   every logged-in user of a host folder machine\n"
                         + "clear call <hostname> <lcn>   clear one call at once\n"
+                        + "logout <hostname> <user|*>    log a user (or everybody) out\n"
+                        + "send <hostname> <user|*> <text>   a line to a user (or everybody)\n"
                         + "quit        stop x25host (asks first)\n";
                 case "quit":
                     _confirming = true;
@@ -88,6 +94,29 @@ namespace RetroX25.Host
                 return _runner.ClearCall(w[2], lcn) ? "cleared\n" : "no call on lcn " + w[3] + " at " + w[2] + "\n";
             }
 
+            string[] words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (cmd.StartsWith("logout ", StringComparison.Ordinal) || cmd == "logout")
+            {
+                return words.Length != 3 ? "usage: logout <hostname> <user|*>\n" : Count(_runner.ToUsers(words[1], words[2], null), words[1], "logged out");
+            }
+
+            if (cmd.StartsWith("send ", StringComparison.Ordinal) || cmd == "send")
+            {
+                if (words.Length < 4)
+                {
+                    return "usage: send <hostname> <user|*> <text>\n";
+                }
+
+                // The text as typed, after the third word.
+                string rest = line.TrimStart();
+                for (int i = 0; i < 3; i++)
+                {
+                    rest = rest.Substring(rest.IndexOf(' ', StringComparison.Ordinal)).TrimStart();
+                }
+
+                return Count(_runner.ToUsers(words[1], words[2], rest), words[1], "sent to");
+            }
+
             for (int i = 0; i < NotBuilt.Length; i++)
             {
                 if (cmd == NotBuilt[i] || cmd.StartsWith(NotBuilt[i] + " ", StringComparison.Ordinal))
@@ -97,6 +126,17 @@ namespace RetroX25.Host
             }
 
             return "unknown command: " + line.Trim() + " (help lists the commands)\n";
+        }
+
+        private static string Count(int n, string hostname, string what)
+        {
+            return n switch
+            {
+                -1 => "no machine called " + hostname + "\n",
+                -2 => hostname + " is a script machine: it does not report its users\n",
+                1 => what + " 1 session\n",
+                _ => what + " " + n.ToString(System.Globalization.CultureInfo.InvariantCulture) + " sessions\n",
+            };
         }
 
         private static string Join(List<string> lines)

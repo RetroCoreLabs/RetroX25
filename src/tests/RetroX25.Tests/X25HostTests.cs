@@ -385,10 +385,49 @@ namespace RetroX25.Tests
             int at = Array.IndexOf(w, "lcn");
             Assert.That(at, Is.GreaterThan(0), calls);
 
+            Assert.That(calls, Does.EndWith(" login\n"), calls);
+
             Assert.That(console.Execute("clear call tiny 999"), Is.EqualTo("no call on lcn 999 at tiny\n"));
             Assert.That(console.Execute("clear call TINY " + w[at + 1]), Is.EqualTo("cleared\n"));
             Assert.That(c.Cleared.Wait(5000), Is.True, "the caller was not cleared");
             Assert.That(runner.CallCount, Is.EqualTo(0));
+        }
+
+        /// <summary>
+        /// The console's <c>show users</c>, <c>send</c> and <c>logout</c> on a logged-in caller: the line arrives with
+        /// the prompt again, and the logout sends the logout text and ends the call.
+        /// </summary>
+        [Test]
+        public void Console_ShowUsers_Send_AndLogout_ReachTheLoggedInCaller()
+        {
+            WriteTinyHost();
+            (XotSwitchPort line, XotSwitchPort callers) = BuildSwitch();
+            List<MachineEntry> m = Parse("[defaults]", "library = library",
+                "[machine.0]", "type = tiny", "nua = " + Folder, "switch = 127.0.0.1:" + line.BoundPort);
+            HostRunner runner = new HostRunner(m, NullLogger.Instance);
+            _disposables.Add(runner);
+            runner.Start();
+            Assert.That(SpinWait.SpinUntil(() => runner.AllLinesUp, 10000), Is.True);
+            OperatorConsole console = new OperatorConsole(runner);
+
+            X25Client client = OpenCaller(callers, out Caller c);
+            c.Vc = client.CallWait(Folder, 5000);
+            Assert.That(c.Vc, Is.Not.Null);
+            Assert.That(c.WaitFor("Username: "), Is.True, c.Text);
+            Assert.That(console.Execute("show users"), Is.EqualTo("nobody logged in\n"));
+            c.Send("guest\rSECRET\r");
+            Assert.That(c.WaitFor("$ "), Is.True, c.Text);
+
+            string users = console.Execute("show users");
+            Assert.That(users, Does.StartWith("tiny "), users);
+            Assert.That(users, Does.Contain(" guest "), users);
+            Assert.That(console.Execute("send nosuch * hi"), Is.EqualTo("no machine called nosuch\n"));
+            Assert.That(console.Execute("send tiny GUEST  going down soon"), Is.EqualTo("sent to 1 session\n"));
+            Assert.That(c.WaitFor("\r\ngoing down soon\r\n$ "), Is.True, c.Text);
+            Assert.That(console.Execute("logout tiny bob"), Is.EqualTo("logged out 0 sessions\n"));
+            Assert.That(console.Execute("logout tiny *"), Is.EqualTo("logged out 1 session\n"));
+            Assert.That(c.WaitFor("Bye guest."), Is.True, c.Text);
+            Assert.That(c.Cleared.Wait(5000), Is.True, "the logout did not end the call");
         }
 
         [Test]
