@@ -133,6 +133,16 @@ Each gets the 1987 welcome, `Waiting for connection.`, a pause of `WaitPauseMs` 
 chat does not echo your own line back (the PAD does). `.h` is help, `.x` leaves (the others see
 `---guest---`). It takes up to 30 users (`MaxUsers`).
 
+Whispering works exactly as in the 1987 program, which surprises people:
+
+- `!` takes the **place number** from `.s` (the first column), not a name: `!3 hello` goes to place 3. A name
+  after `!` reads as the number 0, which is usually yourself, so you get your own whisper back.
+- The receiver sees the **whole line as typed**: `ronny whispers: !3 hello`.
+- Nothing tells you when the place is empty; the whisper simply goes nowhere.
+
+Other commands: `.n name` changes your nickname, `.c 5` moves you to channel 5, and `.p word` puts a password on
+your channel when you are alone on it.
+
 ## The desktop app as a PAD user
 
 The desktop app (`RetroX25.exe`, the Avalonia program) can join the network as one more PAD user on Norway's
