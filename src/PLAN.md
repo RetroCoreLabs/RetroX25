@@ -123,7 +123,7 @@ DTE and DCE):
   out - not yet read.
 - Table 13 has no "local procedure error" cause, which the engine sends as a DCE today; what an STE sends instead for a
   procedure error (Annex C/E) is not yet read. A cause not in Table 13 is passed on or changed to 0x05 (4.2.3.1).
-- Clear collision (3.1.7): no confirmation, the channel is free. Restart between STEs (section 3.5?) not yet read.
+- Clear collision (3.1.7): no confirmation, the channel is free. Restart between STEs: its section not found or read yet.
 - Every Call Request and Call Connected sent on the port carries the utility field (`X25PacketBuilder`'s
   `networkUtilities`), and every one received is parsed with `x75: true`.
 - Prove: two switches as STEs over HDLC-over-TCP; a call crosses; a collision test clears both; the call identifier and
