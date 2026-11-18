@@ -1,6 +1,6 @@
 # RetroX25 plan - outstanding work only
 
-**Next:** B2's check against x25emu's encoder, then B3 (STE port). Push (A6) only after Ronny has looked at the commits.
+**Next:** x25emu to the 5.3.1 transit rule (B4, waits for x25switch.c to be free), then the rest of B3. Push (A6) only after Ronny has looked at the commits.
 
 Rules for this file: finished items are deleted, not ticked. Each item says what to build, how it is proved,
 and what it waits for. What was measured is in `docs/xot-peers.md`, `docs/trunk-links.md`,
@@ -112,39 +112,29 @@ order to get right: its content is "under the responsibility of the originating 
   has the codes in Table 21 and says 63 (4.2.1.5), and its length octet has 6 bits. x25emu's text is another
   edition, not on disk. Find which edition each switch should follow before B6.
 
-### B3. STE port mode
-A port with no DTE/DCE roles. Channel ranges and the collision rule are agreed in the configuration: a call collision clears
-both calls with "network congestion". Sequence numbers modulo 8 (modulo 128 is out of scope, see the scope decisions).
-Read 2026-11-18 in X.75 1988 section 3.1 and Table 13, for the packet layer (`X25Layer`, which today knows only
-DTE and DCE):
-- Collision (3.1.4): both calls cleared, cause "Network congestion" = 0x05 (Table 13). Which end searches channels
-  from the lowest number and which from the highest is "agreed bilaterally" - a port setting.
-- T31 200 s for a Call Request, T33 180 s for a Clear Request (3.1.2, 3.1.5); Annex D says what happens when T33 runs
-  out - not yet read.
-- Table 13 has no "local procedure error" cause, which the engine sends as a DCE today; what an STE sends instead for a
-  procedure error (Annex C/E) is not yet read. A cause not in Table 13 is passed on or changed to 0x05 (4.2.3.1).
-- Clear collision (3.1.7): no confirmation, the channel is free. Restart between STEs: its section not found or read yet.
-- Every Call Request and Call Connected sent on the port carries the utility field (`X25PacketBuilder`'s
-  `networkUtilities`), and every one received is parsed with `x75: true`.
-- Prove: two switches as STEs over HDLC-over-TCP; a call crosses; a collision test clears both; the call identifier and
-  the transit list arrive intact.
+### B3. STE port mode: what is left
+Built 2026-11-18 in RetroIO (`trunk_kind = network` on a trunk; tests `X75LayerTests`, `X75ThreeCountryTests`): utility
+field on every call packet, window and packet size as utilities (5.1, 5.3.4, 5.3.5), collision clears with 0x05 # 116
+(3.1.4, Table C-3), causes outside Table 13 sent as 0x05 (4.2.3.1), three-octet clear confirmation (Figure 8), channel
+search direction from the port's mode. Still open (also in RetroIO `src/BUGS.md`, "X.75 utilities not mapped"):
+- Reverse charging, fast select, closed user groups and NUI still go as X.25 facilities on an X.75 link; 5.1 says they
+  are utilities there.
+- Annex C ERROR entries other than collision, and Annex D time-outs: T31 200 s (clear # 49), T33 180 s (clear again
+  # 50, then free), T32 (reset # 51), T30 (restart # 52) - the engine still runs its X.25 timer values and diagnostics.
+  Transcribed tables: X.75 (11/88) PDF pages 77-91.
+- Restart between STEs (Table 17: network congestion 0x03, network operational 0x07) not checked against the engine.
 
-### B4. Between networks
-Route by DNIC to the STE port; add our DNIC to the transit list only when we are a TRANSIT network; clear a call whose
-list already holds our DNIC (loop). X.75 cause and diagnostic codes on refusal.
-- Settled 2026-11-18 from X.75 1988 5.3.1: the list names "each transit network controlling the virtual circuit up to
-  this point" (call request) and "each transit network" (call connected, and a clear request that answers the call
-  request). X.75 keeps originating, transit and destination networks apart (5.3.2, 5.3.3, 5.3.14), so the network
-  whose subscriber made the call does not name itself, and the destination network does not either.
-- X.75 itself has no loop rule (the word does not appear). x25emu cites X.110 5.6 for it ("Transit networks will check
-  routing information of each call to prevent circular routings"); X.110 is not on disk, so that quote is not checked.
-  A loop is still caught with the 5.3.1 list: on a second pass a transit network finds itself.
-- x25emu differs: `tools/x25switch.c` (the `sw_transit_add` call, about line 3257) adds its own DNIC to EVERY call
-  leaving over a `trunk_kind = network` port, including one its own subscriber made. So x25emu's originating network
-  sends a list with itself in it, where 5.3.1 says the list holds transit networks only. Not fixed - x25emu belongs to
-  the session working on it; decide before B6.
-- Prove: a loop of three networks clears with the right cause; the transit list on a two-hop call is in order.
-
+### B4. Between networks: what is left
+Built 2026-11-18: only a transit network adds its DNIC (5.3.1); the originating network sets the call identifier
+(5.3.2); the Call Connected carries the transit list back; a list that already holds our DNIC is cleared 0x05 # 120
+(Annex F a) row 42); refusals for a bad field per Annex F a) rows 10, 14-16, 18. Proved Norway 2422 - England 2342 -
+Germany 2624 with a PAD calling 26245890040004 under NUI 242226500000101.
+- The transit list is lost on an internal trunk (a network of several switches): needs a way to say "this call came in
+  from another network" across an internal trunk (x25emu has a private facility for it).
+- A Clear Request that answers a Call Request must carry the transit list (5.3.1); not built.
+- x25emu: change it to the 5.3.1 rule (Ronny approved 2026-11-18). `tools/x25switch.c` (about line 3257) adds its own
+  DNIC on every exit over a network trunk, including for its own subscribers' calls. Waits until the session editing
+  x25emu says the file is free.
 ### B5. Demos
 1. Four-switch mesh in one network (the picture "X.25 Network-selection"): never built or tested. Prove a call takes the
    second way when a trunk is cut.
