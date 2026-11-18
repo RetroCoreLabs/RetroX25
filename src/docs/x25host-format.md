@@ -254,7 +254,7 @@ folder stops the program at start with the file and line; two machines with one 
 share a switch port share one XOT connection, and each call goes to the machine whose `nua` is exactly the
 called number; any other number is cleared (cause 0, diagnostic 67). The switch gives the full number
 (`called_address = international`, the default for every port). Not built yet: `nui`, the operator console,
-`--stats-log`, the single-machine form `x25host <host-folder> -x ...`. The working example is
+`--stats-log`. The working example is
 `demo/x75-countries/machines.ini`.
 
 One file lists every machine of a demo network; one command starts them all. The list says which type folder

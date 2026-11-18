@@ -267,6 +267,35 @@ namespace RetroX25.Host
             return result;
         }
 
+        /// <summary>
+        /// The single-machine form, <c>x25host &lt;host-folder&gt; -x host:port [-a address] [-n hostname]</c>: one host
+        /// folder as one machine. The switch and address get the same checks as in a machine list.
+        /// </summary>
+        /// <param name="folder">The host folder.</param>
+        /// <param name="sw">The switch line, <c>host:port</c>.</param>
+        /// <param name="address">The address (<c>-a</c>), or null for host.ini's.</param>
+        /// <param name="hostname">The hostname (<c>-n</c>), or null for host.ini's.</param>
+        /// <returns>The machine.</returns>
+        /// <exception cref="FormatException">A value is wrong, or the folder has no host.ini.</exception>
+        public static MachineEntry Single(string folder, string sw, string? address, string? hostname)
+        {
+            string full = Path.GetFullPath(folder);
+            if (!File.Exists(Path.Combine(full, "host.ini")))
+            {
+                throw new FormatException(folder + ": no host.ini in this folder");
+            }
+
+            MachineEntry m = new MachineEntry { Section = "command line", HostFolder = full, Type = Path.GetFileName(full) };
+            SetKey(m, "switch", sw, "-x", full);
+            if (address != null)
+            {
+                SetKey(m, "nua", address, "-a", full);
+            }
+
+            m.Hostname = hostname ?? string.Empty;
+            return m;
+        }
+
         private static void SetKey(MachineEntry m, string key, string value, string where, string baseDirectory)
         {
             if (key.StartsWith("setting.", StringComparison.Ordinal) && key.Length > 8)

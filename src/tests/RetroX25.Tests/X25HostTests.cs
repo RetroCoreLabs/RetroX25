@@ -224,6 +224,38 @@ namespace RetroX25.Tests
             File.WriteAllText(Path.Combine(dir, "banner.txt"), "{node} at {address}\n");
         }
 
+        /// <summary>
+        /// The single-machine form (<c>x25host &lt;folder&gt; -x host:port</c>): without <c>-a</c> the machine answers
+        /// host.ini's address (here 1), and <c>-n</c> names it.
+        /// </summary>
+        [Test]
+        public void Single_AFolderWithoutDashA_AnswersHostIniAddress_AndDashNNamesIt()
+        {
+            WriteTinyHost();
+            (XotSwitchPort line, XotSwitchPort callers) = BuildSwitch("1");
+            MachineEntry e = MachineList.Single(Path.Combine(_folder, "library", "tiny"), "127.0.0.1:" + line.BoundPort, null, "ONEOFF");
+            HostRunner runner = new HostRunner(new List<MachineEntry> { e }, NullLogger.Instance);
+            _disposables.Add(runner);
+            runner.Start();
+            Assert.That(SpinWait.SpinUntil(() => runner.AllLinesUp, 10000), Is.True);
+            Assert.That(e.Nua, Is.EqualTo("1"));
+
+            X25Client client = OpenCaller(callers, out Caller c);
+            c.Vc = client.CallWait("1", 5000);
+            Assert.That(c.Vc, Is.Not.Null);
+            Assert.That(c.WaitFor("ONEOFF at 1"), Is.True, c.Text);
+        }
+
+        [Test]
+        public void Single_BadValues_AreRefusedWithTheOption()
+        {
+            WriteTinyHost();
+            string dir = Path.Combine(_folder, "library", "tiny");
+            Assert.That(Assert.Throws<FormatException>(() => MachineList.Single(dir, "nohost", null, null))!.Message, Does.StartWith("-x"));
+            Assert.That(Assert.Throws<FormatException>(() => MachineList.Single(dir, "127.0.0.1:2000", "12x", null))!.Message, Does.StartWith("-a"));
+            Assert.That(Assert.Throws<FormatException>(() => MachineList.Single(_folder, "127.0.0.1:2000", null, null))!.Message, Does.Contain("no host.ini"));
+        }
+
         [Test]
         public void List_AFolderMachine_IsFoundInTheLibrary()
         {
@@ -398,10 +430,10 @@ namespace RetroX25.Tests
         /// One switch: port 0 is the host line (every 2341... number goes there), port 1 is where callers connect.
         /// The host line keeps the host's own connection for arriving calls, as the demo's host lines do.
         /// </summary>
-        private (XotSwitchPort Line, XotSwitchPort Callers) BuildSwitch()
+        private (XotSwitchPort Line, XotSwitchPort Callers) BuildSwitch(string prefix = "2341")
         {
             SwitchConfig cfg = new SwitchConfig { Dnic = "2340" };
-            cfg.Routing.AddRoute(new X121Route { Type = X121RouteType.Prefix, Address = "2341", PrefixLen = 4, DestPort = 0 });
+            cfg.Routing.AddRoute(new X121Route { Type = X121RouteType.Prefix, Address = prefix, PrefixLen = prefix.Length, DestPort = 0 });
             SwitchNode node = new SwitchNode(cfg);
             XotSwitchPort line = new XotSwitchPort(new PortConfig { Id = 0, Mode = PortMode.Dce, Host = "127.0.0.1", Port = 0, LciBase = 1, LciCount = 64 }, NullLogger.Instance);
             XotSwitchPort callers = new XotSwitchPort(new PortConfig { Id = 1, Mode = PortMode.Dce, Host = "127.0.0.1", Port = 0, LciBase = 1, LciCount = 64 }, NullLogger.Instance);

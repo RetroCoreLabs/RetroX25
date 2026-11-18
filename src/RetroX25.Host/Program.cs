@@ -25,11 +25,31 @@ namespace RetroX25.Host
         {
             string? list = null;
             string? group = null;
+            string? folder = null;
+            string? sw = null;
+            string? address = null;
+            string? hostname = null;
             int verbosity = 0;
             for (int i = 0; i < args.Length; i++)
             {
                 string arg = args[i];
-                if (arg == "--machines" && i + 1 < args.Length)
+                if (arg == "-x" && i + 1 < args.Length)
+                {
+                    sw = args[++i];
+                }
+                else if (arg == "-a" && i + 1 < args.Length)
+                {
+                    address = args[++i];
+                }
+                else if (arg == "-n" && i + 1 < args.Length)
+                {
+                    hostname = args[++i];
+                }
+                else if (!arg.StartsWith('-') && folder == null && list == null)
+                {
+                    folder = arg;
+                }
+                else if (arg == "--machines" && i + 1 < args.Length)
                 {
                     list = args[++i];
                 }
@@ -47,7 +67,9 @@ namespace RetroX25.Host
                 }
             }
 
-            if (list == null)
+            // Exactly one of the two forms: a machine list, or one host folder with its switch (-x).
+            if ((list == null) == (folder == null) || (folder != null && (sw == null || group != null))
+                || (list != null && (sw != null || address != null || hostname != null)))
             {
                 return Usage();
             }
@@ -55,7 +77,9 @@ namespace RetroX25.Host
             List<MachineEntry> machines;
             try
             {
-                machines = MachineList.Load(list);
+                machines = folder != null
+                    ? new List<MachineEntry> { MachineList.Single(folder, sw!, address, hostname) }
+                    : MachineList.Load(list!);
             }
             catch (FormatException ex)
             {
@@ -117,6 +141,10 @@ namespace RetroX25.Host
         private static int Usage()
         {
             Console.Error.WriteLine("Usage: x25host --machines <list.ini> [--group <name>] [-v]");
+            Console.Error.WriteLine("       x25host <host-folder> -x <switch-host:port> [-a <address>] [-n <hostname>] [-v]");
+            Console.Error.WriteLine("  -x host:port     one host folder as one machine, on this switch line (XOT)");
+            Console.Error.WriteLine("  -a address       the X.121 address it answers (default: [host] address in host.ini)");
+            Console.Error.WriteLine("  -n hostname      its name (default: [host] hostname, else the folder name)");
             Console.Error.WriteLine("  --machines file  the machine list: one [machine.N] per machine (type, nua, switch, hostname)");
             Console.Error.WriteLine("  --group name     run only the machines with group = name");
             Console.Error.WriteLine("  -v               verbose (repeat for more)");

@@ -95,8 +95,11 @@ namespace RetroX25.Host
                     try
                     {
                         // The list's hostname and nua make the folder (a TYPE) one particular machine.
-                        HostDescription d = HostDescription.Load(e.HostFolder, e.Hostname.Length > 0 ? e.Hostname : null, e.Nua);
+                        // The single-machine form may leave the address out (no -a): then host.ini's address is used.
+                        HostDescription d = HostDescription.Load(e.HostFolder, e.Hostname.Length > 0 ? e.Hostname : null,
+                            e.Nua.Length > 0 ? e.Nua : null);
                         e.Hostname = d.Hostname;
+                        e.Nua = d.Address;
                         m.Host = new DescribedHost(d, m);
                     }
                     catch (FormatException ex)
