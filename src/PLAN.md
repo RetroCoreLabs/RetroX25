@@ -342,3 +342,7 @@ limits) later and in C# only.
   network: a network file that lists countries, switches and which library hosts sit where, and a script that
   turns it into the switch ini files and starts it all (as `demo/x75-countries`, but generated). Every host in
   the library gets a test that logs in and runs its commands.
+- G6 (low priority). Analyse whether the Altos chat could be an `x25host` with a script (G4, JavaScript under
+  Jint) instead of C# code. It is a good test of what scripting can do: many users in one shared room, a
+  message from one sent to all the others, nicknames, `.h`/`.x` commands, joins and leaves announced. Compare the
+  script's behaviour with the C# chat (the 1987 texts and timings) in a test that runs both.
