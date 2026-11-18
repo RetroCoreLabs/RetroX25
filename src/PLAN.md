@@ -106,7 +106,7 @@ as for the other binary values in X.75.
 - Read against x25emu 2026-11-18 (its `x25.h`, `x25switch.c`): the same codes (marker 00, transit 41, call identifier
   81), the call identifier high octet first, the DNIC as two BCD octets. One difference: x25emu cites "Table 29/X.75",
   "Figure 8" and a 323-octet packet limit with no separate field maximum, and allows 64 octets; the 1988 text on disk
-  numbers those Table 21 / Figure 5 and says 63 (4.2.1.5), and its length octet has 6 bits. x25emu's text is another
+  has the codes in Table 21 and says 63 (4.2.1.5), and its length octet has 6 bits. x25emu's text is another
   edition, not on disk. Find which edition each switch should follow before B6.
 
 ### B3. STE port mode
