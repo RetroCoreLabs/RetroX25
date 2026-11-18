@@ -1689,59 +1689,33 @@ namespace RetroX25.Desktop.Tests
         }
 
         /// <summary>
-        /// The route test asks the engine's router, for the chosen direction: a route that works both
-        /// ways answers for both, a route made for incoming calls only is found for Inbound and not for
-        /// Outbound, an address nobody routes says so, and an empty address or an unknown direction is
-        /// refused with a plain sentence.
+        /// The test box of the routing screen asks the one routing table: a number in a configured range is
+        /// taken by its route, a number nobody routes is refused with diagnostic 67, an empty box asks for a
+        /// number, and a route back out of the line the call came in on is never used.
         /// </summary>
         [AvaloniaTest]
-        public void RouteTest_AsksTheRouter_ForTheChosenDirection()
+        public void RoutingScreen_TestBox_AsksTheOneTable()
         {
             RuntimeConfig config = App.LoadConfigFile(FindSampleFile());
             using ServiceProvider provider = BuildServices(config);
-            IRuntimeService runtimeService = provider.GetRequiredService<IRuntimeService>();
-            runtimeService.Runtime.Router.AddRoute(new RetroIO.Protocols.X25.Transport.X25Route
-            {
-                Name = "InOnly_3000",
-                X121AddressPattern = "3000.*",
-                Type = RetroIO.Protocols.X25.Transport.RouteType.XOT_Client,
-                Destination = "XOT_ToSwitch",
-                Priority = 50,
-                Enabled = true,
-                Direction = RetroIO.Protocols.X25.Transport.RouteDirection.Inbound
-            });
-            RoutesWindowViewModel routes = provider.GetRequiredService<RoutesWindowViewModel>();
+            RoutingViewModel routing = provider.GetRequiredService<RoutingViewModel>();
 
-            routes.TestAddress = "23500001";
-            routes.TestDirection = "Outbound";
-            routes.TestRouteCommand.Execute(null);
-            Assert.That(routes.TestResults, Does.Contain("ToSwitch_2350").And.Contain("SELECTED"));
+            routing.TestNumber = "23500001";
+            routing.TestAddressCommand.Execute(null);
+            Assert.That(routing.TestResult, Does.Contain("route 'ToSwitch_2350' wins"), routing.TestResult);
 
-            routes.TestDirection = "Inbound";
-            routes.TestRouteCommand.Execute(null);
-            Assert.That(routes.TestResults, Does.Contain("ToSwitch_2350"), "a route for both ways must answer Inbound too");
+            routing.TestNumber = "99999999";
+            routing.TestAddressCommand.Execute(null);
+            Assert.That(routing.TestResult, Does.Contain("No route takes 99999999").And.Contain("diagnostic 67"), routing.TestResult);
 
-            routes.TestAddress = "30001234";
-            routes.TestDirection = "Outbound";
-            routes.TestRouteCommand.Execute(null);
-            Assert.That(routes.TestResults, Does.Contain("No matching routes"), "an Inbound-only route answered Outbound");
+            routing.TestNumber = "  ";
+            routing.TestAddressCommand.Execute(null);
+            Assert.That(routing.TestResult, Does.Contain("Type a number"));
 
-            routes.TestDirection = "Inbound";
-            routes.TestRouteCommand.Execute(null);
-            Assert.That(routes.TestResults, Does.Contain("InOnly_3000").And.Contain("SELECTED"));
-
-            routes.TestAddress = "99999999";
-            routes.TestRouteCommand.Execute(null);
-            Assert.That(routes.TestResults, Does.Contain("No matching routes"));
-
-            routes.TestAddress = "  ";
-            routes.TestRouteCommand.Execute(null);
-            Assert.That(routes.TestResults, Does.Contain("enter an X.121 address"));
-
-            routes.TestAddress = "23500001";
-            routes.TestDirection = "Sideways";
-            routes.TestRouteCommand.Execute(null);
-            Assert.That(routes.TestResults, Does.Contain("Unknown direction"));
+            routing.TestNumber = "23500001";
+            routing.TestArrivalPort = "XOT_ToSwitch";
+            routing.TestAddressCommand.Execute(null);
+            Assert.That(routing.TestResult, Does.Contain("lead back out of the port the call came in on"), routing.TestResult);
         }
 
         /// <summary>

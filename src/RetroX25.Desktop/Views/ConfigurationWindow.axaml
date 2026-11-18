@@ -474,12 +474,12 @@
                 </ContentControl>
             </TabItem>
 
-            <!-- Routing Table Tab -->
-            <TabItem Header="Routing Table">
-                <ContentControl Content="{Binding RoutingTab}">
+            <!-- Routing Tab: the one routing screen, the same one the Routing window (Ctrl+4) shows -->
+            <TabItem Header="Routing">
+                <ContentControl Content="{Binding Routing}">
                     <ContentControl.ContentTemplate>
                         <DataTemplate>
-                            <views:RoutingTab/>
+                            <views:RoutingView/>
                         </DataTemplate>
                     </ContentControl.ContentTemplate>
                 </ContentControl>

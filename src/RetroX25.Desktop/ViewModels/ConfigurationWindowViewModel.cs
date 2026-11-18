@@ -132,9 +132,9 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
     public KnownHostsTabViewModel KnownHostsTab { get; }
 
     /// <summary>
-    /// Gets the view-model behind the Routing tab.
+    /// Gets the view-model behind the Routing tab: the one routing screen, the same as the Routing window.
     /// </summary>
-    public RoutingTabViewModel RoutingTab { get; }
+    public RoutingViewModel Routing { get; }
 
     /// <summary>
     /// Creates ConfigurationWindowViewModel with dependency injection.
@@ -147,7 +147,7 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
         XotInterfacesTabViewModel xotInterfacesTab,
         TcpLapbInterfacesTabViewModel tcpLapbInterfacesTab,
         KnownHostsTabViewModel knownHostsTab,
-        RoutingTabViewModel routingTab,
+        RoutingViewModel routing,
         RuntimeConfig config) : base(logger)
     {
         _runtimeService = runtimeService ?? throw new ArgumentNullException(nameof(runtimeService));
@@ -158,7 +158,7 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
         XotInterfacesTab = xotInterfacesTab ?? throw new ArgumentNullException(nameof(xotInterfacesTab));
         TcpLapbInterfacesTab = tcpLapbInterfacesTab ?? throw new ArgumentNullException(nameof(tcpLapbInterfacesTab));
         KnownHostsTab = knownHostsTab ?? throw new ArgumentNullException(nameof(knownHostsTab));
-        RoutingTab = routingTab ?? throw new ArgumentNullException(nameof(routingTab));
+        Routing = routing ?? throw new ArgumentNullException(nameof(routing));
 
         // Load current configuration
         // The SAME configuration object the tabs edit and the engine was started from (the one in the
@@ -253,6 +253,10 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
         _config.TelnetPad.Port = TelnetPadPort;
         _config.TelnetPad.BindAddress = TelnetPadBindAddress;
         _config.TelnetPad.MaxSessions = TelnetPadMaxSessions;
+
+        // Routing: the Routing tab edits a working copy; put it into the configuration in the new form, so
+        // Apply and Save carry it. Old route lists it read are written as routes of the one table.
+        Routing.CommitToConfig();
     }
 
     [RelayCommand]
@@ -433,7 +437,7 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
             XotInterfacesTab.RefreshCommand.Execute(null);
             TcpLapbInterfacesTab.RefreshCommand.Execute(null);
             KnownHostsTab.RefreshCommand.Execute(null);
-            RoutingTab.RefreshCommand.Execute(null);
+            Routing.RefreshCommand.Execute(null);
 
             StatusText = $"Configuration loaded from {file.Name}";
             Logger.LogInformation("Configuration loaded from {FileName}", file.Name);
@@ -522,6 +526,13 @@ public partial class ConfigurationWindowViewModel : ViewModelWithLogger
         {
             destination.Routing.RoutingTable.Add(source.Routing.RoutingTable[i]);
         }
+
+        // The one routing table's own keys: these were not copied, so a loaded file lost its own network and
+        // every route written in the new form.
+        destination.Routing.OwnDnics = new System.Collections.Generic.List<string>(source.Routing.OwnDnics ?? new System.Collections.Generic.List<string>());
+        destination.Routing.InternationalPrefix = source.Routing.InternationalPrefix;
+        destination.Routing.Routes = new System.Collections.Generic.List<RetroIO.Protocols.X25.Routing.X121RouteConfig>(
+            source.Routing.Routes ?? new System.Collections.Generic.List<RetroIO.Protocols.X25.Routing.X121RouteConfig>());
 
         destination.Routing.PvcBindings.Clear();
         for (int i = 0; i < source.Routing.PvcBindings.Count; i++)

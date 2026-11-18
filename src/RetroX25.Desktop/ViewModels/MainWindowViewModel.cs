@@ -722,8 +722,8 @@ public partial class MainWindowViewModel : ViewModelWithLogger
     [RelayCommand]
     private void ShowRoutesWindow()
     {
-        Logger.LogInformation("Opening Routes Window");
-        var viewModel = _serviceProvider.GetRequiredService<RoutesWindowViewModel>();
+        Logger.LogInformation("Opening Routing Window");
+        var viewModel = _serviceProvider.GetRequiredService<RoutingViewModel>();
         var window = new RoutesWindow(viewModel);
         _navigationService.OpenWindow(window);
     }

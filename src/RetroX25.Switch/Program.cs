@@ -324,6 +324,7 @@ namespace RetroX25.Switch
                 case X121RouteType.Prefix: return "prefix " + route.Address;
                 case X121RouteType.Exact: return "exact " + route.Address;
                 case X121RouteType.Dnic: return "dnic " + route.Dnic;
+                case X121RouteType.Dcc: return "dcc " + route.Dcc;
                 case X121RouteType.Regex: return "regex " + route.Pattern;
                 case X121RouteType.Hunt: return "hunt " + route.HuntGroupId;
                 case X121RouteType.Default: return "default";

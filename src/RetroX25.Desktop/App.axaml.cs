@@ -200,7 +200,8 @@ public partial class App : Application
         services.AddTransient<LogWindowViewModel>();
         services.AddTransient<ConfigurationWindowViewModel>();
         services.AddTransient<TADServerWindowViewModel>();
-        services.AddTransient<RoutesWindowViewModel>();
+        // The one routing screen: the Routing window and the Routing tab of the Configuration window.
+        services.AddTransient<RoutingViewModel>();
         services.AddTransient<SimulateReceiveWindowViewModel>();
         services.AddTransient<LinkStatusWindowViewModel>();
         services.AddTransient<InvoiceWindowViewModel>();
@@ -210,7 +211,6 @@ public partial class App : Application
         services.AddTransient<XotInterfacesTabViewModel>();
         services.AddTransient<TcpLapbInterfacesTabViewModel>();
         services.AddTransient<KnownHostsTabViewModel>();
-        services.AddTransient<RoutingTabViewModel>();
 
         // Note: PADClientWindowViewModel requires a windowNumber parameter, created manually in MainWindowViewModel
     }

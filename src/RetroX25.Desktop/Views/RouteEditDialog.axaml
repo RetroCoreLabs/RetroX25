@@ -4,134 +4,111 @@
         x:Class="RetroX25.Desktop.Views.RouteEditDialog"
         x:DataType="vm:RouteEditDialogViewModel"
         Title="{Binding DialogTitle}"
-        Width="500" Height="600"
-        MinWidth="450" MinHeight="550"
-        CanResize="false"
+        Width="560" Height="720"
+        MinWidth="480" MinHeight="560"
         WindowStartupLocation="CenterOwner"
-        Icon="/Assets/avalonia-logo.ico">
+        Icon="/Assets/icon.ico">
 
     <Grid RowDefinitions="*,Auto" Margin="16">
 
-        <!-- Form fields -->
         <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="12">
+            <StackPanel Spacing="14">
+
+                <!-- What do you want to reach? -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="What do you want to reach?" FontSize="15" FontWeight="SemiBold"/>
+                    <ComboBox Name="KindBox" ItemsSource="{Binding KindChoices}" SelectedItem="{Binding SelectedKind}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RouteKindChoice">
+                                <TextBlock Text="{Binding Title}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Text="{Binding KindHelp}" TextWrapping="Wrap" FontSize="11"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
+
+                <!-- The digits -->
+                <StackPanel Spacing="4" IsVisible="{Binding HasMatch}">
+                    <TextBlock Text="{Binding MatchLabel}" FontWeight="SemiBold"/>
+                    <TextBox Name="MatchBox" Text="{Binding Match}" Watermark="{Binding MatchWatermark}"/>
+                    <TextBlock Text="{Binding MatchCountry}" FontSize="11"
+                               IsVisible="{Binding MatchCountry, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                </StackPanel>
 
                 <!-- Name -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Route Name:"
-                               FontWeight="SemiBold"/>
-                    <TextBox Text="{Binding Name}"
-                             Watermark="e.g., LocalTAD, Network_A_Route"/>
-                    <TextBlock Text="Unique name for this route entry"
-                               FontSize="10"
+                    <TextBlock Text="Name" FontWeight="SemiBold"/>
+                    <TextBox Name="NameBox" Text="{Binding Name}" Watermark="for example Sweden, Gateway, Terminals"/>
+                </StackPanel>
+
+                <!-- Where calls go -->
+                <StackPanel Spacing="4" IsVisible="{Binding HasPort}">
+                    <TextBlock Text="Send the calls to" FontWeight="SemiBold"/>
+                    <ComboBox Name="PortBox" ItemsSource="{Binding PortNames}" SelectedItem="{Binding Port}"
+                              HorizontalAlignment="Stretch"
+                              ToolTip.Tip="A line of this node, or 'local' for a service on this node (the TAD, a waiting program)."/>
+                </StackPanel>
+
+                <StackPanel Spacing="4" IsVisible="{Binding IsHunt}">
+                    <TextBlock Text="Lines of the hunt group" FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding HuntPortsText}" Watermark="line names separated by commas"/>
+                </StackPanel>
+
+                <!-- Backups, in order -->
+                <StackPanel Spacing="4" IsVisible="{Binding HasPort}">
+                    <TextBlock Text="Backup ports, tried in this order when the port is out of order" FontWeight="SemiBold"/>
+                    <Grid ColumnDefinitions="*,8,Auto">
+                        <ListBox Grid.Column="0" ItemsSource="{Binding BackupPorts}" SelectedItem="{Binding SelectedBackup}"
+                                 MinHeight="60" MaxHeight="120"/>
+                        <StackPanel Grid.Column="2" Spacing="4">
+                            <Button Content="Up" Command="{Binding MoveBackupUpCommand}" HorizontalAlignment="Stretch"/>
+                            <Button Content="Down" Command="{Binding MoveBackupDownCommand}" HorizontalAlignment="Stretch"/>
+                            <Button Content="Remove" Command="{Binding RemoveBackupCommand}" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,8,Auto">
+                        <ComboBox Grid.Column="0" ItemsSource="{Binding PortNames}" SelectedItem="{Binding BackupToAdd}"
+                                  HorizontalAlignment="Stretch" PlaceholderText="a port to add as the next backup"/>
+                        <Button Grid.Column="2" Content="Add backup" Command="{Binding AddBackupCommand}"/>
+                    </Grid>
+                    <TextBlock Text="{Binding BackupOrderText}" TextWrapping="Wrap" FontSize="11"
                                Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                 </StackPanel>
 
-                <!-- Enabled -->
-                <CheckBox Content="Route Enabled"
-                          IsChecked="{Binding Enabled}"/>
+                <CheckBox Content="Route is on" IsChecked="{Binding Enabled}"/>
 
-                <!-- X.121 Address Pattern -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="X.121 Address Pattern:"
-                               FontWeight="SemiBold"/>
-                    <TextBox Text="{Binding X121AddressPattern}"
-                             Watermark="200 or 10.* or 100.*"/>
-                    <TextBlock Text="Regex pattern for matching X.121 addresses (e.g., '200' for exact match, '10.*' for prefix match)"
-                               FontSize="10"
-                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                    <TextBlock Text="Note (optional)" FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" Height="50"/>
                 </StackPanel>
 
-                <!-- Route Type -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Route Type:"
-                               FontWeight="SemiBold"/>
-                    <ComboBox ItemsSource="{Binding AvailableRouteTypes}"
-                              SelectedItem="{Binding Type}"
-                              HorizontalAlignment="Stretch"/>
-                    <TextBlock Text="Interface: direct to interface | Gateway: through machine | Local: built-in service"
-                               FontSize="10"
-                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
-                </StackPanel>
-
-                <!-- Destination -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Destination:"
-                               FontWeight="SemiBold"/>
-                    <TextBox Text="{Binding Destination}"
-                             Watermark="Serial0, XOT0, 100, or LocalTAD"/>
-                    <TextBlock Text="Interface name (for Interface type) or gateway machine ID (for Gateway type) or service name (for Local type)"
-                               FontSize="10"
-                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
-                </StackPanel>
-
-                <!-- Priority -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Priority:"
-                               FontWeight="SemiBold"/>
-                    <NumericUpDown Value="{Binding Priority}"
-                                   Minimum="0"
-                                   Maximum="1000"
-                                   FormatString="0"
-                                   ShowButtonSpinner="True"/>
-                    <TextBlock Text="Route priority (higher = preferred when multiple routes match)"
-                               FontSize="10"
-                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
-                </StackPanel>
-
-                <!-- Call User Data Pattern (optional) -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Call User Data Pattern (optional):"
-                               FontWeight="SemiBold"/>
-                    <TextBox Text="{Binding CallUserDataPattern}"
-                             Watermark="Leave empty for no additional filtering"/>
-                    <TextBlock Text="Optional regex pattern for matching call user data for additional routing criteria"
-                               FontSize="10"
-                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
-                </StackPanel>
-
-                <!-- Description -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Description (optional):"
-                               FontWeight="SemiBold"/>
-                    <TextBox Text="{Binding Description}"
-                             Watermark="Description of this route"
-                             AcceptsReturn="True"
-                             TextWrapping="Wrap"
-                             Height="60"/>
-                </StackPanel>
-
-                <!-- Validation Error -->
-                <Border Background="#FFFFE0E0"
-                        BorderBrush="#FFFF0000"
-                        BorderThickness="1"
-                        CornerRadius="4"
-                        Padding="8"
+                <!-- Live check -->
+                <Border Background="#22F44336" BorderBrush="#F44336" BorderThickness="1" CornerRadius="4" Padding="8"
                         IsVisible="{Binding ValidationError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                    <TextBlock Text="{Binding ValidationError}"
-                               Foreground="#FFCC0000"
-                               TextWrapping="Wrap"/>
+                    <TextBlock Name="ErrorText" Text="{Binding ValidationError}" TextWrapping="Wrap"/>
+                </Border>
+
+                <!-- Preview -->
+                <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="8">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Preview: where would this number go?" FontWeight="SemiBold"/>
+                        <TextBox Text="{Binding PreviewNumber}"/>
+                        <TextBlock Name="PreviewText" Text="{Binding PreviewText}" TextWrapping="Wrap" FontSize="12"/>
+                    </StackPanel>
                 </Border>
 
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Buttons -->
-        <StackPanel Grid.Row="1"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Spacing="8"
-                    Margin="0,16,0,0">
-            <Button Command="{Binding OkCommand}"
-                    Content="OK"
-                    Width="80"
-                    IsDefault="True"
-                    Click="OnOkClick"/>
-            <Button Command="{Binding CancelCommand}"
-                    Content="Cancel"
-                    Width="80"
-                    IsCancel="True"
-                    Click="OnCancelClick"/>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+            <Button Command="{Binding OkCommand}" Content="OK" Width="80" IsDefault="True" Classes="accent"
+                    IsEnabled="{Binding IsValid}" Click="OnOkClick"/>
+            <Button Command="{Binding CancelCommand}" Content="Cancel" Width="80" IsCancel="True" Click="OnCancelClick"/>
         </StackPanel>
 
     </Grid>

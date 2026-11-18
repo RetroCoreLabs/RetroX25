@@ -51,7 +51,7 @@ public partial class ConfigurationWindow : Window
         viewModel.XotInterfacesTab.SetOwnerWindow(this);
         viewModel.TcpLapbInterfacesTab.SetOwnerWindow(this);
         viewModel.KnownHostsTab.SetOwnerWindow(this);
-        viewModel.RoutingTab.SetOwnerWindow(this);
+        viewModel.Routing.SetOwnerWindow(this);
 
         // Add Esc key handler to close window
         this.KeyDown += (sender, e) =>

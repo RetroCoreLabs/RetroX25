@@ -11,7 +11,8 @@ using RetroX25.Desktop.ViewModels;
 namespace RetroX25.Desktop.Views;
 
 /// <summary>
-/// The Routes window, which shows the X.25 routing table.
+/// The Routing window (Ctrl+4): the one routing screen, <see cref="RoutingView"/>, in a window of its own. The
+/// Routing tab of the Configuration window shows the same screen.
 /// </summary>
 public partial class RoutesWindow : Window
 {
@@ -29,7 +30,7 @@ public partial class RoutesWindow : Window
     /// <param name="viewModel">
     /// The view-model the window binds to.
     /// </param>
-    public RoutesWindow(RoutesWindowViewModel viewModel) : this()
+    public RoutesWindow(RoutingViewModel viewModel) : this()
     {
         DataContext = viewModel;
     }

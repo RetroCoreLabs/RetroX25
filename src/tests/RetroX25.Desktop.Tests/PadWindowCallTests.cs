@@ -1090,8 +1090,10 @@ namespace RetroX25.Desktop.Tests
         {
             RuntimeConfig config = App.LoadConfigFile(FindSampleFile("x25config-embedded-switch.json"));
             int xot = config.Routing.XotInterfaces.Count;
-            int routes = config.Routing.RoutingTable.Count;
+            // The routes as the engine's one table reads them (the old list converted, plus any new-form routes).
+            int routes = RetroIO.Protocols.X25.Runtime.RoutingConfigConverter.ToNetworkConfig(config.Routing).Routes.Count;
             Assert.That(xot, Is.GreaterThan(0));
+            Assert.That(routes, Is.GreaterThan(0), "the sample has no routes, so this test would prove nothing");
 
             ServiceCollection services = new ServiceCollection();
             App.ConfigureServices(services, config, EmbeddedSwitchOptions.Off);
@@ -1109,7 +1111,11 @@ namespace RetroX25.Desktop.Tests
 
             IRuntimeService runtimeService = provider.GetRequiredService<IRuntimeService>();
             Assert.That(runtimeService.Runtime.Config.Routing.XotInterfaces.Count, Is.EqualTo(xot), "Apply lost the XOT interfaces");
-            Assert.That(runtimeService.Runtime.Config.Routing.RoutingTable.Count, Is.EqualTo(routes), "Apply lost the routes");
+            // Apply writes the routing screen's copy in the new form: the old list is now in Routes, and the
+            // engine's table has every one of them.
+            Assert.That(runtimeService.Runtime.Config.Routing.Routes.Count, Is.EqualTo(routes), "Apply lost the routes");
+            Assert.That(runtimeService.Runtime.Config.Routing.RoutingTable.Count, Is.EqualTo(0), "the old list was kept and would load every route twice");
+            Assert.That(runtimeService.Runtime.Router.Table.Routes.Count, Is.EqualTo(routes), "the restarted engine does not have the routes");
             Assert.That(runtimeService.Runtime.Config.X25.LocalMachineId, Is.EqualTo("23430200"));
         }
 

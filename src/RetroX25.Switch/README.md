@@ -59,10 +59,64 @@ INI. `src\demo\switch-a.ini` is the fullest example. The HDLC trunk keys (`hdlc-
 
 | Section | Keys |
 |---|---|
-| `[switch]` | `name`, `dnic`, `mgmt_port`, `monitor_port`, `mgmt_addr` |
-| `[port.N]` | `type` (`access`/`trunk`), `transport` (`xot` is the default; `hdlc-tcp`, alias `hdlc-ppp`; `hdlc-serial`; any other value is refused), `mode` (`dce`/`dte`), `host`, `port`, `lci_base`, `lci_count`; for trunks also `peer_name`, `peer_monitor_host`, `peer_monitor_port`, `peer_mgmt_addr`. Serial keys: `device`, `baud` (9600), `databits` (8), `parity` (`none`), `stopbits` (1), `flow` (`rtscts`). LAPB keys, in milliseconds except the last two: `lapb_t1` (3000), `lapb_t2` (0), `lapb_t3` (30000), `lapb_n2` (10), `lapb_k` (7); 0 or no key gives the default |
-| `[route.N]` | `type` (`prefix`/`default`), `address`, `prefix_len`, `port` |
+| `[switch]` | `name`, `dnic`, `mgmt_port`, `monitor_port`, `mgmt_addr`. `dnic` is the own network when there is no `[network]` section |
+| `[network]` | `own_dnic` (this network's DNIC, 4 digits or 5 with the digit after it; several are separated by commas, and the first one completes local numbers), `international_prefix` (the digits dialled in front of an international number, X.121 7.8; leave it out when the network uses none) |
+| `[port.N]` | `name` (used by routes instead of the number; not digits and not `local`), `called_address` (`as_received`, `international` or `national`: the form of the called number sent on this port; a trunk sends the full international number by default, an access port the number as it came in), `type` (`access`/`trunk`), `transport` (`xot` is the default; `hdlc-tcp`, alias `hdlc-ppp`; `hdlc-serial`; any other value is refused), `mode` (`dce`/`dte`), `host`, `port`, `lci_base`, `lci_count`; for trunks also `peer_name`, `peer_monitor_host`, `peer_monitor_port`, `peer_mgmt_addr`. Serial keys: `device`, `baud` (9600), `databits` (8), `parity` (`none`), `stopbits` (1), `flow` (`rtscts`). LAPB keys, in milliseconds except the last two: `lapb_t1` (3000), `lapb_t2` (0), `lapb_t3` (30000), `lapb_n2` (10), `lapb_k` (7); 0 or no key gives the default |
+| `[route.N]` | One key that says what the route takes: `number` (one number), `prefix` (numbers starting with these digits), `dnic` (a network, 4 or 5 digits), `dcc` (a country, 3 digits), `default = yes` (everything else, usually the X.75 gateway), `regex` (a pattern over the whole number) or `hunt` (a number shared by the lines of `hunt_group`). Then `port` (name or number), `backup_ports` (tried in this order when `port` is out of order, X.110 3.5), `name`, `note`, `enabled` (`no` keeps the route but skips it), `direction` (`both`, `incoming`, `outgoing`). The old keys still load: `type` (`exact`/`prefix`/`dnic`/`dcc`/`default`/`regex`/`hunt`) with `address`, `prefix_len`, `dnic`, `backup_port`. A type the switch does not know stops the load and names the section and line |
+| `[hunt.N]` | `members` (port numbers, separated by commas). A member whose port is down is skipped |
 | `[user.N]` | `name`, `password`, `level` |
+
+The lookup tries the most exact route first, whatever order the sections are in: a number or hunt group, a
+pattern, the longest prefix, a network with its fifth digit, a network, a country, the default route. A route
+that would send a call back out of the port it came in on is never used. The tariff file's `home_dnic` is a
+separate setting: it decides how a call is priced, not where it goes.
+
+One example, for a switch in network 2422 with an access port, a gateway to other networks and a second way out
+(the transport keys of the ports are left out; see the table above):
+
+```ini
+[network]
+own_dnic = 2422
+international_prefix = 0
+
+[port.0]
+name = terminals
+type = access
+
+[port.1]
+name = x75-gw
+type = trunk
+
+[port.2]
+name = nordic
+type = trunk
+
+; A local number: 110006 typed on a terminal is completed to 2422110006.
+[route.0]
+name = TAD
+number = 2422110006
+port = terminals
+
+; Every call to Sweden's Datapak network, with a second way out.
+[route.1]
+name = Datapak
+dnic = 2402
+port = x75-gw
+backup_ports = nordic
+
+; Every other call in Denmark (country code 238).
+[route.2]
+name = Denmark
+dcc = 238
+port = nordic
+
+; Everything else goes to the gateway, or the other trunk when it is down.
+[route.3]
+name = Gateway
+default = yes
+port = x75-gw
+backup_ports = nordic
+```
 
 Defaults follow the switch configuration specification: window size **2**, packet size **128**, LCI base **1**,
 count **16**, TCP port **1998**. A file shorter than you expect is not necessarily incomplete.
@@ -84,7 +138,7 @@ flowchart TB
 
     subgraph NODE["x25switch"]
         LISTEN["Listening ports"]
-        ROUTE["Route lookup<br/>PVC, exact, hunt,<br/>prefix, DNIC, default"]
+        ROUTE["Route lookup<br/>number, hunt, pattern, prefix,<br/>DNIC, country, default"]
         STITCH["VC stitching<br/>LCI in &lt;-&gt; LCI out"]
         ACCT["Accounts and CDRs"]
         MGMT["Telnet console<br/>+ in-band machine API"]
@@ -149,8 +203,10 @@ flowchart TB
     class NOROUTE,BUSY,END bad
 ```
 
-Route lookup order is fixed and **most specific wins**: PVC, then exact, then hunt group, then longest prefix,
-then DNIC, then default. That ordering is why a default route can exist at all.
+Route lookup order is fixed and **most specific wins**: a number or hunt group, then a pattern, then the longest
+prefix, then a network with its fifth digit, then a network, then a country, then the default route (PVCs are set
+up at start and never looked up). That ordering is why a default route can exist at all. When the chosen port is
+down its backups are tried in order, and only when all are down is the call cleared out of order.
 
 ## The management console
 

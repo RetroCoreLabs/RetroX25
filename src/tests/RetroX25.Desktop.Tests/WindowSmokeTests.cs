@@ -167,7 +167,7 @@ namespace RetroX25.Desktop.Tests
 
             RoutesWindow window = new RoutesWindow
             {
-                DataContext = provider.GetRequiredService<RoutesWindowViewModel>()
+                DataContext = provider.GetRequiredService<RoutingViewModel>()
             };
 
             ShowAndSettle(window);
@@ -193,7 +193,7 @@ namespace RetroX25.Desktop.Tests
                 Assert.That(provider.GetRequiredService<SerialInterfacesTabViewModel>(), Is.Not.Null);
                 Assert.That(provider.GetRequiredService<XotInterfacesTabViewModel>(), Is.Not.Null);
                 Assert.That(provider.GetRequiredService<KnownHostsTabViewModel>(), Is.Not.Null);
-                Assert.That(provider.GetRequiredService<RoutingTabViewModel>(), Is.Not.Null);
+                Assert.That(provider.GetRequiredService<RoutingViewModel>(), Is.Not.Null);
             });
         }
     }
