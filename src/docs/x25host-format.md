@@ -35,10 +35,12 @@ own folder can be read. Text files are sent as they are, with every line end tur
 ## Running
 
 ```text
-x25host <host-folder> -x <switch-host:port> [-a <address>] [-v]
+x25host <host-folder> -x <switch-host:port> [-a <address>] [-n <hostname>] [-v]
 ```
 
-`-x` is the switch port the host connects to (XOT, as `x25echo`). `-a` overrides `[host] address`. The host keeps
+`-x` is the switch port the host connects to (XOT, as `x25echo`). `-a` overrides `[host] address`, `-n`
+overrides `[host] hostname`. A host folder is a TYPE (a VMS machine, a BBS); the hostname and address make it
+one particular machine, so the same folder can run as many machines at once (see "Many machines at once"). The host keeps
 redialling the switch until it answers, and redials after a restart (as `x25echo`).
 
 ## host.ini
@@ -50,7 +52,7 @@ keys stop the program with the file, line and name (a typo is never a silently m
 
 | Key | Meaning | Default |
 |---|---|---|
-| `name` | Shown in logs, and as `{node}` in text | the folder name |
+| `hostname` | The machine's name: `{hostname}` in every text (the banner, the prompt, the logout line). Normally given by `-n` or the machine list, so one type folder serves many machines | the folder name |
 | `address` | The X.121 address the host answers | required, or `-a` |
 | `sessions` | Calls served at once; one more is cleared Number busy | 8 |
 | `line_end` | `crlf` or `cr` or `lf`, sent after every line | `crlf` |
@@ -154,7 +156,8 @@ values. `{{` and `}}` are a literal brace.
 |---|---|---|
 | `{date}` | Today's date, in the form `time_format` gives | always |
 | `{time}` | The time now, in the form `time_format` gives | always |
-| `{node}` | `[host] name` | always |
+| `{hostname}` | The machine's name (`-n`, the machine list, or `[host] hostname`) | always |
+| `{node}` | The same as `{hostname}` (the VMS word for it) | always |
 | `{address}` | The host's X.121 address | always |
 | `{calling}` | The caller's X.121 address, as the Call Request gave it | always |
 | `{sessions}` | Calls to this host right now, this one included | always |
@@ -180,6 +183,43 @@ The valid logins are the `[user.N]` sections of `host.ini`: `name` and `password
 Nothing else can log in. The name a caller logged in with is kept for the whole call: it is `{user}` in every
 text, it is what `who` shows, it is written to the host's log with the calling address, and a JavaScript host
 (the later step) gets it as `session.user`, with `session.calling`, `session.address` and `session.node`.
+## Many machines at once: the machine list
+
+One file lists every machine of a demo network; one command starts them all. The list says which type folder
+each machine is, its hostname, its X.121 address (NUA) and which switch port it hangs on:
+
+```ini
+# machines.ini
+[defaults]
+library = ../hosts            # where the type folders are
+
+[machine.0]
+type = vms                    # library folder hosts/vms
+hostname = TOMVAX
+nua = 23429002
+switch = 127.0.0.1:25012      # the XOT port of the switch it hangs on
+
+[machine.1]
+type = sintran
+hostname = NDTROMSO
+nua = 24229003
+switch = 127.0.0.1:25002
+
+[machine.2]
+type = bbs
+hostname = NORDBBS
+nua = 24229002
+switch = 127.0.0.1:25002
+```
+
+`x25host --machines machines.ini` (or the demo script) starts one host per `[machine.N]`, each with its
+hostname and address filled in, and stops them all together. Several machines may share one switch port: the
+switch routes each NUA, and each host answers only its own. The switch ini files can be generated from the same
+list (plan G5), so a large network is one list.
+
+Open question: whether a machine line also carries a NUI (the account that pays for calls the machine itself
+makes, or one a caller must present) - see PLAN G.
+
 ## Limits (both programs, not settable from the file)
 
 - A typed line longer than 256 characters is cut there.
