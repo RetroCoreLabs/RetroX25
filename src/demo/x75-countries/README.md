@@ -72,6 +72,9 @@ without the DNIC (the national number).
 | 24220000 | `0000` | Norway's in-band management (`x25nmc`) | Norway switch |
 | 23420000 | `023420000` | England's in-band management | England switch |
 | 26240000 | `026240000` | Germany's in-band management | Germany switch |
+| 24221xxx | `1xxx` | Norway's hosts (one host line for all of them) | Norway port 3, TCP 25003 |
+| 23421xxx | `023421xxx` | England's hosts | England port 3, TCP 25013 |
+| 26241xxx | `026241xxx` | Germany's hosts | Germany port 3, TCP 25024 |
 
 Any other number in 2624… goes to Germany and is cleared there (no route); 2342… to England; any other DNIC
 is cleared in Norway (no route).

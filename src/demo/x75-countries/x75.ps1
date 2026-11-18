@@ -41,7 +41,8 @@ $Nuis = @{ '1' = '242226500000101'; '2' = '242226500000102'; '3' = '242226500000
 $Mgmt = @{ 'norway' = 9201; 'england' = 9202; 'germany' = 9203 }
 $Monitor = @{ 'norway' = 4201; 'england' = 4202; 'germany' = 4203 }
 # Every TCP port this network listens on (README.md, "Ports").
-$AllPorts = 25001, 25002, 25011, 25012, 25021, 25022, 25023, 9201, 9202, 9203, 4201, 4202, 4203
+# 25003, 25013 and 25024 are the host lines (24221xxx, 23421xxx, 26241xxx), for x25host.
+$AllPorts = 25001, 25002, 25003, 25011, 25012, 25013, 25021, 25022, 25023, 25024, 9201, 9202, 9203, 4201, 4202, 4203
 
 if (-not $BinDir) { $BinDir = Join-Path $Root 'publish/win-x64' }
 
