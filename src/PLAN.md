@@ -1,6 +1,6 @@
 # RetroX25 plan - outstanding work only
 
-**Next:** x25host (G), then the rest of B3. Push (A6) only after Ronny has looked at the commits.
+**Next:** x25host (G), then the rest of B3. Open X.25 faults: H1 first (a DTE must survive the switch). Push (A6) only after Ronny has looked at the commits.
 
 Rules for this file: finished items are deleted, not ticked. Each item says what to build, how it is proved,
 and what it waits for. What was measured is in `docs/xot-peers.md`, `docs/trunk-links.md`,
@@ -321,15 +321,76 @@ link set-up (one SABM, crossing SABMs, SABM refused with DM), keepalive polls ov
 data with sequence wrap, clear. Then SINTRAN X.25 against each of the three. Proved by: decoded captures of
 every run kept with the results in `docs/crossenv-testing.md`.
 
+## H. Open X.25 faults from the bug lists (gathered 2026-11-19)
+
+The faults are written in RetroIO `src/BUGS.md` and x25emu `BUGS.md` (line numbers as of 2026-11-19); this section
+only orders them. None has a failing test yet: each starts with one that fails first. X.75 gaps (RetroIO BUGS 34, 35)
+are B3/B4 above.
+
+### H1. A DTE must survive the switch (x25emu)
+- PVC over XOT not set up again after its TCP connection closes (BUGS 16; X.25 4.6.3, RFC 1613 6.5).
+- A dead switch that never closes the connection is never noticed: no TCP keepalive, no T3 on LAPB lines (BUGS 18;
+  X.25 2.4.9.3).
+- x25pad and the other tools stop when the switch goes; only x25echo, x25tadsrv and x25chat redial (BUGS 21).
+- With redial on, a dial to a host that does not answer blocks every other call for up to 5 s (BUGS 17).
+- The DCE's T10 for a Restart Indication is not run (BUGS 19; Table D.2).
+- A restart confirmation arriving in the ready state is taken as a finished restart instead of an error, diag 17
+  (BUGS 20; Table C.2 r1 #17).
+
+### H2. PAD and host side of X.29 (RetroIO)
+- Host side of X.29: reads go out as bare references, invalid pairs dropped, a bad set answered with an error instead
+  of a parameter indication, error codes not Table 4. The TAD uses this code (BUGS 45; X.29 4.4.5.2/3, Tables 1, 4).
+- Reselection PAD message logged and dropped, no Table 4 g refusal (BUGS 46; X.29 3.6).
+- Recall character other than DLE never recalls (BUGS 47; X.3 3.1).
+- No padding after CR/LF, the PAD has no terminal speed (BUGS 44; X.28 3.5.2, X.3 9/11/14).
+- The console/telnet PAD (`RetroX25.Pad`) has no test of its own; it shares the PAD code the desktop window tests.
+
+### H3. Addresses and routing
+- Escape codes 8, 9, 0 not recognised in number completion, so the own prefix is put in front (RetroIO BUGS 37;
+  X.121 7.9, Table 2).
+- No route for a DNIC gives diag 67, never 121 "Unknown called DNIC" (x25emu BUGS 11; X.25 Annex E).
+- The full international number is always sent, also to countries that want the DCC left out (x25emu BUGS 12;
+  X.121 7.12.3).
+- Addresses over 15 digits (TOA/NPI) not supported (x25emu BUGS 13; X.25 5.2.1).
+- `intl_prefix` and `escape_codes` are switch-wide, not per access port (x25emu BUGS 14).
+- An incoming call routed to another runtime line is never forwarded (RetroIO BUGS 32).
+- Every failure of `PlaceCall` returns 0, so a failed XOT dial may be cleared as "Number busy" (RetroIO BUGS 33;
+  Table C.1 row 31).
+- On a link-manager link a call with no route is cleared 0x00/67, not 0x0D; whether that link should be the DTE is
+  unchecked (RetroIO BUGS 40; Table 5-7 note a).
+- The C# switch can block a port's reader for up to 5 s waiting for a fresh XOT connection (RetroIO BUGS 41).
+
+### H4. Needs the standard read first (RetroIO)
+- Cause sent in the restart after a LAPB reset on a link that stays up (BUGS 31; Table 5-9, 4.6.5).
+- SINTRAN's Call Request sent before it confirms the switch's restart: the switch routed it, the standard says discard
+  (BUGS 73; X.25 3.3.2, Table C.2 r3). Nothing decided.
+- TAD break strategies 2-6, 8 and a mixed 7 (BUGS 63) and the XMSG/TAD reply sequence number (BUGS 64): need SINTRAN
+  code or a capture.
+
+### H5. Desktop routing screen (RetroIO)
+- It edits only the desktop JSON routes, not the built-in switch's route table (BUGS 38).
+- Saving drops every `//` comment in the JSON file (BUGS 39).
+
+### H6. Tests
+- Most x25emu integration tests use `sw_poll`, but the program runs `sw_start_threaded`: they test code that does not
+  ship (x25emu BUGS 15).
+- `X25emuWindowsTests.WriteSwitchIni` routes a trunk call to an access port (RetroIO BUGS 42).
+- Flaky: `TcpLapbEndToEndTests.Link_AfterStopAndStart_ReturnsToActive` uses fixed port 55612 (RetroIO BUGS 36);
+  `TwoPorts_OverTheLine_LinkUp_CallsAndDataGoBothWays` failed once in 1185 (RetroIO BUGS 90); A2 above.
+
+### H7. Undecided
+- Serial X.25 has no default for which end is DCE or sends the first SABM (RetroIO BUGS 53); two serial paths,
+  `SerialLink` and `SerialLapbLink`, keep or merge (BUGS 54).
+
 ## G. x25host: fake machines and services from description files (Ronny, 2026-11-18)
 
 Format: `src/docs/x25host-format.md`. Examples: `src/demo/hosts/vax`, `src/demo/hosts/bbs`. Ronny chose: ini-style
 description files, nothing in them runs; C# first, then C in x25emu reading the same files; JavaScript (Jint, hard
 limits) later and in C# only.
 
-- G1. C# `x25host` in RetroX25 (engine in RetroIO): read and check a host folder, answer calls over XOT, login,
-  shell, menus, files, the built-in actions, the limits. Unit tests on the two examples.
-- G2. Add both examples to `demo/x75-countries` (x75.ps1 starts them) and to `X75CountriesScriptTests`.
+- G1. What `x25host` still lacks from `docs/x25host-format.md` ("Many machines at once"): the single-machine form
+  `x25host <host-folder> -x ...`, `nui` per machine, the operator console (`--console-port`, `show hosts`,
+  `stop host`, ...) and `--stats-log`.
 - G3. C `x25host` in x25emu reading the same files (ask the altoschat session before editing x25emu); a test that
   runs both on the same example and compares the screens.
 - G4. JavaScript hosts (C# only). The engine is built: `ScriptedHost` in RetroIO `RetroIO.Protocols.X25.Host`
