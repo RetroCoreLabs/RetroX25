@@ -52,6 +52,15 @@ Until 2026-11-13 the Client mode kept one connection per remote address for all 
 (see "Measured against a real Cisco router" below), that made the router clear the first call as soon as a second
 Call Request arrived on the same connection. The new behaviour was proved against x25emu and then on 2026-11-13 against the
 router (points 3 and 7 below: 1, 2 and 5 calls gave 1, 2 and 5 connections).
+
+**Receiving calls on a Client entry: `KeepConnectionForIncomingCalls`.** A Client entry never listens, so on its own
+it can only make calls. Set `KeepConnectionForIncomingCalls` to `true` (default `false`) and the entry keeps one
+dialled connection open with no call on it, for the peer to put an arriving call on. This is for a peer that is a
+switch port listening for its subscriber: such a port puts an arriving call only on a connection the subscriber
+opened and that has never carried a call. When a call arrives on that connection, the entry dials a new one at once;
+the connection with the call is closed when the call ends, like every other. A failed dial is logged and not
+retried, the same rule as for a call. The Altos chat sample uses it
+([altos-chat.md](altos-chat.md), `x25config-altos-chat.json`).
 ## Source IP, and why it is weak
 
 XOT has **no authentication**. The only thing that tells one peer from another is the **source IP

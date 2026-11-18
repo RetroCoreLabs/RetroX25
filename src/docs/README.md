@@ -29,6 +29,7 @@ main `README.md` at the top of the repository); these guides cover things that a
 | Guide | What it says |
 |---|---|
 | [telnet-pad.md](telnet-pad.md) | How to use a PAD from a normal telnet program through the Desktop app. |
+| [altos-chat.md](altos-chat.md) | The Altos CHAT 3.1 conference program as a built-in service: its address and settings, and running it behind a switch port. |
 
 ## Testing against other equipment
 

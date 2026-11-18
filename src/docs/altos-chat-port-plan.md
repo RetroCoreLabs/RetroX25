@@ -150,6 +150,10 @@ edits locally and never reaches the server. Anything a PAD does not obey is fixe
 
 1. **C# engine and its tests** (all cases below), driven directly, no X.25.
 2. **C# service:** `ChatProtocolService`, address setting, route, call user data rule; tests through the runtime.
+   A test must be able to start the RetroIO runtime in-process with the chat, as the XOT client of a switch's
+   subscriber port on `127.0.0.1:<port chosen at run time>`, with the chat answering 26245890040004 (the Altos
+   address). This is for RetroIO's three-country X.75 test (`X75ThreeCountryTests`), which that test's owner wires
+   in; if the runtime cannot be the XOT client side, write down what it needs.
 3. **The C# PAD follows the X.29 Set**; tests.
 4. **Desktop chat monitor window**; view-model tests.
 5. **C engine and `tools/x25chat`**, the same test list in `tests/unit`, plus an integration test over the switch.
