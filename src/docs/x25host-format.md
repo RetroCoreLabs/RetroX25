@@ -144,13 +144,42 @@ A fake file tree for `ls`, `cat` and `cd`.
 | `path` | The name the user sees, e.g. `/usr/guest/notes.txt` or `SYS$LOGIN:LOGIN.COM` |
 | `content` | A text file of the host folder that `cat` sends; empty for a directory |
 
-### Variables
+### Placeholders
 
-Allowed in `text`, `prompt`, `unknown` and every text file: `{user}`, `{node}`, `{address}` (the host's),
-`{calling}` (the caller's address), `{date}`, `{time}`, `{cwd}`, `{args}`, `{word}`, and `{nl}` (a line end, for a value that is more than one line). `{{` and `}}` are a
-literal brace. Nothing else is expanded: there is no way to name a file, a setting or an environment variable
-from text.
+Every text the host sends can hold placeholders, worked out at the moment the text is sent: the banner and
+every other text file, and the `text`, `prompt`, `unknown`, `fail_text`, `logout_text` and `unknown_file`
+values. `{{` and `}}` are a literal brace.
 
+| Placeholder | Value | Has a value |
+|---|---|---|
+| `{date}` | Today's date, in the form `time_format` gives | always |
+| `{time}` | The time now, in the form `time_format` gives | always |
+| `{node}` | `[host] name` | always |
+| `{address}` | The host's X.121 address | always |
+| `{calling}` | The caller's X.121 address, as the Call Request gave it | always |
+| `{sessions}` | Calls to this host right now, this one included | always |
+| `{uptime}` | How long the host has been running, `d hh:mm:ss` | always |
+| `{nl}` | A line end (`line_end`), for a value of more than one line | always |
+| `{user}` | The name the caller logged in with, as typed | after login (empty in the banner and at the login prompts) |
+| `{cwd}` | The current directory of the fake file tree | after login |
+| `{word}` | The command word just typed | in `unknown` |
+| `{args}` | The rest of the line after the command word | in a command's `text`, and in `unknown_file` |
+
+Rules:
+
+- A placeholder that is not in this table stops the program at start, naming the file, the line and the
+  placeholder. A misspelling is never sent to the caller as it is.
+- A placeholder used where it has no value (`{user}` in the banner) is replaced by nothing.
+- Placeholders are only ever filled from this table. There is no way to name a file, a setting, an
+  environment variable or anything on the machine the host runs on.
+- New placeholders are added to this table, in both programs, with a test; the table is the whole list.
+
+### Logins
+
+The valid logins are the `[user.N]` sections of `host.ini`: `name` and `password`, one section per account.
+Nothing else can log in. The name a caller logged in with is kept for the whole call: it is `{user}` in every
+text, it is what `who` shows, it is written to the host's log with the calling address, and a JavaScript host
+(the later step) gets it as `session.user`, with `session.calling`, `session.address` and `session.node`.
 ## Limits (both programs, not settable from the file)
 
 - A typed line longer than 256 characters is cut there.
