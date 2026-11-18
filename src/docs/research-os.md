@@ -27,6 +27,7 @@ not to the system.
 7. What is still missing, and where to look next
 8. Sources
 9. ARPANET (1969-1983): the machines, TIP/TAC, ITS, TENEX, WAITS, TOPS-10, UCLA TSO
+10. From the X.25 Network Atlas: Tandem, Stratus, Pick, CDC NOS, BS2000, CANDE, DIALOG, Dialcom, STN, CompuServe, SNA front ends, DECserver, outdials
 
 ---
 
@@ -1096,3 +1097,261 @@ Introduction to ITS, https://josephoswald.nfshost.com/itsinfo/its-intro.html ;
 TENEX 134.DOC, https://bitsavers.mirrorservice.org/bits/BBN/Tenex/134-tenex/134.DOC ;
 SDS 940 guide, https://ftp.mirrorservice.org/sites/www.bitsavers.org/pdf/sds/9xx/940/901118B_940_TerminalUsersGuide_Apr68.pdf ;
 Wikipedia ARPANET, https://en.wikipedia.org/wiki/ARPANET
+
+---
+
+## 10. From the X.25 Network Atlas: what else was on the networks
+
+Added 2026-11-18. The "X.25 Network Atlas" (a standalone HTML page kept outside this repository) holds 4870 host
+records built from Phrack (27/4, 21/4, 42, 43/26, 45/8), textfiles.com (`dpacnuas.txt`, `telenet2.txt`,
+`tymnet.txt`), the TYMNET docs repository and Wikipedia. Each record has a name, NUA, DNIC, network, country,
+category, operator, hardware (rarely), year and source. For the big scan lists the name is the first line the
+host sent when called; the file holds no whole login dialogues.
+
+### 10.1 Counts by system (keyword match on name and hardware; groups overlap)
+
+PRIMOS/PRIMENET ~401, VAX/VMS ~370, Citibank systems 272, Unix ~172, VM/CMS 89, AOS/VS 86, TSO/MVS 34,
+MPE 35, CDC NOS/Cyber 34, Dialcom 34, Stratus VOS ~36, DIALOG 28, ORBIT 24, Westlaw 24, VU/TEXT 35, ND (NORD/
+SINTRAN) 19, Lexis/Nexis 17, DEC-10/TOPS-20 16, RSX/RSTS 14, ICL 14, DECserver 13, Univac 11, Honeywell/GCOS 11,
+Tandem TACL 11, STN 10, Multics ~9, Pick 8, Altos ~5, Burroughs 4, CICS 7, outdials ~469 (marked "infra").
+By network: SprintNet/Telenet ~2055, Datapac 1442, Tymnet 746, PSS ~233, Datex-P ~160, DATAPAK (Norway) 57.
+
+First lines from the scan lists [verbatim, Atlas `n` field]:
+
+```text
+PRIMOS    22.0.3.R37    BLTCAD
+FCSA System VAX/VMS 4.2
+Dell UNIX SysV Rel 4.(i386/486)Sysname:Atlantis
+HP-UX     lenny A.08.02 E 9000/847
+enter v for vtam(roscoe or tso) d for dobis
+Enter "CMS userid", "TSO userid ", "SIMVTAM termid"
+CANADA.MT2.SALOMON    GENIUS:  (MPE XL)
+CYBER     (7/E/1)
+Trinity College Dublin TOPS-20
+UNITEL DIALCOM 19.4Q.111  System 20
+STARMASTER   STC XMUX PAD  USER NAME?
+X.29 Link Established
+DATAPAC : SYSTEM READY
+TACL 1>
+System/32 VOS Module %can_bryker#M1
+Recku Univac (Enter @@ENQ)
+BMS==>
+ILLEGAL SOURCE ADDRESS 0B 80
+PLEASE ENTER SUBSCRIBERID;PASSWORD
+WHAT SERVICE PLEASE????
+You are not authorized to connect to this machine.
+Your call cannot be completed (unknown destination).
+Minitel  USER ID:
+```
+
+Norwegian entries: `Oslo SCANNET NSI Nord-100` (2422110000002, DATAPAK), `Tromso University NORD-500 (UNINETT)`,
+`SCANNET Node (NORD-12)`, `IFE Kjeller - Cyber 170 RBK UNINETT`, `Bergen By Byte (BBB) Mailbox`, `Chatsystem
+Norway`, and Univacs in Bergen and Trondheim.
+
+### 10.2 Tandem NonStop Guardian (TACL)
+
+HP NonStop G-Series user manual, D10, 1992 [verbatim]:
+
+```text
+Good Morning. Welcome to \MEL
+TACL (T9205D10 - 08JUN92), Operating System D10
+COPYRIGHT TANDEM COMPUTERS INCORPORATED 1985, 1987, 1988, 1989, 1991, 1992
+CPU 1, backup process in CPU 2
+February 20, 1992 9:15:23
+1>
+2> LOGON SUPPORT.ALICE
+Password:
+```
+
+Over Datapac a caller often saw only `TACL 1>` (dpacnuas.txt). The prompt number counts the commands. After
+three wrong logons TACL ignores the terminal for a minute; `LOGOFF`, `EXIT` or Ctrl-Y end the session
+[from a summary of the Guardian manual]. NOT FOUND: the failure text, STATUS and WHO output.
+
+### 10.3 Stratus VOS
+
+OpenVOS 17.1 (2013), the same format as the 1991 description in Phrack 37/8 [verbatim]:
+
+```text
+OpenVOS Release 17.1.0ax, Module %phx_vos#m17
+Please login  14:04:40
+login nd
+Password?
+Noah_Davids.CAC logged in on %phx_vos#m17 at 13-01-09 13:06:35 mdt.
+ready  13:06:35
+```
+
+Older form (Phrack 37/8): `System ???, VOS Release v.(version), Module ???`, then `Login` with `User_name:` and
+`Password?`. User names are `Person.Group`. Commands: `WHO`, `LIST_MODULES`, `DISPLAY_CURRENT_DIR`, `LIST`,
+`DISPLAY`, `SEND_MESSAGE`, `HELP`. NOT FOUND: unknown-command text, logout text.
+
+### 10.4 Pick
+
+guidehak.txt, 1993 [verbatim]: `07 JUN 1993 04:00:21 Logon please:`. The TCL prompt is `>`. Logout, from
+mvBase, a later Pick (2014) [verbatim per search summary]:
+
+```text
+>OFF
+Connect time=1 mins.; CPU= 1 units; LPTR pages= 0
+Logged off at 08:40:10 on 26 MAR 2014
+Logon Please:
+```
+
+### 10.5 CDC NOS (Cyber)
+
+cyberhac.txt, NOS 2.5.2 on a Cyber 170-730, 1988 [verbatim; "WeLCOME" is in the original]:
+
+```text
+WeLCOME TO THE NOS SOFTWARE SYSTEM.
+COPYRIGHT CONTROL DATA 1978, 1987.
+88/02/16. 02.36.53. N265100
+CSUS CYBER 170-730.                     NOS 2.5.2-678/3.
+FAMILY:
+USER NAME:
+JSN: APXV, NAMIAF
+/
+```
+
+Everything may be typed on one line at `FAMILY:` (`,user,password`). Three password tries. Commands
+`CATLIST`, `ENQUIRE,F`, `LIMITS`, `INFO`, `GET,fn`, `LIST,F=fn`, `BYE`. NOT FOUND: failure text, NOS/VE.
+
+### 10.6 Siemens BS2000
+
+Logout, BS2000 V19 manual [verbatim; a modern version, the `%` message form is the old one]:
+
+```text
+/LOGOFF NOSPOOL,BUT
+%  EXC0419 /LOGOFF AT 1505 ON <date> FOR TSN '52IS'
+%  EXC0421 CPU TIME USED: 1.5734
+```
+
+Commands start with `/`. NOT FOUND: the `/LOGON` dialogue.
+
+### 10.7 Burroughs / Unisys MCP (CANDE)
+
+BYE, CANDE manual example from 1978 [verbatim per search summary]:
+
+```text
+BYE
+#END SESSION 3003 ET=1:18:19.6 PT=1:08.9 IO=1:02.0
+#USER = UZER 11:27:06 04/20/78
+```
+
+NOT FOUND: the login and the `#` prompt. NOT FOUND at all: Honeywell GCOS TSS, Univac OS 1100 (`@@ENQ`,
+`@RUN`, `@FIN`), ICL VME, Wang VS, Sequent DYNIX. Sources to read: bitsavers GCOS TSS Reference DJ31 (1979),
+Georgia Tech 1108 Demand Users Manual (1972).
+
+### 10.8 Online services
+
+**DIALOG** (Phrack 39/5, 1992, through Dialog's own network) [verbatim]:
+
+```text
+DIALNET: call connected
+DIALOG INFORMATION SERVICES
+PLEASE LOGON:
+ENTER PASSWORD:
+Enter Service: dialog
+```
+
+Network errors: `ERROR, RE-ENTER SERVICE`, `ALL PORTS BUSY`, `HOST DOWN`, `CIRCUITS BUSY`, `DIALNET: CALL
+CLEARED`, `BY REQUEST`, `DROPPED BY HOST SYSTEM`. 1986 (Phrack 9/5): `? B296`, then
+`$0.12      Estimated Total Cost` and `File296:ONTAP TRADEMARKSCAN - O.G.`. A search (1992):
+
+```text
+? SELECT (BICMOS OR CMOS) AND SRAM
+       138 BICMOS
+      1378 CMOS
+       681 SRAM
+S1     203 (BICMOS OR CMOS) AND SRAM
+```
+
+NOT FOUND: the LOGOFF cost screen.
+
+**Dialcom** (the Prime-based mail system behind Telecom Gold; Phrack 46/14, 1994, dates garbled on purpose by
+the author) [verbatim]:
+
+```text
+Primecom Network 19.4Q.111 System 666
+ Please Sign On
+>ID HBT007 IMEL8
+Dialcom Computer Services 19.4Q.111(666)
+On At 14:44 07/32/94 EDT
+Last On At 4:09 06/44/94 EDT
+>WHO
+Herd Beast <S666-6>HBT007
+>SY
+41 Users on sys 666
+>off
+Off At 14:45 07/32/94 EDT
+Time used: 00h 00m connect, 00m 01s CPU, 00m 00s I/O.
+```
+
+`MAIL` asks `Send, Read or Scan:`. A dropped line gives `You Have a Disconnected Job:` / `Do You Want to
+Reconnect?`. Compare Telecom Gold in 1.2: the same software.
+
+**STN International** (ACS training guide, 1993) [verbatim]:
+
+```text
+Welcome to STN International! Please enter X:
+LOGINID:
+PASSWORD:
+TERMINAL (ENTER 1,2,3 OR ?):
+FILE 'HOME' ENTERED AT 14:06:01 ON 10 FEB1993
+=> LOGOFF
+ALL L# QUERIES AND ANSWER SETS ARE DELETED AT LOGOFF
+LOGOFF? (Y)/N/HOLD:Y
+COST IN U.S. DOLLARS            SINCE FILE      TOTAL
+                                ENTRY           SESSION
+FULL ESTIMATED COST             15.28           15.53
+STN INTERNATIONAL LOGOFF AT 14:12:03 ON 10 FEB 93
+```
+
+**CompuServe**: through Tymnet `PLEASE TYPE YOUR TERMINAL ID:` `A`, `PLEASE LOG IN` `CIS02`; then
+`User ID:` (form `76003,5`) and `Password:`. 1982 menu: `COMPUSERVE INFORMATION SERVICE`, `Key digit or H for
+description`, `Go HOM-1`. `BYE` or `OFF` logs off. NOT FOUND: the `!` prompt and the logoff text.
+
+NOT FOUND: ESA-IRS, Data-Star, ORBIT, BRS, LEXIS/NEXIS, Westlaw, VU/TEXT, MEDLINE, The Major BBS, Minitel
+screens.
+
+### 10.9 Network front ends, gateways, outdials
+
+SprintNet host replies, Phrack 42/9 (1992) [verbatim]:
+
+```text
+MHP1201I TERMINAL CONNECTED TO PACKET/74
+MHP201A A00B1101  * VERSION 5.5.3 *.
+MHP201A UPK12X01 APPLICATION:
+CONNECTED TO PACKET/94
+*** ENTER LOGON
+WESTINGHOUSE SNA NETWORK - ENTER: L APPLNAME
+SPRINT.COM SunLink X.29 service
+enter system id --
+This is SKMIC4 - Authorized use only
+PRIMENET 23.2.0vB PROD-A
+```
+
+`MHP...` sits in front of IBM SNA sites; the product that prints it is NOT FOUND. A CICS site answered only
+`DFH2001I` (Phrack 21/4). DECserver [verbatim, DECserver 700]: `Local> `, then
+`Local -010- Session 1 to U1VAX1CP on node LAT_08002BBBED29 established`.
+
+Telenet outdials (Lorax, "How To Use Outdials", textfiles): after `CONNECTED`, Ctrl-E a few times and Return
+gives a message like `*Hello, I'm Ready*`; `D` asks for the number; `Dialing...`; `@` and Return leaves.
+NOT FOUND: Hayes `AT` commands on these outdials, "WHAT SERVICE PLEASE????" and "ILLEGAL SOURCE ADDRESS" owners,
+VTAM USS screens, CESN, Sim3278, WYLBUR, Novell, CERN Multigate, CCC/netmbx/QSD/Lutzifer screens, the Norwegian
+mailboxes, the ND X.29 server text beyond `ND X.29 Server - Press 'ESCAPE' to log in` (section 2.1).
+
+Sources: https://www.manualsdir.com/manuals/396922/hp-nonstop-g-series.html?page=35 ;
+http://www.textfiles.com/hacking/dpacnuas.txt ; http://www.textfiles.com/hacking/guidehak.txt ;
+http://www.textfiles.com/hacking/cyberhac.txt ; https://www.stratus.com/?p=1908 ;
+http://phrack.org/archives/issues/37/8.txt ;
+https://www3.rocketsoftware.com/rocketd3/support/documentation/mvb/32/refman/fileacct/logging_on_and_off2.htm ;
+https://bs2manuals.ts.fujitsu.com/psBS2000OPERATINGSYSTEMV210en/lgoff-terminate-job-osd_makroat_en-sp23-1-126-5104443.html ;
+https://www.support.unisys.com/aseries/docs/ClearPath-MCP-20.0/86001500-511/section-000023826.html ;
+https://archives.phrack.org/issues/39/5.txt ; https://archives.phrack.org/issues/9/5.txt ;
+https://archives.phrack.org/issues/46/14.txt ; https://web.stanford.edu/group/swain/cinf/casreg/app01.html ;
+https://web.stanford.edu/group/swain/cinf/casreg/app02.html ;
+https://gopherproxy.meulie.net/infinitelyremote.com/0/HackerChronicles/HACK/CISS2.TXT ;
+https://www.trs-80.org/compuserve-menus-in-1982.html ;
+https://huggingface.co/datasets/Devilishcode/hacking/raw/main/phrack/issue42/9.txt ;
+https://huggingface.co/datasets/Devilishcode/hacking/raw/main/phrack/issue21/4.txt ;
+http://www.textfiles.com/phreak/outdial.txt ;
+https://community.hpe.com/t5/operating-system-openvms/decserv-700-16-re-2/m-p/3642833
