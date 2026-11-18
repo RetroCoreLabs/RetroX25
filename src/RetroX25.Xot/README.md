@@ -25,8 +25,6 @@ what settles it.
 - **Being either end** of an XOT connection: `--mode client` or `--mode server`.
 - Sending packets by hand in the XOT Test window: Call Request, Call Accept, Data, Clear, RR, RNR, Reset, or a
   packet you type as hex.
-- Placing a call from a pure X.25 PAD client, with no LAPB underneath (the menu's "X.25 PAD" entry).
-- Configuring X.3 parameters interactively and seeing the effect.
 - Proving two endpoints connect at all, before anything more complicated is attempted.
 
 ## Prerequisites
@@ -73,29 +71,14 @@ local and not the peer.
 
 ## The windows, and which to pick
 
-```mermaid
-flowchart TB
-    MENU["Interactive menu"]
-    XOTW["XOT Test<br/>send and receive raw packets"]
-    XPAD["X.25 PAD Client<br/>pure X.25, NO LAPB"]
-    X3W["X.3 Parameters"]
+The interactive menu offers: 1) raw XOT client, 2) raw XOT server, 3) help, 4) quit. Both open the XOT Test
+window. `--mode` on the command line takes only `client` and `server`.
 
-    MENU --> XOTW
-    MENU --> XPAD
-    XPAD --> X3W
+**No LAPB under XOT.** RFC 1613 XOT puts the X.25 packet straight onto TCP. Pointing a LAPB-based client at an XOT
+peer produces a link that looks dead for no visible reason.
 
-    classDef app  fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
-    classDef core fill:#009688,stroke:#00695C,stroke-width:2px,color:#fff
-
-    class MENU,XOTW app
-    class XPAD,X3W core
-```
-
-The interactive menu offers: 1) raw XOT client, 2) raw XOT server, 3) X.25 PAD client, 4) help, 5) quit.
-`--mode` on the command line takes only `client` and `server`.
-
-**No LAPB under XOT.** RFC 1613 XOT puts the X.25 packet straight onto TCP, so the X.25 PAD client does not use
-LAPB. Pointing a LAPB-based client at an XOT peer produces a link that looks dead for no visible reason.
+**For a terminal session over X.25** use a real PAD: the PAD window of the RetroX25 desktop app, `RetroX25.Pad`
+(console or telnet), or x25emu's `x25pad`. This tool has no PAD of its own.
 
 ## Function keys
 
@@ -113,8 +96,6 @@ XOT Test window:
 | F8 | Reset Request |
 | F9 | Quit |
 
-X.25 PAD Client window: F2 connect, F3 disconnect, F4 X.3 parameters, F9 quit.
-
 ## Command-line parameters
 
 | Parameter | Description | Example |
@@ -129,10 +110,8 @@ X.25 PAD Client window: F2 connect, F3 disconnect, F4 X.3 parameters, F9 quit.
 ```
 RetroX25.Xot/
 ├── Program.cs                      # Entry point, command-line parsing, menu
-├── X25PadClientWindow.cs           # Pure X.25 PAD client window
 ├── XotTestWindow.cs                # XOT test window (low-level)
 ├── HexInputDialog.cs               # Custom hex packet input dialog
-├── X3ParametersWindow.cs           # X.3 PAD parameters configuration
 ├── XotTestServer.cs                # Lightweight XOT server
 ├── XotTestClient.cs                # Lightweight XOT client
 ├── XotConnection.cs                # One XOT connection

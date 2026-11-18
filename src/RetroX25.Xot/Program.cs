@@ -136,11 +136,10 @@ namespace RetroX25.Xot
             Console.WriteLine("Select mode:");
             Console.WriteLine("  1) Raw XOT Client - Send/receive raw packets");
             Console.WriteLine("  2) Raw XOT Server - Accept connections");
-            Console.WriteLine("  3) X.25 PAD - Pure X.25 PAD client (no LAPB)");
-            Console.WriteLine("  4) Help");
-            Console.WriteLine("  5) Quit");
+            Console.WriteLine("  3) Help");
+            Console.WriteLine("  4) Quit");
             Console.WriteLine();
-            Console.Write("Enter choice [1-5]: ");
+            Console.Write("Enter choice [1-4]: ");
 
             string? choice = Console.ReadLine();
             Console.WriteLine();
@@ -156,10 +155,6 @@ namespace RetroX25.Xot
                     break;
 
                 case "3":
-                    SetupX25Pad();
-                    break;
-
-                case "4":
                     ShowHelp();
                     Console.WriteLine();
                     Console.WriteLine("Press any key to return to menu...");
@@ -167,7 +162,7 @@ namespace RetroX25.Xot
                     ShowInteractiveMenu();
                     break;
 
-                case "5":
+                case "4":
                     return;
 
                 default:
@@ -232,105 +227,6 @@ namespace RetroX25.Xot
             }
 
             LaunchApplication("server", string.Empty, port);
-        }
-
-        static void SetupX25Pad()
-        {
-            Console.WriteLine("═══ X.25 PAD Setup ═══");
-            Console.WriteLine();
-
-            Console.WriteLine("Select TCP mode:");
-            Console.WriteLine("  1) TCP Client - Connect to remote host");
-            Console.WriteLine("  2) TCP Server - Listen for incoming connections (not yet implemented)");
-            Console.WriteLine();
-            Console.Write("Enter choice [1-2]: ");
-            string? modeChoice = Console.ReadLine();
-            Console.WriteLine();
-
-            if (modeChoice?.Trim() == "2")
-            {
-                Console.WriteLine("TCP Server mode not yet implemented.");
-                Console.WriteLine("Press any key to return to menu...");
-                Console.ReadKey(true);
-                ShowInteractiveMenu();
-                return;
-            }
-            else if (modeChoice?.Trim() != "1")
-            {
-                Console.WriteLine("Invalid choice.");
-                Console.WriteLine("Press any key to return to menu...");
-                Console.ReadKey(true);
-                ShowInteractiveMenu();
-                return;
-            }
-
-            // TCP Client mode - ask for remote host and port
-            Console.Write("Remote host [default: localhost]: ");
-            string? host = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(host))
-            {
-                host = "localhost";
-            }
-
-            Console.Write("Remote port [default: 1998]: ");
-            string? portInput = Console.ReadLine();
-            int port = 1998;
-            if (!string.IsNullOrWhiteSpace(portInput) && !int.TryParse(portInput, out port))
-            {
-                Console.WriteLine("Error: Invalid port number");
-                Console.WriteLine("Press any key to return to menu...");
-                Console.ReadKey(true);
-                ShowInteractiveMenu();
-                return;
-            }
-
-            Console.Write("Local X.121 Address [default: 12345]: ");
-            string? addressInput = Console.ReadLine();
-
-            string localAddress = "12345";
-            if (!string.IsNullOrWhiteSpace(addressInput))
-            {
-                localAddress = addressInput;
-            }
-
-            LaunchX25Pad(localAddress);
-        }
-
-        static void LaunchX25Pad(string localAddress)
-        {
-            try
-            {
-                // Initialize Terminal.Gui
-                Application.Init();
-
-                try
-                {
-                    // Create logger (simplified - no output for now)
-                    var logger = Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
-                    {
-                        // No console logger configured - logs are discarded
-                    }).CreateLogger("X25Pad");
-
-                    // Create and run X.25 PAD window
-                    var window = new X25PadClientWindow(logger, localAddress);
-                    Application.Top.Add(window);
-                    Application.Run();
-                }
-                finally
-                {
-                    Application.Shutdown();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Fatal error: {ex.Message}");
-                Console.WriteLine();
-                Console.WriteLine("Stack trace:");
-                Console.WriteLine(ex.StackTrace);
-                Console.WriteLine();
-                Console.WriteLine("Press any key to exit...");
-                Console.ReadKey(true);
-            }
         }
 
         static void LaunchApplication(string mode, string host, int port)
