@@ -146,6 +146,20 @@ Each gets the 1987 welcome, `Waiting for connection.`, a pause of `WaitPauseMs` 
 chat does not echo your own line back (the PAD does). `.h` is help, `.x` leaves (the others see
 `---guest---`). It takes up to 30 users (`MaxUsers`).
 
+When you are connected, the chat sets up your PAD for typing, the way a host did it on the real networks: one
+X.29 "set" message at the start of every call. From then on, during this call only:
+
+- the PAD echoes what you type, and Enter echoes as a new line (X.3 parameter 13 = 4), so the replies no longer
+  print over your own line;
+- the line is sent when you press Enter, not key by key;
+- you can edit the line before you send it: DEL deletes a character (shown as backspace, space, backspace),
+  Ctrl+X deletes the whole line, Ctrl+R shows it again.
+
+When the call ends, for any reason, the PAD goes back to the settings it had before the call, so the next call
+starts the same way whatever the chat changed. Settings you made yourself with `SET` at the `*` prompt before the
+call are kept. No X.25 standard says what a PAD must do here; this is our choice. Both PADs work this way, the
+C# one and x25emu's. The message's exact bytes are in `src/docs/altos-chat.md`.
+
 Whispering works exactly as in the 1987 program, which surprises people:
 
 - `!` takes the **place number** from `.s` (the first column), not a name: `!3 hello` goes to place 3. A name
