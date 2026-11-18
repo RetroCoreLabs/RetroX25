@@ -224,7 +224,7 @@ namespace RetroX25.Tests
         /// The expected figures are worked from the rules, not taken from either switch: each packet is a whole message
         /// (M bit off), and ITU-T D.12 counts a message in 64-octet segments rounded up once - ceil(128 / 64) = 2. So each
         /// direction is 20 packets, 20 x 128 = 2560 octets and 20 x 2 = 40 segments. The columns are those of
-        /// src/docs/billing.md: 7/8 packets, 9/10 bytes, 17/18 segments, 19 the paying account (1-based).
+        /// src/docs/billing.md: 7/8 packets, 9/10 bytes, 17/18 segments, 19 the paying account, 24 the called side's account (1-based).
         /// </remarks>
         [Test]
         public void ACallThroughBothSwitches_IsBilledToTheSameAccount_WithTheSameSegments()
@@ -278,7 +278,9 @@ namespace RetroX25.Tests
             {
                 string[] col = lines[i].Split(',');
                 string who = (i == 0 ? "x25emu: " : "ours: ") + lines[i];
-                Assert.That(col.Length, Is.EqualTo(23), who);
+                // 24 columns since 2026-11-17 in both switches (x25emu 6dc74f8, RetroIO e0db294): column 24 is the called
+                // side's account, the one that pays with reverse charging (X.25 6.18).
+                Assert.That(col.Length, Is.EqualTo(24), who);
                 Assert.That(col[2], Is.EqualTo("23409901"), "calling address, " + who);
                 Assert.That(col[3], Is.EqualTo("23500001"), "called address, " + who);
                 Assert.That(col[6], Is.EqualTo(Packets.ToString()), "packets forward, " + who);
@@ -289,6 +291,10 @@ namespace RetroX25.Tests
                 Assert.That(col[17], Is.EqualTo((Packets * 2).ToString()), "segments back, " + who);
                 Assert.That(col[18], Is.EqualTo("traffic"), "paying account, " + who);
                 Assert.That(col[21], Is.EqualTo("caller"), "who is charged, " + who);
+
+                // 23500001 is in no account's range on either switch (the network script's accounts cover 2340 only),
+                // and the echo names no NUI in its Call Accepted (X.25 6.21.3), so neither has a called-side account.
+                Assert.That(col[23], Is.Empty, "called side's account, " + who);
             }
         }
 

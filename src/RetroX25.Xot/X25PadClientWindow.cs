@@ -285,8 +285,8 @@ namespace RetroX25.Xot
                 // Create PAD client (this will create its own ProtocolRuntime)
                 // Note: In pure X.25 mode, PAD communicates directly via XOT, no LAPB
 
-                // Connect to XOT gateway
-                if (!_xotClient.ConnectToXotGateway(_remoteHost, _remotePort))
+                // Connect to XOT gateway: a TCP connection of its own for this one call (RFC 1613 section 5)
+                if (_xotClient.ConnectToXotGateway(_remoteHost, _remotePort) == null)
                 {
                     AppendToTerminal("ERROR: Failed to connect via XOT\n");
                     return;
