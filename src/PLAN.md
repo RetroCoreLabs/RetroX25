@@ -99,12 +99,13 @@ changed). Both PADs do `ID` / `IDOFF` / `N<nui>-` with no echo; x25emu's `x25pad
 ### B2. X.75 packets
 The utility field itself is done (RetroIO `X75Utilities`, 2026-11-18, 17 tests from Table 21, Figure 21 and 5.4.3 of
 X.75 1988): transit networks, call identifier, throughput class, window, packet size, clearing network; the rest
-carried byte for byte. X.75 does not say the byte order of the 24-bit call identifier; high octet first is assumed,
-as for the other binary values in X.75.
+carried byte for byte. The call identifier has no byte
+order to get right: its content is "under the responsibility of the originating network" (5.3.2 Note), so it is a
+3-octet name that the other networks only carry and compare; all zeros means "not significant".
 - Still to do: the utility length octet and field in the Call Request / Call Connected / Clear packets (4.2.1.4: after
   the addresses, before the facility length) - part of B3, since only an STE port sends them.
 - Read against x25emu 2026-11-18 (its `x25.h`, `x25switch.c`): the same codes (marker 00, transit 41, call identifier
-  81), the call identifier high octet first, the DNIC as two BCD octets. One difference: x25emu cites "Table 29/X.75",
+  81), the call identifier's three octets kept in arrival order, the DNIC as two BCD octets. One difference: x25emu cites "Table 29/X.75",
   "Figure 8" and a 323-octet packet limit with no separate field maximum, and allows 64 octets; the 1988 text on disk
   has the codes in Table 21 and says 63 (4.2.1.5), and its length octet has 6 bits. x25emu's text is another
   edition, not on disk. Find which edition each switch should follow before B6.
