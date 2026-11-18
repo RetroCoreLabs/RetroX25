@@ -249,16 +249,19 @@ address = 2360
 prefix_len = 4
 port = 4
 
+# The billing test runs x25traffic with -a 23409901 (a number of Switch A, so the access port's calling address
+# check, X.25 Appendix IV.2 i, lets it in) and bills it to this account in both switches. It comes FIRST: x25emu
+# takes the first account whose range holds the address (sw_account_find), and pad_users below holds it too.
+# Until 2026-11-18 x25traffic called from 99990001, which x25emu now leaves out (no calling address by default).
 [account.0]
+name = traffic
+addr_start = 23409900
+addr_end = 23409999
+
+[account.1]
 name = pad_users
 addr_start = 23400000
 addr_end = 23409999
-
-# x25traffic always calls from 99990001; the billing test bills its calls to this account in both switches.
-[account.1]
-name = traffic
-addr_start = 99990000
-addr_end = 99999999
 
 # Reached only by naming the NUI (x25pad -n CARD7); the billing test checks it stops at Switch A.
 [account.2]

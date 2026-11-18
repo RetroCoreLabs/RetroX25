@@ -824,8 +824,10 @@ namespace RetroX25.Desktop.Tests
             WaitUntil(() => Total(provider, "X.25 packets received") != "0" && Total(provider, "X.25 call requests received") == "1",
                 "the call in the main window's X.25 counters",
                 () => "rx=" + Total(provider, "X.25 packets received") + " calls=" + Total(provider, "X.25 call requests received"));
-            WaitUntil(() => main.Interfaces.Count > 0 && main.Interfaces[0].Status.StartsWith("Listening, 1"),
-                "the listener shown with one connection",
+            // Two connections: the X25Client's call took the one it opened first, and it then opens a spare for calls
+            // that may arrive (RFC 1613 section 5, one connection per call; RetroIO since 2026-11-18).
+            WaitUntil(() => main.Interfaces.Count > 0 && main.Interfaces[0].Status.StartsWith("Listening, 2"),
+                "the listener shown with two connections",
                 () => main.Interfaces.Count > 0 ? main.Interfaces[0].Status : "(no interface rows)");
         }
 

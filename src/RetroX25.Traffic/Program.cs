@@ -22,7 +22,7 @@ namespace RetroX25.Traffic
     ///  - Call-storm mode (-C): rapid open/send/clear cycles across many virtual circuits.
     ///
     /// Usage:
-    ///   x25traffic -x host:port -d address [-n count] [-s size] [-r rate]
+    ///   x25traffic -x host:port -d address [-a calling] [-n count] [-s size] [-r rate]
     ///   x25traffic -x host:port -d address -C [-n calls] [-s size] [-r rate] [-p pkts]
     ///
     /// There is no explicit poll loop: the runtime services the wire on
@@ -66,6 +66,11 @@ namespace RetroX25.Traffic
             string host = DefaultHost;
             ushort port = DefaultPort;
             string called = "23420001";
+
+            // No calling address unless -a gives one, as x25emu's x25traffic (tools/x25traffic.c). It was 99990001, which
+            // is no X.121 address (9 is an escape code, X.121 7.2), and a switch that checks the calling address of a call
+            // from an access port (X.25 Appendix IV.2 i) clears it with diagnostic 68. An empty calling address is allowed.
+            string calling = string.Empty;
             int count = 1000;
             int pktSize = 128;
             int rate = 100;
@@ -85,6 +90,10 @@ namespace RetroX25.Traffic
                     case "-d":
                         if (i + 1 >= args.Length) { return Usage(); }
                         called = args[++i];
+                        break;
+                    case "-a":
+                        if (i + 1 >= args.Length) { return Usage(); }
+                        calling = args[++i];
                         break;
                     case "-n":
                         if (i + 1 >= args.Length || !int.TryParse(args[++i], out count)) { return Usage(); }
@@ -122,7 +131,7 @@ namespace RetroX25.Traffic
                 PacketSize = 128,
                 WindowSize = 7,
                 NumVcs = 2048,
-                LocalAddress = "99990001"
+                LocalAddress = calling
             };
 
             X25Client client = new X25Client { ServiceName = "Traffic" };
@@ -506,6 +515,7 @@ namespace RetroX25.Traffic
                 "    -r rate    Calls/sec (0=max)\n" +
                 "    -p pkts    Packets per call (default 3)\n" +
                 "  Common:\n" +
+                "    -a addr    Our own address, sent as the calling address (default: none)\n" +
                 "    -s size    Packet size (default 128)\n" +
                 "    -v         Verbose");
             return 1;

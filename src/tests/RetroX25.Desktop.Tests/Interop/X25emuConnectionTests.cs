@@ -89,7 +89,10 @@ namespace RetroX25.Desktop.Tests
                 {
                     OurPadCall call = new OurPadCall(app, "pad-" + n + "-" + i);
                     calls.Add(call);
-                    Assert.That(call.Pad.Connect("23430001", "23510001"), Is.True, "call " + i + " of " + n);
+                    // Calling address: a number of Switch A (2340), the network of the access port the call enters (X.25
+                    // Appendix IV.2 i). It was our app's own 23510001 until 2026-11-18; x25emu now clears that with
+                    // diagnostic 68.
+                    Assert.That(call.Pad.Connect("23430001", "23400051"), Is.True, "call " + i + " of " + n);
                 }
 
                 XotLinkHealthTests.WaitUntil(() =>
@@ -344,8 +347,10 @@ namespace RetroX25.Desktop.Tests
                 echo = StartEcho(EchoPort);
 
                 // 1. A normal call: connects, echoes, clears.
+                // Every call below gives a calling address of the scratch switch's own network 2360 (X.25 Appendix IV.2 i:
+                // the access port checks it). With our app's 23510001 x25emu clears it, diagnostic 68 (seen 2026-11-18).
                 OurPadCall first = new OurPadCall(app, "k1");
-                Assert.That(first.Pad.Connect("23600001", "23510001"), Is.True);
+                Assert.That(first.Pad.Connect("23600001", "23600051"), Is.True);
                 XotLinkHealthTests.WaitUntil(() => first.Pad.ConnectionState == PadConnectionState.Connected, "the first call", () => first.Received + app.Log(), 20000);
                 first.Pad.SendText("BEFORE-KILL\r");
                 XotLinkHealthTests.WaitUntil(() => first.Received.Contains("BEFORE-KILL"), "the echo", () => first.Received + app.Log());
@@ -359,7 +364,7 @@ namespace RetroX25.Desktop.Tests
 
                 // 2. A call is up, and the far end is killed (its Linux process, by number).
                 OurPadCall second = new OurPadCall(app, "k2");
-                Assert.That(second.Pad.Connect("23600001", "23510001"), Is.True);
+                Assert.That(second.Pad.Connect("23600001", "23600051"), Is.True);
                 XotLinkHealthTests.WaitUntil(() => second.Pad.ConnectionState == PadConnectionState.Connected, "the second call", () => second.Received + app.Log(), 20000);
                 sw.Dispose();
                 sw = null;
@@ -372,7 +377,7 @@ namespace RetroX25.Desktop.Tests
 
                 // 3. A call while it is down: the dial fails, and the reason is kept and shown.
                 OurPadCall third = new OurPadCall(app, "k3");
-                bool placed = third.Pad.Connect("23600001", "23510001");
+                bool placed = third.Pad.Connect("23600001", "23600051");
                 XotLinkHealthTests.WaitUntil(() => app.Peer.GetPeerReport().DialFailures >= 1, "the failed dial to be counted", () => app.Log());
                 XotPeerReport r3 = app.Peer.GetPeerReport();
                 string rowDown = RowText(main);
@@ -388,7 +393,7 @@ namespace RetroX25.Desktop.Tests
                 sw = StartSwitch(confPath, AccessPort, EchoPort);
                 echo = StartEcho(EchoPort);
                 OurPadCall fourth = new OurPadCall(app, "k4");
-                Assert.That(fourth.Pad.Connect("23600001", "23510001"), Is.True);
+                Assert.That(fourth.Pad.Connect("23600001", "23600051"), Is.True);
                 XotLinkHealthTests.WaitUntil(() => fourth.Pad.ConnectionState == PadConnectionState.Connected, "the call after the restart", () => fourth.Received + app.Log(), 20000);
                 fourth.Pad.SendText("AFTER-RESTART\r");
                 XotLinkHealthTests.WaitUntil(() => fourth.Received.Contains("AFTER-RESTART"), "the echo after the restart", () => fourth.Received + app.Log());

@@ -323,7 +323,7 @@ namespace RetroX25.Tests
             using X25emuEnvironment.LinuxProcess echo = X25emuEnvironment.StartEcho();
             using X25Client client = new X25Client { ServiceName = "interop-pad" };
             X25ClientPadTransport transport = new X25ClientPadTransport(client);
-            PadClient pad = new PadClient(NullLogger.Instance, transport) { LocalAddress = "10000" };
+            PadClient pad = new PadClient(NullLogger.Instance, transport) { LocalAddress = "23400096" };
             client.SetOnConnected((c, vc) => pad.NotifyCallAccepted(vc.Lcn));
             client.SetOnData((c, vc, data, length, qBit, mBit, dBit) => pad.DeliverData(vc.Lcn, data, qBit));
             client.SetOnClear((c, vc, cause, diagnostic) => pad.DeliverClear(vc.Lcn, cause, diagnostic));
@@ -344,11 +344,14 @@ namespace RetroX25.Tests
             };
             pad.DataReceived += (s, e) => { lock (screen) { screen.Append(e.Data); } };
 
+            // The calling address must be a number of the network of the access port the call comes in on (X.25
+            // Appendix IV.2 i): Switch A is 2340. It was "10000" until 2026-11-18, which x25emu now clears with
+            // cause 19 diagnostic 68 (measured: "CLR ERR C:19 D:68" on the PAD screen).
             client.Open(new X25ClientConfig
             {
                 Host = X25emuEnvironment.WslHost!,
                 Port = (ushort)X25emuEnvironment.AccessPort,
-                LocalAddress = "10000",
+                LocalAddress = "23400096",
                 Framing = X25ClientFraming.Xot,
             }, NullLogger.Instance);
             pad.Initialize();

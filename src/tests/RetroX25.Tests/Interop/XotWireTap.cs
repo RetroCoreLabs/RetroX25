@@ -203,6 +203,13 @@ namespace RetroX25.Tests
             {
                 // Closed under us.
             }
+            catch (InvalidOperationException)
+            {
+                // GetStream on a socket that is no longer connected: the connection ended (or the tap was disposed)
+                // before this pump started. Since 2026-11-18 our X25Client opens a spare connection right after a call
+                // takes its first one, so a test that ends soon after its call ends while that spare is still being
+                // set up; this threw on the pump thread and took the whole test host down.
+            }
             finally
             {
                 try

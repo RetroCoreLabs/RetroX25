@@ -215,9 +215,9 @@ namespace RetroX25.Tests
         }
 
         /// <summary>
-        /// Billing through both switches. x25emu's x25traffic (calling address 99990001) sends 20 data packets of 128
+        /// Billing through both switches. x25emu's x25traffic (calling address 23409901, given with -a: x25emu checks that a call from an access port comes from one of its own numbers) sends 20 data packets of 128
         /// octets from Switch A's access port to an echo behind our switch (23500001), and the echo returns each one. Both
-        /// switches bill the call to an account named <c>traffic</c> covering 99990000-99999999 (the network script gives
+        /// switches bill the call to an account named <c>traffic</c> covering 23409900-23409999 (the network script gives
         /// Switch A the same one), and both write a record line.
         /// </summary>
         /// <remarks>
@@ -240,7 +240,7 @@ namespace RetroX25.Tests
             string cdrPath = X25emuEnvironment.State + "/calls.cdr";
             int linesBefore = ReadLines(cdrPath).Length;
 
-            using OurSwitch ours = new OurSwitch(new AccountConfig { Name = "traffic", AddrStart = "99990000", AddrEnd = "99999999" });
+            using OurSwitch ours = new OurSwitch(new AccountConfig { Name = "traffic", AddrStart = "23409900", AddrEnd = "23409999" });
             int returned = 0;
             using X25Client echo = new X25Client { ServiceName = "our-echo" };
             echo.SetOnIncoming((c, vc) => c.Accept(vc));
@@ -255,7 +255,7 @@ namespace RetroX25.Tests
 
             // -r 20: twenty a second, so the echo's replies never wait on a shut window inside the receive callback.
             using X25emuEnvironment.LinuxProcess traffic = new X25emuEnvironment.LinuxProcess(string.Empty,
-                X25emuEnvironment.ToolPath("x25traffic"), "-x", "127.0.0.1:" + X25emuEnvironment.AccessA, "-d", "23500001",
+                X25emuEnvironment.ToolPath("x25traffic"), "-x", "127.0.0.1:" + X25emuEnvironment.AccessA, "-d", "23500001", "-a", "23409901",
                 "-n", Packets.ToString(), "-s", Octets.ToString(), "-r", "20");
             Assert.That(traffic.WaitForExit(60000), Is.True, "x25traffic did not finish:\n" + traffic.Output);
             Assert.That(Volatile.Read(ref returned), Is.EqualTo(Packets), "the echo did not return every packet:\n" + traffic.Output + "\nours:\n" + ours.Dump());
@@ -279,7 +279,7 @@ namespace RetroX25.Tests
                 string[] col = lines[i].Split(',');
                 string who = (i == 0 ? "x25emu: " : "ours: ") + lines[i];
                 Assert.That(col.Length, Is.EqualTo(23), who);
-                Assert.That(col[2], Is.EqualTo("99990001"), "calling address, " + who);
+                Assert.That(col[2], Is.EqualTo("23409901"), "calling address, " + who);
                 Assert.That(col[3], Is.EqualTo("23500001"), "called address, " + who);
                 Assert.That(col[6], Is.EqualTo(Packets.ToString()), "packets forward, " + who);
                 Assert.That(col[7], Is.EqualTo(Packets.ToString()), "packets back, " + who);
