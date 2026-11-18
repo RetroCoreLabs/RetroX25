@@ -32,8 +32,14 @@ namespace RetroX25.Host
         /// <summary>The group (<c>--group</c> picks one); <c>default</c> when not given.</summary>
         public string Group { get; set; } = "default";
 
-        /// <summary>The full path of the JavaScript file.</summary>
+        /// <summary>The full path of the JavaScript file (<c>type = script</c>); empty for a host folder machine.</summary>
         public string ScriptPath { get; set; } = string.Empty;
+
+        /// <summary>The full path of the host folder (<c>type = &lt;folder&gt;</c> in the library); empty for a script.</summary>
+        public string HostFolder { get; set; } = string.Empty;
+
+        /// <summary>The <c>type</c> as written, for messages.</summary>
+        public string Type { get; set; } = string.Empty;
 
         /// <summary>The <c>setting.&lt;name&gt;</c> values, given to the script as <c>machine.settings</c>.</summary>
         public Dictionary<string, string> Settings { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -50,8 +56,17 @@ namespace RetroX25.Host
     /// </summary>
     /// <remarks>
     /// <code>
+    /// [defaults]
+    /// library = ../hosts          # where the host folders are, relative to the list file
+    ///
     /// [machine.0]
-    /// type = script               # the only type so far; host.ini machines come later (PLAN G1)
+    /// type = vms                  # the host folder library/vms (its host.ini), or "script"
+    /// hostname = TOMVAX           # optional for a folder: else [host] hostname, else the folder name
+    /// nua = 23429002
+    /// switch = 127.0.0.1:25012
+    ///
+    /// [machine.1]
+    /// type = script
     /// script = hosts/guess.js     # relative to the list file
     /// hostname = GUESS
     /// nua = 24221001
@@ -91,6 +106,9 @@ namespace RetroX25.Host
             SortedDictionary<int, MachineEntry> machines = new SortedDictionary<int, MachineEntry>();
             Dictionary<MachineEntry, int> sectionLine = new Dictionary<MachineEntry, int>();
             MachineEntry? current = null;
+            bool inDefaults = false;
+            bool defaultsSeen = false;
+            string library = string.Empty;
 
             for (int n = 0; n < lines.Length; n++)
             {
@@ -109,10 +127,24 @@ namespace RetroX25.Host
                     }
 
                     string name = line.Substring(1, line.Length - 2).Trim();
+                    if (name == "defaults")
+                    {
+                        if (defaultsSeen)
+                        {
+                            throw new FormatException(where + ": [defaults] is given twice");
+                        }
+
+                        defaultsSeen = true;
+                        inDefaults = true;
+                        current = null;
+                        continue;
+                    }
+
+                    inDefaults = false;
                     if (!name.StartsWith("machine.", StringComparison.Ordinal)
                         || !int.TryParse(name.AsSpan(8), NumberStyles.None, CultureInfo.InvariantCulture, out int number))
                     {
-                        throw new FormatException(where + ": unknown section [" + name + "] (only [machine.N])");
+                        throw new FormatException(where + ": unknown section [" + name + "] (only [defaults] and [machine.N])");
                     }
 
                     if (machines.ContainsKey(number))
@@ -132,13 +164,29 @@ namespace RetroX25.Host
                     throw new FormatException(where + ": expected key = value");
                 }
 
+                string key = line.Substring(0, eq).Trim();
+                string value = Unquote(line.Substring(eq + 1).Trim());
+                if (inDefaults)
+                {
+                    if (key != "library")
+                    {
+                        throw new FormatException(where + ": unknown key " + key + " in [defaults] (only library)");
+                    }
+
+                    library = Path.GetFullPath(Path.Combine(baseDirectory, value));
+                    if (!Directory.Exists(library))
+                    {
+                        throw new FormatException(where + ": library " + value + " is not there (" + library + ")");
+                    }
+
+                    continue;
+                }
+
                 if (current == null)
                 {
                     throw new FormatException(where + ": a key before the first [machine.N]");
                 }
 
-                string key = line.Substring(0, eq).Trim();
-                string value = Unquote(line.Substring(eq + 1).Trim());
                 SetKey(current, key, value, where, baseDirectory);
             }
 
@@ -148,9 +196,44 @@ namespace RetroX25.Host
             {
                 MachineEntry m = pair.Value;
                 string where = fileName + ":" + sectionLine[m].ToString(CultureInfo.InvariantCulture) + ": [" + m.Section + "]";
-                if (m.ScriptPath.Length == 0)
+                if (m.Type.Length == 0)
                 {
-                    throw new FormatException(where + " has no script");
+                    m.Type = m.ScriptPath.Length > 0 ? "script" : throw new FormatException(where + " has no type");
+                }
+
+                if (m.Type == "script")
+                {
+                    if (m.ScriptPath.Length == 0)
+                    {
+                        throw new FormatException(where + " has no script");
+                    }
+                }
+                else
+                {
+                    // A host folder of the library. Its own host.ini is read (and checked) when the machine is made.
+                    if (m.ScriptPath.Length > 0 || m.Settings.Count > 0)
+                    {
+                        throw new FormatException(where + ": script and setting.<name> are for type = script only");
+                    }
+
+                    if (library.Length == 0)
+                    {
+                        throw new FormatException(where + ": type = " + m.Type + " is a host folder, but there is no [defaults] library");
+                    }
+
+                    if (m.Type.Contains('/', StringComparison.Ordinal) || m.Type.Contains('\\', StringComparison.Ordinal)
+                        || m.Type.Contains("..", StringComparison.Ordinal))
+                    {
+                        throw new FormatException(where + ": type = " + m.Type + " must be the name of a folder in the library");
+                    }
+
+                    string folder = Path.Combine(library, m.Type);
+                    if (!File.Exists(Path.Combine(folder, "host.ini")))
+                    {
+                        throw new FormatException(where + ": type = " + m.Type + ": no host folder " + folder + " with a host.ini");
+                    }
+
+                    m.HostFolder = folder;
                 }
 
                 if (m.Nua.Length == 0)
@@ -163,8 +246,9 @@ namespace RetroX25.Host
                     throw new FormatException(where + " has no switch");
                 }
 
-                if (m.Hostname.Length == 0)
+                if (m.Hostname.Length == 0 && m.Type == "script")
                 {
+                    // A host folder gives its own name ([host] hostname, else its folder name) when it is read.
                     m.Hostname = m.Section;
                 }
 
@@ -191,13 +275,13 @@ namespace RetroX25.Host
             switch (key)
             {
                 case "type":
-                    // Only scripts so far. A host.ini machine (type = <folder>) comes with PLAN G1; until then it is
-                    // refused by name rather than started as something else.
-                    if (value != "script")
+                    // "script", or the name of a host folder in [defaults] library (checked once the file is read).
+                    if (value.Length == 0)
                     {
-                        throw new FormatException(where + ": type = " + value + " is not supported yet (only script)");
+                        throw new FormatException(where + ": type is empty");
                     }
 
+                    m.Type = value;
                     break;
                 case "script":
                     if (value.Length == 0)

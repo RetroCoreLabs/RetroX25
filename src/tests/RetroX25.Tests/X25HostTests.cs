@@ -102,7 +102,6 @@ namespace RetroX25.Tests
         }
 
         [TestCase("colour = red", "unknown key colour")]
-        [TestCase("type = vms", "not supported yet")]
         [TestCase("script = missing.js", "is not there")]
         [TestCase("nua = 23A1", "1 to 15 digits")]
         [TestCase("nua = 1234567890123456", "1 to 15 digits")]
@@ -124,11 +123,22 @@ namespace RetroX25.Tests
         }
 
         [Test]
-        public void List_AMachineWithoutAScript_IsRefused()
+        public void List_AMachineWithoutATypeOrAScript_IsRefused()
         {
             FormatException? ex = Assert.Throws<FormatException>(() => Parse(
                 "[machine.0]", "nua = " + Alpha, "switch = 127.0.0.1:2000"));
+            Assert.That(ex!.Message, Does.Contain("[machine.0] has no type"));
+            ex = Assert.Throws<FormatException>(() => Parse(
+                "[machine.0]", "type = script", "nua = " + Alpha, "switch = 127.0.0.1:2000"));
             Assert.That(ex!.Message, Does.Contain("[machine.0] has no script"));
+        }
+
+        [Test]
+        public void List_AFolderTypeWithoutALibrary_IsRefused()
+        {
+            FormatException? ex = Assert.Throws<FormatException>(() => Parse(
+                "[machine.0]", "type = vms", "nua = " + Alpha, "switch = 127.0.0.1:2000"));
+            Assert.That(ex!.Message, Does.Contain("there is no [defaults] library"));
         }
 
         [Test]
@@ -195,6 +205,110 @@ namespace RetroX25.Tests
             Assert.That(watch.Diagnostic, Is.EqualTo(67), "diagnostic: invalid called address");
         }
 
+        // ------------------------------------------------------------------ host folder machines
+
+        private const string Folder = "23410003";
+
+        /// <summary>A host folder in library/tiny: a login, one command, logout. Two sessions at most.</summary>
+        private void WriteTinyHost(int sessions = 2)
+        {
+            string dir = Path.Combine(_folder, "library", "tiny");
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, "host.ini"), string.Join("\n",
+                "[host]", "address = 1", "sessions = " + sessions, "banner = banner.txt",
+                "[login]", "case = upper",
+                "[user.0]", "name = GUEST", "password = SECRET",
+                "[shell]", "case = upper", "logout_text = Bye {user}.",
+                "[command.0]", "name = HELLO", "text = Hello from {node}, you are {user} at {calling}",
+                "[command.1]", "name = LOGOUT", "do = logout"));
+            File.WriteAllText(Path.Combine(dir, "banner.txt"), "{node} at {address}\n");
+        }
+
+        [Test]
+        public void List_AFolderMachine_IsFoundInTheLibrary()
+        {
+            WriteTinyHost();
+            List<MachineEntry> m = Parse("[defaults]", "library = library",
+                "[machine.0]", "type = tiny", "nua = " + Folder, "switch = 127.0.0.1:2000");
+            Assert.That(m[0].HostFolder, Is.EqualTo(Path.Combine(_folder, "library", "tiny")));
+            Assert.That(m[0].Hostname, Is.Empty, "the folder gives the name when the list does not");
+        }
+
+        [TestCase("type = nothere", "no host folder")]
+        [TestCase("type = ../tiny", "must be the name of a folder")]
+        [TestCase("script = alpha.js", "for type = script only")]
+        public void List_AWrongFolderMachine_IsRefused(string line, string expected)
+        {
+            WriteTinyHost();
+            FormatException? ex = Assert.Throws<FormatException>(() => Parse("[defaults]", "library = library",
+                "[machine.0]", "type = tiny", "nua = " + Folder, "switch = 127.0.0.1:2000", line));
+            Assert.That(ex!.Message, Does.Contain(expected));
+        }
+
+        [Test]
+        public void AFolderThatDoesNotLoad_StopsTheHost_NamingTheMachineAndTheLine()
+        {
+            WriteTinyHost();
+            File.AppendAllText(Path.Combine(_folder, "library", "tiny", "host.ini"), "\n[colours]\n");
+            List<MachineEntry> m = Parse("[defaults]", "library = library",
+                "[machine.0]", "type = tiny", "nua = " + Folder, "switch = 127.0.0.1:2000");
+            InvalidOperationException? ex = Assert.Throws<InvalidOperationException>(() => new HostRunner(m, NullLogger.Instance));
+            Assert.That(ex!.Message, Does.Contain("[machine.0]").And.Contain("unknown section [colours]").And.Contain("host.ini:"));
+        }
+
+        /// <summary>
+        /// A folder machine through a real switch: the banner arrives at once (before any key), the list's hostname and
+        /// nua fill {node} and {address}, the password is hidden with an X.29 Set of parameter 2 in a Q-bit packet
+        /// (02 02 00, then 02 02 01 after it), and logout says goodbye and clears with cause 0.
+        /// </summary>
+        [Test]
+        public void AFolderMachine_AnswersACall_LogsIn_AndLogsOut()
+        {
+            WriteTinyHost();
+            (XotSwitchPort line, XotSwitchPort callers) = BuildSwitch();
+            List<MachineEntry> m = Parse("[defaults]", "library = library",
+                "[machine.0]", "type = tiny", "hostname = TINY1", "nua = " + Folder, "switch = 127.0.0.1:" + line.BoundPort);
+            HostRunner runner = new HostRunner(m, NullLogger.Instance);
+            _disposables.Add(runner);
+            runner.Start();
+            Assert.That(SpinWait.SpinUntil(() => runner.AllLinesUp, 10000), Is.True);
+
+            Caller c = Call(callers, Folder);
+            Assert.That(c.WaitFor("TINY1 at " + Folder + "\r\nUsername: "), Is.True, "banner and prompt: " + c.Text);
+            c.Send("guest\r");
+            Assert.That(c.WaitFor("Password: "), Is.True, c.Text);
+            Assert.That(SpinWait.SpinUntil(() => c.QText.Contains("02-02-00", StringComparison.Ordinal), 5000), Is.True, "echo off: " + c.QText);
+            c.Send("SECRET\r");
+            Assert.That(c.WaitFor("\r\n$ "), Is.True, c.Text);
+            Assert.That(SpinWait.SpinUntil(() => c.QText.Contains("02-02-01", StringComparison.Ordinal), 5000), Is.True, "echo on: " + c.QText);
+            c.Send("hello\r");
+            Assert.That(c.WaitFor("Hello from TINY1, you are guest at 23400001\r\n"), Is.True, c.Text);
+            c.Send("logout\r");
+            Assert.That(c.WaitFor("Bye guest.\r\n"), Is.True, c.Text);
+            Assert.That(c.Cleared.Wait(5000), Is.True);
+            Assert.That(c.Cause, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void AFullFolderMachine_RefusesTheNextCall_WithCauseDteOriginated()
+        {
+            WriteTinyHost(sessions: 1);
+            (XotSwitchPort line, XotSwitchPort callers) = BuildSwitch();
+            List<MachineEntry> m = Parse("[defaults]", "library = library",
+                "[machine.0]", "type = tiny", "nua = " + Folder, "switch = 127.0.0.1:" + line.BoundPort);
+            HostRunner runner = new HostRunner(m, NullLogger.Instance);
+            _disposables.Add(runner);
+            runner.Start();
+            Assert.That(SpinWait.SpinUntil(() => runner.AllLinesUp, 10000), Is.True);
+
+            Caller first = Call(callers, Folder);
+            Assert.That(first.WaitFor("Username: "), Is.True);
+            X25Client second = OpenCaller(callers, out Caller watch);
+            Assert.That(second.CallWait(Folder, 5000), Is.Null, "the second call was taken with sessions = 1");
+            Assert.That(watch.Cleared.Wait(5000), Is.True);
+            Assert.That(watch.Cause, Is.EqualTo(0), "a DTE clears with cause 0 (X.25 Table 5-7)");
+        }
+
         // ------------------------------------------------------------------ helpers
 
         private List<MachineEntry> Parse(params string[] lines)
@@ -224,6 +338,10 @@ namespace RetroX25.Tests
                 if (!qBit)
                 {
                     c.Add(data, length);
+                }
+                else
+                {
+                    c.AddQ(data, length);
                 }
             });
             client.SetOnClear((cl, vc, cause, diag) =>
@@ -271,6 +389,7 @@ namespace RetroX25.Tests
         {
             private readonly X25Client _client;
             private readonly StringBuilder _text = new StringBuilder();
+            private readonly StringBuilder _q = new StringBuilder();
 
             public Caller(X25Client client)
             {
@@ -293,6 +412,26 @@ namespace RetroX25.Tests
                     {
                         return _text.ToString();
                     }
+                }
+            }
+
+            /// <summary>The Q-bit packets (X.29 messages) that arrived, each as hex bytes, separated by spaces.</summary>
+            public string QText
+            {
+                get
+                {
+                    lock (_q)
+                    {
+                        return _q.ToString();
+                    }
+                }
+            }
+
+            public void AddQ(byte[] data, int length)
+            {
+                lock (_q)
+                {
+                    _q.Append(BitConverter.ToString(data, 0, length)).Append(' ');
                 }
             }
 

@@ -5,7 +5,9 @@ login, a command line or a menu, canned output. What it pretends to be is writte
 code. The same files are read by the C# `x25host` (RetroX25) and the C `x25host` (x25emu), so one host behaves
 the same under both emulators.
 
-Status: this document is the specification. Neither program exists yet (PLAN.md).
+Status (2026-11-19): the C# `x25host` reads and runs this format (the engine is `DescribedHost` in the RetroIO
+package `RetroIO.Protocols.X25.Host`); the C `x25host` in x25emu is not written yet (PLAN.md G3). What is not
+built yet is listed under "Many machines at once".
 
 ## Why a description and not a script
 
@@ -54,7 +56,7 @@ keys stop the program with the file, line and name (a typo is never a silently m
 |---|---|---|
 | `hostname` | The machine's name: `{hostname}` in every text (the banner, the prompt, the logout line). Normally given by `-n` or the machine list, so one type folder serves many machines | the folder name |
 | `address` | The X.121 address the host answers | required, or `-a` |
-| `sessions` | Calls served at once; one more is cleared Number busy | 8 |
+| `sessions` | Calls served at once; one more is cleared with cause 0 "DTE originated" (a DTE cannot give the network's cause Number busy, X.25 Table 5-7; the host's log says why) | 8 |
 | `line_end` | `crlf` or `cr` or `lf`, sent after every line | `crlf` |
 | `idle_minutes` | Clear a call after this many minutes with no input; 0 = never | 15 |
 | `pad_calls_only` | `yes`: answer only calls whose call user data starts `01 00 00 00` (X.29) or is empty | `yes` |
@@ -243,16 +245,17 @@ text, it is what `who` shows, it is written to the host's log with the calling a
 (the later step) gets it as `session.user`, with `session.calling`, `session.address` and `session.node`.
 ## Many machines at once: the machine list
 
-**Built so far (2026-11-18):** `x25host --machines <list.ini> [--group <name>] [-v]` with `type = script`
-machines only. Each such machine names a JavaScript file (`script = hosts/clock.js`, relative to the list
-file) and may pass values to it with `setting.<name> = value` (the script reads `machine.settings.<name>`;
-`hostname` and `nua` are always there). Keys read: `type`, `script`, `hostname`, `nua`, `switch`, `group`,
-`setting.*`. A mistake stops the program at start with the file and line; two machines with one `nua` are
-refused. Machines that share a switch port share one XOT connection, and each call goes to the machine whose
-`nua` is exactly the called number; any other number is cleared (cause 0, diagnostic 67). The switch gives the
-full number (`called_address = international`, the default for every port). Not built yet: the host-folder
-types (`vms`, `sintran`, `bbs`, `library`), `nui`, the operator console, `--stats-log`. The working example
-is `demo/x75-countries/machines.ini`.
+**Built so far (2026-11-19):** `x25host --machines <list.ini> [--group <name>] [-v]`. A machine is a host
+folder (`type = <folder name>` in `[defaults] library`, relative to the list file) or a script (`type = script`
+with `script = hosts/clock.js`, which may pass values with `setting.<name> = value`; the script reads
+`machine.settings.<name>`, and `hostname` and `nua` are always there). Keys read: `[defaults] library`, and per
+machine `type`, `script`, `hostname`, `nua`, `switch`, `group`, `setting.*`. A mistake in the list or in a host
+folder stops the program at start with the file and line; two machines with one `nua` are refused. Machines that
+share a switch port share one XOT connection, and each call goes to the machine whose `nua` is exactly the
+called number; any other number is cleared (cause 0, diagnostic 67). The switch gives the full number
+(`called_address = international`, the default for every port). Not built yet: `nui`, the operator console,
+`--stats-log`, the single-machine form `x25host <host-folder> -x ...`. The working example is
+`demo/x75-countries/machines.ini`.
 
 One file lists every machine of a demo network; one command starts them all. The list says which type folder
 each machine is, its hostname, its X.121 address (NUA) and which switch port it hangs on:

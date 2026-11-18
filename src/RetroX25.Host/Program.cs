@@ -11,7 +11,8 @@ using RetroIO.Protocols.X25.Client;
 namespace RetroX25.Host
 {
     /// <summary>
-    /// x25host - fake machines and services on an X.25 network, each a JavaScript program.
+    /// x25host - fake machines and services on an X.25 network, each a host folder (host.ini and text files) or a
+    /// JavaScript program.
     /// </summary>
     /// <remarks>
     /// Usage: <c>x25host --machines machines.ini [--group name] [-v]</c>. Every <c>[machine.N]</c> of the list runs in
@@ -116,7 +117,7 @@ namespace RetroX25.Host
         private static int Usage()
         {
             Console.Error.WriteLine("Usage: x25host --machines <list.ini> [--group <name>] [-v]");
-            Console.Error.WriteLine("  --machines file  the machine list: one [machine.N] per machine (script, nua, switch, hostname)");
+            Console.Error.WriteLine("  --machines file  the machine list: one [machine.N] per machine (type, nua, switch, hostname)");
             Console.Error.WriteLine("  --group name     run only the machines with group = name");
             Console.Error.WriteLine("  -v               verbose (repeat for more)");
             return 1;

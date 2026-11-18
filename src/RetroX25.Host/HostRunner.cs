@@ -15,7 +15,8 @@ using RetroIO.Protocols.X25.Transport;
 namespace RetroX25.Host
 {
     /// <summary>
-    /// Runs every machine of a machine list in one process: each machine a <see cref="ScriptedHost"/>, each switch line
+    /// Runs every machine of a machine list in one process: each machine a <see cref="ScriptedHost"/> (a JavaScript
+    /// program) or a <see cref="DescribedHost"/> (a host folder), each switch line
     /// one XOT connection, and a call given to the machine whose NUA equals the called address.
     /// </summary>
     /// <remarks>
@@ -77,21 +78,38 @@ namespace RetroX25.Host
             {
                 MachineEntry e = entries[i];
                 Machine m = new Machine(this, e);
-                ScriptedHostSettings settings = new ScriptedHostSettings();
-                foreach (KeyValuePair<string, string> pair in e.Settings)
+                if (e.HostFolder.Length > 0)
                 {
-                    settings.Values[pair.Key] = pair.Value;
+                    try
+                    {
+                        // The list's hostname and nua make the folder (a TYPE) one particular machine.
+                        HostDescription d = HostDescription.Load(e.HostFolder, e.Hostname.Length > 0 ? e.Hostname : null, e.Nua);
+                        e.Hostname = d.Hostname;
+                        m.Host = new DescribedHost(d, m);
+                    }
+                    catch (FormatException ex)
+                    {
+                        throw new InvalidOperationException("[" + e.Section + "] (type = " + e.Type + "): the host folder does not load: " + ex.Message, ex);
+                    }
                 }
+                else
+                {
+                    ScriptedHostSettings settings = new ScriptedHostSettings();
+                    foreach (KeyValuePair<string, string> pair in e.Settings)
+                    {
+                        settings.Values[pair.Key] = pair.Value;
+                    }
 
-                settings.Values["hostname"] = e.Hostname;
-                settings.Values["nua"] = e.Nua;
-                try
-                {
-                    m.Host = new ScriptedHost(File.ReadAllText(e.ScriptPath), settings, m);
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException(e.Hostname + " ([" + e.Section + "], " + e.ScriptPath + "): the script does not load: " + ex.Message, ex);
+                    settings.Values["hostname"] = e.Hostname;
+                    settings.Values["nua"] = e.Nua;
+                    try
+                    {
+                        m.Host = new ScriptedHost(File.ReadAllText(e.ScriptPath), settings, m);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException(e.Hostname + " ([" + e.Section + "], " + e.ScriptPath + "): the script does not load: " + ex.Message, ex);
+                    }
                 }
 
                 if (!lines.TryGetValue(e.Line, out HostLine? line))
@@ -239,13 +257,62 @@ namespace RetroX25.Host
                 return;
             }
 
+            // The machine is asked on its own thread whether it takes the call, and is given the call in the same step,
+            // so two calls arriving together cannot both take the last free session. This thread waits for the answer:
+            // the call is accepted or cleared from inside this callback.
             int session = Interlocked.Increment(ref _nextSession);
+            string? calling = vc.CallingAddress.Length > 0 ? vc.CallingAddress : null;
+            byte[] cud = vc.CallUserData;
+            CallRef call = new CallRef(m, line, vc);
+            HostAdmission answer = HostAdmission.Busy;
+
+            // Not disposed: after a time-out the worker may still set it. It holds no kernel handle unless waited on long.
+            ManualResetEventSlim done = new ManualResetEventSlim(false);
+            {
+                bool timedOut = false;
+                Post(() =>
+                {
+                    answer = m.Host!.Admit(cud);
+                    if (answer == HostAdmission.Accept)
+                    {
+                        _calls[session] = call;
+                        m.Host.Connect(session, string.Empty, calling);
+                        if (Volatile.Read(ref timedOut))
+                        {
+                            // The switch thread gave up waiting and cleared the call: the machine forgets it again.
+                            call.Gone = true;
+                            _calls.TryRemove(session, out _);
+                            m.Host.Disconnect(session);
+                        }
+                    }
+
+                    done.Set();
+                });
+
+                if (!done.Wait(2000))
+                {
+                    Volatile.Write(ref timedOut, true);
+                    call.Gone = true;
+                    _log.LogWarning("{Host}: call from {Calling} not answered by the machine in 2 s, cleared", m.Entry.Hostname, vc.CallingAddress);
+                    client.Clear(vc, CauseDteOriginated, 0);
+                    return;
+                }
+            }
+
+            if (answer != HostAdmission.Accept)
+            {
+                call.Gone = true;
+                // A DTE clears with cause 0 (X.25 Table 5-7); "Number busy" is a network cause it cannot give. The log
+                // says why.
+                _log.LogInformation("{Host}: call from {Calling} refused: {Why}", m.Entry.Hostname, vc.CallingAddress,
+                    answer == HostAdmission.Busy ? "every session is in use" : "not a PAD call (call user data does not start 01 00 00 00)");
+                client.Clear(vc, CauseDteOriginated, 0);
+                return;
+            }
+
             vc.UserData = session;
-            _calls[session] = new CallRef(m, line, vc);
             client.Accept(vc);
             _log.LogInformation("{Host}: call {Session} from {Calling}", m.Entry.Hostname, session, vc.CallingAddress);
-            string? calling = vc.CallingAddress.Length > 0 ? vc.CallingAddress : null;
-            Post(() => m.Host!.Connect(session, string.Empty, calling));
         }
 
         private void OnData(X25Client client, X25Vc vc, byte[] data, int length, bool qBit)
@@ -253,7 +320,7 @@ namespace RetroX25.Host
             if (qBit || vc.UserData is not int session || !_calls.TryGetValue(session, out CallRef? call))
             {
                 // A Q-bit packet is an X.29 message from the PAD (a parameter answer), not typed text: not for the
-                // script.
+                // machine.
                 return;
             }
 
@@ -269,6 +336,8 @@ namespace RetroX25.Host
                 return;
             }
 
+            call.Gone = true;
+
             _log.LogInformation("{Host}: call {Session} cleared (cause {Cause} diag {Diag})", call.Machine.Entry.Hostname, session, cause, diagnostic);
             Post(() => call.Machine.Host!.Disconnect(session));
         }
@@ -282,7 +351,21 @@ namespace RetroX25.Host
                 return;
             }
 
-            _out.Enqueue(new OutItem(session, call, data.ToArray(), false));
+            _out.Enqueue(new OutItem(session, call, data.ToArray(), false, false));
+        }
+
+        /// <summary>
+        /// An X.29 Set of X.3 parameter 2 (echo) to the caller's PAD: message code 0x02, then the pair (2, 1 or 0),
+        /// in a Q-bit data packet (X.29 (11/88) 3.5.4 and 4.4.1).
+        /// </summary>
+        private void SetEcho(int session, bool echo)
+        {
+            if (!_calls.TryGetValue(session, out CallRef? call))
+            {
+                return;
+            }
+
+            _out.Enqueue(new OutItem(session, call, new byte[] { 0x02, 0x02, echo ? (byte)1 : (byte)0 }, false, true));
         }
 
         private void ClearCall(int session)
@@ -293,7 +376,7 @@ namespace RetroX25.Host
             }
 
             // After what was sent before it (the goodbye), so it goes through the same queue.
-            _out.Enqueue(new OutItem(session, call, Array.Empty<byte>(), true));
+            _out.Enqueue(new OutItem(session, call, Array.Empty<byte>(), true, false));
         }
 
         private void SendLoop()
@@ -310,11 +393,20 @@ namespace RetroX25.Host
 
                 X25Client? client = next.Call.Line.Client;
                 X25Vc vc = next.Call.Vc;
-                if (client == null || !vc.Connected)
+                if (client == null || next.Call.Gone)
                 {
-                    // The call or the line is gone: nobody to send to.
+                    // The line, or the call (cleared from the far end, or never accepted), is gone: nobody to send to.
                     _out.TryDequeue(out _);
                     offset = 0;
+                    continue;
+                }
+
+                if (!vc.Connected)
+                {
+                    // The machine answers a call as soon as it is given it (a banner), which is before the client has
+                    // sent the Call Accepted and marked the circuit connected (X25Client.OnLayerIncomingCall). The
+                    // bytes wait for that, in order.
+                    Thread.Sleep(1);
                     continue;
                 }
 
@@ -334,7 +426,7 @@ namespace RetroX25.Host
                 int piece = Math.Min(size, next.Data.Length - offset);
                 byte[] part = new byte[piece];
                 Buffer.BlockCopy(next.Data, offset, part, 0, piece);
-                if (client.Send(vc, part, piece))
+                if (client.Send(vc, part, piece, qBit: next.Q))
                 {
                     idle = 0;
                     offset += piece;
@@ -360,13 +452,30 @@ namespace RetroX25.Host
         }
 
         /// <summary>A call: which machine has it, on which line, on which circuit.</summary>
-        private sealed record CallRef(Machine Machine, HostLine Line, X25Vc Vc);
+        private sealed class CallRef
+        {
+            public CallRef(Machine machine, HostLine line, X25Vc vc)
+            {
+                Machine = machine;
+                Line = line;
+                Vc = vc;
+            }
 
-        /// <summary>Bytes for a call, or (Close) the call's clear after what went before.</summary>
-        private sealed record OutItem(int Session, CallRef Call, byte[] Data, bool Close);
+            public Machine Machine { get; }
 
-        /// <summary>One machine: its entry, its script host, and the output that goes back to the runner.</summary>
-        private sealed class Machine : IHostOutput
+            public HostLine Line { get; }
+
+            public X25Vc Vc { get; }
+
+            /// <summary>Cleared from the far end, or never accepted: what is still queued for it is dropped.</summary>
+            public volatile bool Gone;
+        }
+
+        /// <summary>Bytes for a call (Q: an X.29 message to the PAD), or (Close) the call's clear after what went before.</summary>
+        private sealed record OutItem(int Session, CallRef Call, byte[] Data, bool Close, bool Q);
+
+        /// <summary>One machine: its entry, its host (a script or a host folder), and the output back to the runner.</summary>
+        private sealed class Machine : IHostOutput, IHostPadControl
         {
             private readonly HostRunner _runner;
 
@@ -378,7 +487,12 @@ namespace RetroX25.Host
 
             public MachineEntry Entry { get; }
 
-            public ScriptedHost? Host { get; set; }
+            public IHostMachine? Host { get; set; }
+
+            public void SetEcho(int session, bool echo)
+            {
+                _runner.SetEcho(session, echo);
+            }
 
             public void Send(int session, ReadOnlySpan<byte> data)
             {

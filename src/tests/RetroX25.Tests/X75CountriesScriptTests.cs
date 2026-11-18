@@ -137,6 +137,39 @@ namespace RetroX25.Tests
         }
 
         /// <summary>
+        /// The two host folders of machines.ini (demo/hosts/vax and demo/hosts/bbs), called through the network from
+        /// Norway's PAD line: the VAX in England with its DCL login, the bulletin board in Norway with its menus.
+        /// </summary>
+        [Test]
+        public void TheHostFoldersOfMachinesIni_LogInAndAnswer()
+        {
+            Caller vax = Call("023421002", "242226500000102");
+            Assert.That(vax.Cleared, Is.False, "the VAX was not reached: " + vax.Screen);
+            WaitForText(vax, "TOMVAX - VAX 8650");
+            WaitForText(vax, "Username: ");
+            Type(vax, "guest\r");
+            WaitForText(vax, "Password: ");
+            Type(vax, "GUEST\r");
+            WaitForText(vax, "$ ");
+            Type(vax, "directory\r");
+            WaitForText(vax, "NOTES.TXT");
+            Type(vax, "logout\r");
+            WaitForText(vax, "logged out at");
+
+            Caller bbs = Call("1002", "242226500000102");
+            Assert.That(bbs.Cleared, Is.False, "the BBS was not reached: " + bbs.Screen);
+            WaitForText(bbs, "Name (GUEST for a guest visit): ");
+            Type(bbs, "guest\r");
+            WaitForText(bbs, "Password: ");
+            Type(bbs, "x\r");
+            WaitForText(bbs, "Choice: ");
+            Type(bbs, "w\r");
+            WaitForText(bbs, "guest from 2422700");
+            Type(bbs, "g\r");
+            WaitForText(bbs, "Thank you for calling NORDBBS.");
+        }
+
+        /// <summary>
         /// Norway's PAD line requires a NUI (nui_required = yes): a call without one is cleared with Local procedure
         /// error (0x13), diagnostic 84 (X.25 6.21.3, Annex E).
         /// </summary>

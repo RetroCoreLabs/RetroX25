@@ -80,6 +80,8 @@ without the DNIC (the national number).
 | 24221001 | `1001` | Speaking clock (OSLOCLOCK): tells the time, then clears | Norway port 3, `x25host` |
 | 23421001 | `023421001` | Guess the number (LONDONGAMES), best score shared by all callers | England port 3, `x25host` |
 | 26241001 | `026241001` | Notice board (MUNICHBOARD): pin a line, others on line see it at once | Germany port 3, `x25host` |
+| 23421002 | `023421002` | TOMVAX, a VAX with a DCL command line (log in `GUEST` / `GUEST`) | England port 3, `x25host`, folder `demo/hosts/vax` |
+| 24221002 | `1002` | NORDBBS, a menu bulletin board (log in `GUEST`, any password) | Norway port 3, `x25host`, folder `demo/hosts/bbs` |
 | 24221xxx (other) | `1xxx` | Free for more test servers on Norway's host line; no machine yet: cleared, diagnostic 67 | Norway port 3, TCP 25003 |
 | 23421xxx (other) | `023421xxx` | Free, England's host line | England port 3, TCP 25013 |
 | 26241xxx (other) | `026241xxx` | Free, Germany's host line | Germany port 3, TCP 25024 |
@@ -104,20 +106,37 @@ says the prefix is not part of the number, so every switch port gives the full n
 
 ## Test servers
 
-Every country has one host line, and `x25host` runs all the test servers in one process. Each server is a small
-JavaScript program in `hosts/`, listed in `machines.ini` with the number it answers:
+Every country has one host line, and `x25host` runs all the test servers in one process, each listed in
+`machines.ini` with the number it answers. A server is one of two kinds:
+
+- **A host folder** (`type = vax`): a `host.ini` and text files in `demo/hosts/<name>` that say what to print
+  and which typed words lead where: a banner, a login, a command line or menus, a few fake files. Nothing in it
+  runs. Copy `demo/hosts/vax` or `demo/hosts/bbs`, change the texts, and add a machine:
+
+  ```ini
+  [machine.5]
+  type = myhost               # the folder demo/hosts/myhost
+  hostname = BERGEN
+  nua = 24221003
+  switch = 127.0.0.1:25003
+  ```
+
+  The format is `src/docs/x25host-format.md`. A mistake in a host folder stops `x25host` at start, naming the
+  file and the line.
+- **A script** (`type = script`): a small JavaScript program in `hosts/`, for a server that needs logic (a game):
 
 ```ini
-[machine.3]
+[machine.6]
 type = script
 script = hosts/myserver.js
-hostname = BERGEN
-nua = 24221002              # the next free number on the country's line (24221..., 23421..., 26241...)
+hostname = TRONDHEIM
+nua = 24221004              # the next free number on the country's line (24221..., 23421..., 26241...)
 switch = 127.0.0.1:25003    # Norway's host line (England 25013, Germany 25024)
 setting.greeting = Hei      # optional: machine.settings.greeting in the script
 ```
 
-Then `./x75.ps1 stop` and `./x75.ps1 start`, and call it (`1002` from Norway). The smallest server:
+Either kind: then `./x75.ps1 stop` and `./x75.ps1 start`, and call it (`1004` from Norway). The smallest
+script server:
 
 ```javascript
 function onConnect(s) { s.send('Hello from ' + machine.settings.hostname + '\n'); }
