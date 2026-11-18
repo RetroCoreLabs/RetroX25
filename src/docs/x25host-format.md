@@ -161,7 +161,16 @@ shown again after it (as the real systems did). Limits: a message is cut at 256 
 most 20 messages a second from others, the rest are dropped and counted (`show stats`), so one user cannot
 flood another.
 
-**For the later JavaScript hosts (G4)** the same list is the `machine` object, and nothing else is shared:
+**For the JavaScript hosts (G4)**: the engine exists since 2026-11-18 as `ScriptedHost` in the RetroIO package
+`RetroIO.Protocols.X25.Host` (its README has the full list). One script runs per machine, so its own variables are
+shared by every caller on that machine. Built and tested so far: the events `onStart`, `onConnect(s)`,
+`onInput(s, text)`, `onDisconnect(s)`; the session's `id`, `login`, `calling`, `connectedAt`, `send`, `clear`,
+`pending`, `isOpen`; and `machine.settings`, `log`, `now`, `after`/`cancel` (timers), `wireLength`, `session`,
+`sessions`, `broadcast`. The Altos chat runs on these alone (`scripts/altos-chat.js` in that package) and is checked
+byte for byte against the C# chat. Still to build from the table below: `send(user, ...)` by user name, rooms,
+`store`, and `session.onMessage`.
+
+The planned shape, of which the above is the first part:
 
 | Name | What it is |
 |---|---|

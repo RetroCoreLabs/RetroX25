@@ -332,8 +332,11 @@ limits) later and in C# only.
 - G2. Add both examples to `demo/x75-countries` (x75.ps1 starts them) and to `X75CountriesScriptTests`.
 - G3. C `x25host` in x25emu reading the same files (ask the altoschat session before editing x25emu); a test that
   runs both on the same example and compares the screens.
-- G4. JavaScript hosts (C# only): Jint with memory, time, statement and recursion limits, no .NET access; each
-  host in its own process under a Windows job object capping memory and CPU.
+- G4. JavaScript hosts (C# only). The engine is built: `ScriptedHost` in RetroIO `RetroIO.Protocols.X25.Host`
+  (Jint, no .NET access, memory/time/statement/recursion limits per call, a failing call cleared alone; 15 tests
+  in `ScriptedHostTests`). Left: `type = script` machines in x25host (G1); the rest of the shared API in
+  `docs/x25host-format.md` (send by user name, rooms, `store`, `onMessage`); and the whole x25host process
+  under a Windows job object capping memory and CPU (one process runs many machines, so the cap is per process).
 - G5. A library of host folders, one per scenario in `src/docs/research-os.md` (VMS, TOPS-20, RSTS/E, 4.3BSD,
   SunOS, System V, TSO, VM/370, OS/400 as plain-text screens, SINTRAN III, PRIMOS, Multics, Maximus, WWIV,
   Citadel, the PAD/network texts...), each ready to copy: its own `host.ini` and text files, a README line saying
@@ -342,7 +345,7 @@ limits) later and in C# only.
   network: a network file that lists countries, switches and which library hosts sit where, and a script that
   turns it into the switch ini files and starts it all (as `demo/x75-countries`, but generated). Every host in
   the library gets a test that logs in and runs its commands.
-- G6 (low priority). Analyse whether the Altos chat could be an `x25host` with a script (G4, JavaScript under
-  Jint) instead of C# code. It is a good test of what scripting can do: many users in one shared room, a
-  message from one sent to all the others, nicknames, `.h`/`.x` commands, joins and leaves announced. Compare the
-  script's behaviour with the C# chat (the 1987 texts and timings) in a test that runs both.
+- G6. The scripted Altos chat runs on `ScriptedHost` (RetroIO `RetroIO.Protocols.X25.Host`, `scripts/altos-chat.js`)
+  and matches the C# chat byte for byte in `ScriptedAltosChatParityTests`. Left: put it on the network: an
+  `x25host` machine of type `altos-chat` in `demo/x75-countries`, beside the C# one, on its own address
+  (needs G1, the x25host program).
