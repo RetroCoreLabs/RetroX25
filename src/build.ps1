@@ -108,6 +108,16 @@ function Get-ExecutableProjects {
     return $found | Sort-Object Name
 }
 
+# The three-country demo network (demo/x75-countries) listens on fixed ports, and its script tests start their own
+# copy of it on the same ports. While a hand-started copy runs, those tests cannot start theirs and fail after a
+# two-minute run with "8 failed" and no reason in the summary (2026-11-18). Say so before building instead.
+if (-not $SkipTests) {
+    $x75Pids = Join-Path $root 'demo/x75-countries/.pids'
+    if (Test-Path $x75Pids) {
+        throw "The x75-countries demo network is running (demo/x75-countries/.pids). Its tests need the same TCP ports: run 'demo/x75-countries/x75.ps1 stop' first, or build with -SkipTests."
+    }
+}
+
 $projects = Get-ExecutableProjects
 if (-not $projects) { throw "no executable projects found under $root" }
 
