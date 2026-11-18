@@ -110,15 +110,25 @@ function Start-One([string]$Log, [string]$Exe, [object[]]$ProgramArgs) {
 }
 
 # The newest source the published programs are made from: every .cs, .csproj and .props under src (build output
-# left out), and the restore record of the switch, which changes when a newer RetroIO package is taken.
+# left out), and the newest RetroIO package in the local feed (the "local" source in src/nuget.config), since a
+# newer package there is newer RetroIO code. Not the restore record (obj/project.assets.json): dotnet publish -r
+# rewrites it in the middle of a publish, after the first programs are written, so it always looked newer.
 function Get-NewestSource {
     $newest = [datetime]::MinValue
     foreach ($f in Get-ChildItem $Root -Recurse -File -Include *.cs, *.csproj, *.props) {
         if ($f.FullName -match '\\(bin|obj|publish)\\') { continue }
         if ($f.LastWriteTime -gt $newest) { $newest = $f.LastWriteTime }
     }
-    $assets = Join-Path $Root 'RetroX25.Switch/obj/project.assets.json'
-    if ((Test-Path $assets) -and (Get-Item $assets).LastWriteTime -gt $newest) { $newest = (Get-Item $assets).LastWriteTime }
+    [xml]$cfg = Get-Content (Join-Path $Root 'nuget.config')
+    $local = $cfg.configuration.packageSources.add | Where-Object { $_.key -eq 'local' }
+    if ($local) {
+        $feed = Join-Path $Root $local.value
+        if (Test-Path $feed) {
+            foreach ($p in Get-ChildItem $feed -Filter 'RetroIO.*.nupkg' -File) {
+                if ($p.LastWriteTime -gt $newest) { $newest = $p.LastWriteTime }
+            }
+        }
+    }
     return $newest
 }
 
