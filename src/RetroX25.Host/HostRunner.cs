@@ -231,12 +231,52 @@ namespace RetroX25.Host
                 }
 
                 m.Host.Start(DateTime.Now);
+                m.StartedAt = DateTime.Now;
                 m.CallsIn = m.RefusedBusy = m.RefusedNotPad = m.BytesIn = m.BytesOut = m.PacketsIn = m.PacketsOut = 0;
                 m.Stopped = false;
                 answer = m.Entry.Hostname + " started";
             });
             _log.LogInformation("{Host}: start by the operator: {Answer}", m.Entry.Hostname, r.Count > 0 ? r[0] : answer);
             return r.Count > 0 ? r[0] : answer;
+        }
+
+        /// <summary>
+        /// <c>show host &lt;hostname&gt;</c>: one machine in full: the <c>show hosts</c> line, its switch line, how long
+        /// it has run since it was last started, and its counters (calls since start, refused logins and the rest).
+        /// </summary>
+        /// <param name="hostname">The machine.</param>
+        /// <returns>The lines.</returns>
+        public List<string> HostDetail(string hostname)
+        {
+            Machine? m = Find(hostname);
+            if (m == null)
+            {
+                return new List<string> { "no machine called " + hostname };
+            }
+
+            List<string> all = HostLines();
+            List<string> lines = new List<string>();
+            for (int i = 0; i < all.Count; i++)
+            {
+                if (all[i].StartsWith(m.Entry.Hostname + " ", StringComparison.Ordinal))
+                {
+                    lines.Add(all[i]);
+                }
+            }
+
+            TimeSpan up = DateTime.Now - m.StartedAt;
+            lines.Add("switch " + m.Entry.Line + ", " + (m.HostFolder() ? "host folder " : "script ") + (m.HostFolder() ? m.Entry.HostFolder : m.Entry.ScriptPath));
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"started {m.StartedAt:yyyy-MM-dd HH:mm:ss}, up {(int)up.TotalHours}h {up.Minutes:00}m {up.Seconds:00}s"));
+            List<string> stats = StatsLines();
+            for (int i = 0; i < stats.Count; i++)
+            {
+                if (stats[i].StartsWith(m.Entry.Hostname + ": ", StringComparison.Ordinal))
+                {
+                    lines.Add(stats[i].Substring(m.Entry.Hostname.Length + 2));
+                }
+            }
+
+            return lines;
         }
 
         private Machine? Find(string hostname)
@@ -475,6 +515,7 @@ namespace RetroX25.Host
             for (int i = 0; i < _machines.Count; i++)
             {
                 _machines[i].Host!.Start(now);
+                _machines[i].StartedAt = now;
                 _log.LogInformation("{Host}: started, nua {Nua}, line {Line}", _machines[i].Entry.Hostname, _machines[i].Entry.Nua, _machines[i].Entry.Line);
             }
 
@@ -861,6 +902,12 @@ namespace RetroX25.Host
             public MachineEntry Entry { get; }
 
             public IHostMachine? Host { get; set; }
+
+            /// <summary>When it was last started (the runner's start, or start host).</summary>
+            public DateTime StartedAt { get; set; } = DateTime.Now;
+
+            /// <summary>A host folder machine (else a script).</summary>
+            public bool HostFolder() => Entry.HostFolder.Length > 0;
 
             /// <summary>Stopped by the operator (stop host): calls to it are cleared.</summary>
             public volatile bool Stopped;

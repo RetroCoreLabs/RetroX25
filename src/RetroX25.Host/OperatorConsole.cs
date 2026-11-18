@@ -16,7 +16,7 @@ namespace RetroX25.Host
     {
         private static readonly string[] NotBuilt =
         {
-            "show host", "reload", "log",
+            "reload", "log",
         };
 
         private readonly HostRunner _runner;
@@ -71,7 +71,8 @@ namespace RetroX25.Host
                     return users.Count == 0 ? "nobody logged in\n" : Join(users);
                 case "help":
                     return "show hosts   one line per machine: hostname, type, NUA, group, state, calls now\n"
-                        + "show stats   per machine: calls, refusals, bytes and data packets each way, wrong logins\n"
+                        + "show host <hostname>   one machine in full\n"
+                        + "show stats  per machine: calls, refusals, bytes and data packets each way, wrong logins\n"
                         + "show calls   every call now: hostname, calling address, logical channel, since\n"
                         + "show users   every logged-in user of a host folder machine\n"
                         + "clear call <hostname> <lcn>   clear one call at once\n"
@@ -98,6 +99,11 @@ namespace RetroX25.Host
             }
 
             string[] words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (cmd.StartsWith("show host ", StringComparison.Ordinal))
+            {
+                return words.Length != 3 ? "usage: show host <hostname>\n" : Join(_runner.HostDetail(words[2]));
+            }
+
             if (cmd.StartsWith("stop host", StringComparison.Ordinal) || cmd.StartsWith("start host", StringComparison.Ordinal)
                 || cmd.StartsWith("restart host", StringComparison.Ordinal))
             {

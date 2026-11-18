@@ -62,6 +62,18 @@ namespace RetroX25.Tests
         }
 
         [Test]
+        public void ShowHost_GivesTheMachineInFull()
+        {
+            _runner!.Start();
+            string[] lines = new OperatorConsole(_runner).Execute("show host one").Split('\n');
+            Assert.That(lines[0], Does.StartWith("ONE "));
+            Assert.That(lines[1], Does.StartWith("switch 127.0.0.1:1, host folder "));
+            Assert.That(lines[2], Does.Match(@"^started \d{4}-\d\d-\d\d \d\d:\d\d:\d\d, up 0h 00m \d\ds$"));
+            Assert.That(lines[3], Does.StartWith("calls in 0, "));
+            Assert.That(new OperatorConsole(_runner).Execute("show host TWO"), Is.EqualTo("no machine called TWO\n"));
+        }
+
+        [Test]
         public void Quit_AsksFirst_AndOnlyYesStops()
         {
             OperatorConsole c = new OperatorConsole(_runner!);
