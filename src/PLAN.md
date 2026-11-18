@@ -130,8 +130,19 @@ DTE and DCE):
   the transit list arrive intact.
 
 ### B4. Between networks
-Route by DNIC to the STE port; add our DNIC to the transit list; clear a call whose list already holds our DNIC (loop).
-X.75 cause and diagnostic codes on refusal.
+Route by DNIC to the STE port; add our DNIC to the transit list only when we are a TRANSIT network; clear a call whose
+list already holds our DNIC (loop). X.75 cause and diagnostic codes on refusal.
+- Settled 2026-11-18 from X.75 1988 5.3.1: the list names "each transit network controlling the virtual circuit up to
+  this point" (call request) and "each transit network" (call connected, and a clear request that answers the call
+  request). X.75 keeps originating, transit and destination networks apart (5.3.2, 5.3.3, 5.3.14), so the network
+  whose subscriber made the call does not name itself, and the destination network does not either.
+- X.75 itself has no loop rule (the word does not appear). x25emu cites X.110 5.6 for it ("Transit networks will check
+  routing information of each call to prevent circular routings"); X.110 is not on disk, so that quote is not checked.
+  A loop is still caught with the 5.3.1 list: on a second pass a transit network finds itself.
+- x25emu differs: `tools/x25switch.c` (the `sw_transit_add` call, about line 3257) adds its own DNIC to EVERY call
+  leaving over a `trunk_kind = network` port, including one its own subscriber made. So x25emu's originating network
+  sends a list with itself in it, where 5.3.1 says the list holds transit networks only. Not fixed - x25emu belongs to
+  the session working on it; decide before B6.
 - Prove: a loop of three networks clears with the right cause; the transit list on a two-hop call is in order.
 
 ### B5. Demos
