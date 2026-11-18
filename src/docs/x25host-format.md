@@ -198,6 +198,7 @@ type = vms                    # library folder hosts/vms
 hostname = TOMVAX
 nua = 23429002
 switch = 127.0.0.1:25012      # the XOT port of the switch it hangs on
+nui = 234212345678            # optional: pays for calls TOMVAX itself places
 
 [machine.1]
 type = sintran
@@ -217,8 +218,12 @@ hostname and address filled in, and stops them all together. Several machines ma
 switch routes each NUA, and each host answers only its own. The switch ini files can be generated from the same
 list (plan G5), so a large network is one list.
 
-Open question: whether a machine line also carries a NUI (the account that pays for calls the machine itself
-makes, or one a caller must present) - see PLAN G.
+A machine line may also carry `nui = <NUI>`: the account billed for calls the machine itself places (a gateway
+host that connects onward, a later JavaScript host that calls out). It is sent in the NUI selection facility
+(X.25 6.21) of every call the machine makes; the switch must know it as an `[account.N]`. It is optional: in
+the real networks a host on its own line was billed by its line and address, and NUIs were mostly for dial-up
+PAD users. Calls TO the machine are paid by the caller (or by the machine when the caller asks for reverse
+charging and the machine accepts it).
 
 ## Limits (both programs, not settable from the file)
 
