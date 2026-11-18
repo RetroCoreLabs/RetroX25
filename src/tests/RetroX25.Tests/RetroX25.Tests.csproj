@@ -43,6 +43,9 @@
     <ProjectReference Include="..\..\RetroX25.Traffic\RetroX25.Traffic.csproj" />
     <!-- Referenced so x25service.exe is built next to the tests: X75CountriesScriptTests starts the Altos chat with it. -->
     <ProjectReference Include="..\..\RetroX25.Service\RetroX25.Service.csproj" />
+    <!-- x25host: the machine list reader and the runner are tested in process, and x25host.exe is built next to the
+         tests for X75CountriesScriptTests. -->
+    <ProjectReference Include="..\..\RetroX25.Host\RetroX25.Host.csproj" />
   </ItemGroup>
 
 </Project>

@@ -14,7 +14,7 @@
   ./x75.ps1 stop
 
 .NOTES
-  -BinDir     the folder with the programs (x25switch.exe, x25echo.exe, x25service.exe, x25pad.exe).
+  -BinDir     the folder with the programs (x25switch.exe, x25echo.exe, x25service.exe, x25pad.exe, x25host.exe).
               Default: src\publish\win-x64, where src\build.ps1 puts them. The unit test passes its own output folder.
   -StateDir   where the logs, call records and the process-id file go (default: this folder)
 #>
@@ -42,7 +42,7 @@ $Nuis = @{ '1' = '242226500000101'; '2' = '242226500000102'; '3' = '242226500000
 $Mgmt = @{ 'norway' = 9201; 'england' = 9202; 'germany' = 9203 }
 $Monitor = @{ 'norway' = 4201; 'england' = 4202; 'germany' = 4203 }
 # Every TCP port this network listens on (README.md, "Ports").
-# 25003, 25013 and 25024 are the host lines (24221xxx, 23421xxx, 26241xxx), for x25host.
+# 25003, 25013 and 25024 are the host lines (24221xxx, 23421xxx, 26241xxx): x25host and the machines of machines.ini.
 $AllPorts = 25001, 25002, 25003, 25011, 25012, 25013, 25021, 25022, 25023, 25024, 9201, 9202, 9203, 4201, 4202, 4203
 
 $script:BinDirGiven = [bool]$BinDir
@@ -138,7 +138,7 @@ function Get-NewestSource {
 function Assert-Fresh {
     if ($script:BinDirGiven) { return }
     $newest = Get-NewestSource
-    foreach ($name in 'x25switch', 'x25echo', 'x25service', 'x25pad') {
+    foreach ($name in 'x25switch', 'x25echo', 'x25service', 'x25pad', 'x25host') {
         $exe = Program $name
         $built = (Get-Item $exe).LastWriteTime
         if ($built -lt $newest) {
@@ -183,6 +183,7 @@ function Start-All {
     $sw = Program 'x25switch'
     $ec = Program 'x25echo'
     $sv = Program 'x25service'
+    $hs = Program 'x25host'
 
     # The listening ends first: Germany, then England, then Norway, which dials England.
     Write-Host 'Germany (2624)  mgmt 9203  monitor 4203'
@@ -201,6 +202,11 @@ function Start-All {
     $p = Start-One 'echo-germany.log' $ec @('-x', '127.0.0.1:25023', '-a', '26249001'); Wait-Connected $p 25023 'echo-germany.log'
     # The chat dials Germany's Altos line the same way: up only once that connection stands.
     Wait-Connected $chat 25022 'altos-chat.log'
+
+    # The test servers of machines.ini, all in one x25host, on each country's host line.
+    Write-Host 'Test servers (machines.ini): 24221001 clock, 23421001 guess the number, 26241001 notice board'
+    $p = Start-One 'hosts.log' $hs @('--machines', (Join-Path $Here 'machines.ini'))
+    Wait-Connected $p 25003 'hosts.log'; Wait-Connected $p 25013 'hosts.log'; Wait-Connected $p 25024 'hosts.log'
 
     Write-Host ''
     Write-Host 'Running. Try:'

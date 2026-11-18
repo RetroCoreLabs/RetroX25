@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="RetroX25.Desktop/RetroX25.Desktop.csproj" />
     <Project Path="RetroX25.Echo/RetroX25.Echo.csproj" />
+    <Project Path="RetroX25.Host/RetroX25.Host.csproj" />
     <Project Path="RetroX25.Monitor.Desktop/RetroX25.Monitor.Desktop.csproj" />
     <Project Path="RetroX25.Nmc/RetroX25.Nmc.csproj" />
     <Project Path="RetroX25.Pad/RetroX25.Pad.csproj" />

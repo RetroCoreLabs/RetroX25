@@ -110,6 +110,33 @@ namespace RetroX25.Tests
         }
 
         /// <summary>
+        /// The test servers of machines.ini, all run by one x25host, one on each country's host line: the clock in
+        /// Norway (national number), the game in England and the notice board in Germany (international prefix).
+        /// </summary>
+        [Test]
+        public void TheTestServersOfMachinesIni_AnswerInEachCountry()
+        {
+            Caller clock = Call("1001", "242226500000103");
+            Assert.That(clock.Cleared, Is.False, "the clock was not reached: " + clock.Screen);
+            WaitForText(clock, "OSLOCLOCK speaking clock");
+            WaitForText(clock, "Goodbye.");
+
+            Caller game = Call("023421001", "242226500000103");
+            Assert.That(game.Cleared, Is.False, "the game was not reached: " + game.Screen);
+            WaitForText(game, "Welcome to LONDONGAMES");
+            WaitForText(game, "Your guess?");
+            Type(game, "q\r");
+            WaitForText(game, "Goodbye.");
+
+            Caller board = Call("026241001", "242226500000103");
+            Assert.That(board.Cleared, Is.False, "the board was not reached: " + board.Screen);
+            WaitForText(board, "MUNICHBOARD notice board");
+            Type(board, "hello from Norway\r");
+            WaitForText(board, "Pinned.");
+            Clear(board);
+        }
+
+        /// <summary>
         /// Norway's PAD line requires a NUI (nui_required = yes): a call without one is cleared with Local procedure
         /// error (0x13), diagnostic 84 (X.25 6.21.3, Annex E).
         /// </summary>

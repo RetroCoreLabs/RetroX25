@@ -334,7 +334,8 @@ limits) later and in C# only.
   runs both on the same example and compares the screens.
 - G4. JavaScript hosts (C# only). The engine is built: `ScriptedHost` in RetroIO `RetroIO.Protocols.X25.Host`
   (Jint, no .NET access, memory/time/statement/recursion limits per call, a failing call cleared alone; 15 tests
-  in `ScriptedHostTests`). Left: `type = script` machines in x25host (G1); the rest of the shared API in
+  in `ScriptedHostTests`). `type = script` machines run in x25host and three of them are in the x75 demo.
+  Left: the rest of the shared API in
   `docs/x25host-format.md` (send by user name, rooms, `store`, `onMessage`); and the whole x25host process
   under a Windows job object capping memory and CPU (one process runs many machines, so the cap is per process).
 - G5. A library of host folders, one per scenario in `src/docs/research-os.md` (VMS, TOPS-20, RSTS/E, 4.3BSD,

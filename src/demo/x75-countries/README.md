@@ -27,6 +27,8 @@ script and these same files, then dials in. What you start by hand is what the t
 | `england.ini` | England's switch: X.75 from Norway, X.75 to Germany, echo |
 | `germany.ini` | Germany's switch: X.75 from England, the Altos host line, echo |
 | `altos-chat.json` | The Altos chat service (`x25service`), dialling Germany's Altos line |
+| `machines.ini` | The test servers: one `[machine.N]` per server, all run by one `x25host` (see "Test servers") |
+| `hosts/` | The test servers' JavaScript programs (`clock.js`, `guess.js`, `board.js`) |
 | `x75.ps1` | Start, stop, status, PAD, management console, call records, logs |
 | `logs/` | Made on start: one log per program, and each switch's call records (not in git) |
 
@@ -43,14 +45,14 @@ yourself, `-SkipTests` to leave the tests out). It refuses while the network run
 cannot be replaced. `./x75.ps1 start` refuses programs published before the newest source, so an old build is
 never mistaken for a fix that does not work.
 
-The script runs `x25switch.exe`, `x25echo.exe`, `x25service.exe`, `x25pad.exe` and `x25monitor.exe` from
+The script runs `x25switch.exe`, `x25echo.exe`, `x25service.exe`, `x25host.exe`, `x25pad.exe` and `x25monitor.exe` from
 `src/publish/win-x64`. Another folder: `-BinDir <folder>`.
 
 ## Start, stop, status
 
 ```powershell
 cd src/demo/x75-countries
-./x75.ps1 start      # Germany, England, Norway, the Altos chat, then the 3 echo services
+./x75.ps1 start      # Germany, England, Norway, the Altos chat, the 3 echo services, then the test servers
 ./x75.ps1 status     # each process id (running / EXITED) and each TCP port (listening / NOT listening)
 ./x75.ps1 stop       # stops exactly the processes it started, by process id
 ```
@@ -75,9 +77,12 @@ without the DNIC (the national number).
 | 24220000 | `0000` | Norway's in-band management (`x25nmc`) | Norway switch |
 | 23420000 | `023420000` | England's in-band management | England switch |
 | 26240000 | `026240000` | Germany's in-band management | Germany switch |
-| 24221xxx | `1xxx` | Norway's hosts (one host line for all of them) | Norway port 3, TCP 25003 |
-| 23421xxx | `023421xxx` | England's hosts | England port 3, TCP 25013 |
-| 26241xxx | `026241xxx` | Germany's hosts | Germany port 3, TCP 25024 |
+| 24221001 | `1001` | Speaking clock (OSLOCLOCK): tells the time, then clears | Norway port 3, `x25host` |
+| 23421001 | `023421001` | Guess the number (LONDONGAMES), best score shared by all callers | England port 3, `x25host` |
+| 26241001 | `026241001` | Notice board (MUNICHBOARD): pin a line, others on line see it at once | Germany port 3, `x25host` |
+| 24221xxx (other) | `1xxx` | Free for more test servers on Norway's host line; no machine yet: cleared, diagnostic 67 | Norway port 3, TCP 25003 |
+| 23421xxx (other) | `023421xxx` | Free, England's host line | England port 3, TCP 25013 |
+| 26241xxx (other) | `026241xxx` | Free, Germany's host line | Germany port 3, TCP 25024 |
 
 Any other number in 2624… goes to Germany and is cleared there (no route); 2342… to England; any other DNIC
 is cleared in Norway (no route).
@@ -91,6 +96,41 @@ may get another one on the next call, as a dial-in user got another port of the 
 The address and the NUI are two different things. The address says where a call comes from and reaches the
 called machine. The NUI only tells Norway who pays and never leaves it: X.25 (10/96) 6.21, "Network user
 identifier is never transmitted to the remote DTE".
+
+The called machine always gets its number in the full form (`24221001`), whether the caller dialled `1001`,
+`024221001` or called from abroad. X.25 leaves the form to the network (5.2.2.2, Appendix IV.3) and X.121 7.8
+says the prefix is not part of the number, so every switch port gives the full number unless its
+`called_address` setting says `as_received` or `national`.
+
+## Test servers
+
+Every country has one host line, and `x25host` runs all the test servers in one process. Each server is a small
+JavaScript program in `hosts/`, listed in `machines.ini` with the number it answers:
+
+```ini
+[machine.3]
+type = script
+script = hosts/myserver.js
+hostname = BERGEN
+nua = 24221002              # the next free number on the country's line (24221..., 23421..., 26241...)
+switch = 127.0.0.1:25003    # Norway's host line (England 25013, Germany 25024)
+setting.greeting = Hei      # optional: machine.settings.greeting in the script
+```
+
+Then `./x75.ps1 stop` and `./x75.ps1 start`, and call it (`1002` from Norway). The smallest server:
+
+```javascript
+function onConnect(s) { s.send('Hello from ' + machine.settings.hostname + '\n'); }
+function onInput(s, text) { s.send('You typed: ' + text); }
+```
+
+A program gets `onConnect(s)`, `onInput(s, text)` and `onDisconnect(s)` for each call, and keeps whatever it
+needs in its own variables, which every caller of that server shares (the best score in `guess.js`, the notices
+in `board.js`). The full list (`s.send`, `s.clear`, `machine.now`, `machine.after`, `machine.broadcast`, ...) is
+in the README of the RetroIO package `RetroIO.Protocols.X25.Host`. A program cannot reach files, the network or
+other programs, and runs under limits on time and memory; one that fails while serving a call has only that call
+cleared. A program that does not load stops `x25host` at start with the file and the error, as does any mistake
+in `machines.ini` (with the line). The log is `logs/hosts.log`.
 
 ## Every NUI (who pays)
 
@@ -292,11 +332,14 @@ console, that is the usage per test user.
 |---|---|
 | 25001 | Norway: PAD users (XOT) |
 | 25002 | Norway: echo line (XOT) |
+| 25003 | Norway: host line, test servers (XOT, `x25host`) |
 | 25011 | England: X.75 from Norway (LAPB over HDLC on TCP) |
 | 25012 | England: echo line (XOT) |
+| 25013 | England: host line, test servers (XOT, `x25host`) |
 | 25021 | Germany: X.75 from England (LAPB over HDLC on TCP) |
 | 25022 | Germany: Altos host line (XOT) |
 | 25023 | Germany: echo line (XOT) |
+| 25024 | Germany: host line, test servers (XOT, `x25host`) |
 | 9201 / 9202 / 9203 | Management console: Norway / England / Germany (telnet) |
 | 4201 / 4202 / 4203 | Monitor stream: Norway / England / Germany |
 

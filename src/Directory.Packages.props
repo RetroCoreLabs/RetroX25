@@ -43,6 +43,7 @@
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.6" />
     <PackageVersion Include="RetroIO.Protocols.X25" Version="0.1.0-local.*" />
     <PackageVersion Include="RetroIO.Protocols.X25.Client" Version="0.1.0-local.*" />
+    <PackageVersion Include="RetroIO.Protocols.X25.Host" Version="0.1.0-local.*" />
     <PackageVersion Include="RetroIO.Protocols.X25.Monitor" Version="0.1.0-local.*" />
     <PackageVersion Include="RetroIO.Protocols.X25.Nmc" Version="0.1.0-local.*" />
     <PackageVersion Include="RetroIO.Protocols.X25.Routing" Version="0.1.0-local.*" />

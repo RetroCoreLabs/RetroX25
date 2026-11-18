@@ -243,6 +243,17 @@ text, it is what `who` shows, it is written to the host's log with the calling a
 (the later step) gets it as `session.user`, with `session.calling`, `session.address` and `session.node`.
 ## Many machines at once: the machine list
 
+**Built so far (2026-11-18):** `x25host --machines <list.ini> [--group <name>] [-v]` with `type = script`
+machines only. Each such machine names a JavaScript file (`script = hosts/clock.js`, relative to the list
+file) and may pass values to it with `setting.<name> = value` (the script reads `machine.settings.<name>`;
+`hostname` and `nua` are always there). Keys read: `type`, `script`, `hostname`, `nua`, `switch`, `group`,
+`setting.*`. A mistake stops the program at start with the file and line; two machines with one `nua` are
+refused. Machines that share a switch port share one XOT connection, and each call goes to the machine whose
+`nua` is exactly the called number; any other number is cleared (cause 0, diagnostic 67). The switch gives the
+full number (`called_address = international`, the default for every port). Not built yet: the host-folder
+types (`vms`, `sintran`, `bbs`, `library`), `nui`, the operator console, `--stats-log`. The working example
+is `demo/x75-countries/machines.ini`.
+
 One file lists every machine of a demo network; one command starts them all. The list says which type folder
 each machine is, its hostname, its X.121 address (NUA) and which switch port it hangs on:
 
