@@ -1,6 +1,6 @@
 # RetroX25 plan - outstanding work only
 
-**Next:** x25emu to the 5.3.1 transit rule (B4, waits for x25switch.c to be free), then the rest of B3. Push (A6) only after Ronny has looked at the commits.
+**Next:** the Altos chat test (waits for the altoschat session's chat service), the C# transit list across internal trunks (B4), then the rest of B3. Push (A6) only after Ronny has looked at the commits.
 
 Rules for this file: finished items are deleted, not ticked. Each item says what to build, how it is proved,
 and what it waits for. What was measured is in `docs/xot-peers.md`, `docs/trunk-links.md`,
@@ -117,8 +117,8 @@ Built 2026-11-18 in RetroIO (`trunk_kind = network` on a trunk; tests `X75LayerT
 field on every call packet, window and packet size as utilities (5.1, 5.3.4, 5.3.5), collision clears with 0x05 # 116
 (3.1.4, Table C-3), causes outside Table 13 sent as 0x05 (4.2.3.1), three-octet clear confirmation (Figure 8), channel
 search direction from the port's mode. Still open (also in RetroIO `src/BUGS.md`, "X.75 utilities not mapped"):
-- Reverse charging, fast select, closed user groups and NUI still go as X.25 facilities on an X.75 link; 5.1 says they
-  are utilities there.
+- Closed user groups and NUI still go as X.25 facilities on an X.75 link; 5.1 says they are utilities there. (Reverse
+  charging and fast select done 2026-11-18, RetroIO `154a1b7`, utility 01 per 5.4.3.6.)
 - Annex C ERROR entries other than collision, and Annex D time-outs: T31 200 s (clear # 49), T33 180 s (clear again
   # 50, then free), T32 (reset # 51), T30 (restart # 52) - the engine still runs its X.25 timer values and diagnostics.
   Transcribed tables: X.75 (11/88) PDF pages 77-91.
@@ -129,12 +129,12 @@ Built 2026-11-18: only a transit network adds its DNIC (5.3.1); the originating 
 (5.3.2); the Call Connected carries the transit list back; a list that already holds our DNIC is cleared 0x05 # 120
 (Annex F a) row 42); refusals for a bad field per Annex F a) rows 10, 14-16, 18. Proved Norway 2422 - England 2342 -
 Germany 2624 with a PAD calling 26245890040004 under NUI 242226500000101.
-- The transit list is lost on an internal trunk (a network of several switches): needs a way to say "this call came in
-  from another network" across an internal trunk (x25emu has a private facility for it).
-- A Clear Request that answers a Call Request must carry the transit list (5.3.1); not built.
-- x25emu: change it to the 5.3.1 rule (Ronny approved 2026-11-18). `tools/x25switch.c` (about line 3257) adds its own
-  DNIC on every exit over a network trunk, including for its own subscribers' calls. Waits until the session editing
-  x25emu says the file is free.
+- C# switch: the transit list is lost on an internal trunk (a network of several switches). x25emu carries the whole
+  utility field across internal trunks in a private facility, and tells transit from originating by whether a call
+  identifier is already present (5.3.2: always present between networks, set only by the originating network); the
+  C# switch needs the same.
+- A Clear Request that answers a Call Request must carry the transit list (5.3.1); not built in either switch.
+- x25emu follows 5.3.1 since `9395421` (2026-11-18): only a transit network names itself.
 ### B5. Demos
 1. Four-switch mesh in one network (the picture "X.25 Network-selection"): never built or tested. Prove a call takes the
    second way when a trunk is cut.
