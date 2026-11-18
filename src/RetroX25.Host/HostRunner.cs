@@ -91,45 +91,7 @@ namespace RetroX25.Host
             {
                 MachineEntry e = entries[i];
                 Machine m = new Machine(this, e);
-                if (e.HostFolder.Length > 0)
-                {
-                    try
-                    {
-                        // The list's hostname and nua make the folder (a TYPE) one particular machine.
-                        // The single-machine form may leave the address out (no -a): then host.ini's address is used.
-                        HostDescription d = HostDescription.Load(e.HostFolder, e.Hostname.Length > 0 ? e.Hostname : null,
-                            e.Nua.Length > 0 ? e.Nua : null);
-                        e.Hostname = d.Hostname;
-                        e.Nua = d.Address;
-                        m.Host = new DescribedHost(d, m);
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new InvalidOperationException("[" + e.Section + "] (type = " + e.Type + "): the host folder does not load: " + ex.Message, ex);
-                    }
-                }
-                else
-                {
-                    ScriptedHostSettings settings = new ScriptedHostSettings();
-                    foreach (KeyValuePair<string, string> pair in e.Settings)
-                    {
-                        settings.Values[pair.Key] = pair.Value;
-                    }
-
-                    settings.Values["hostname"] = e.Hostname;
-                    settings.Values["nua"] = e.Nua;
-                    try
-                    {
-                        string text = e.ScriptPath.StartsWith(MachineList.BuiltInPrefix, StringComparison.Ordinal)
-                            ? HostScripts.Get(e.ScriptPath.Substring(MachineList.BuiltInPrefix.Length))!
-                            : File.ReadAllText(e.ScriptPath);
-                        m.Host = new ScriptedHost(text, settings, m);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidOperationException(e.Hostname + " ([" + e.Section + "], " + e.ScriptPath + "): the script does not load: " + ex.Message, ex);
-                    }
-                }
+                m.Host = BuildHost(m);
 
                 if (!lines.TryGetValue(e.Line, out HostLine? line))
                 {
@@ -142,6 +104,152 @@ namespace RetroX25.Host
                 m.Line = line;
                 _machines.Add(m);
             }
+        }
+
+        // Reads the machine's host folder or script and makes its engine. At start, and again for start host; a
+        // hostname and NUA already settled at start stay as they are (the line is keyed on the NUA).
+        private static IHostMachine BuildHost(Machine m)
+        {
+            MachineEntry e = m.Entry;
+            if (e.HostFolder.Length > 0)
+            {
+                try
+                {
+                    // The list's hostname and nua make the folder (a TYPE) one particular machine.
+                    // The single-machine form may leave the address out (no -a): then host.ini's address is used.
+                    HostDescription d = HostDescription.Load(e.HostFolder, e.Hostname.Length > 0 ? e.Hostname : null,
+                        e.Nua.Length > 0 ? e.Nua : null);
+                    e.Hostname = d.Hostname;
+                    e.Nua = d.Address;
+                    return new DescribedHost(d, m);
+                }
+                catch (FormatException ex)
+                {
+                    throw new InvalidOperationException("[" + e.Section + "] (type = " + e.Type + "): the host folder does not load: " + ex.Message, ex);
+                }
+            }
+
+            ScriptedHostSettings settings = new ScriptedHostSettings();
+            foreach (KeyValuePair<string, string> pair in e.Settings)
+            {
+                settings.Values[pair.Key] = pair.Value;
+            }
+
+            settings.Values["hostname"] = e.Hostname;
+            settings.Values["nua"] = e.Nua;
+            try
+            {
+                string text = e.ScriptPath.StartsWith(MachineList.BuiltInPrefix, StringComparison.Ordinal)
+                    ? HostScripts.Get(e.ScriptPath.Substring(MachineList.BuiltInPrefix.Length))!
+                    : File.ReadAllText(e.ScriptPath);
+                return new ScriptedHost(text, settings, m);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(e.Hostname + " ([" + e.Section + "], " + e.ScriptPath + "): the script does not load: " + ex.Message, ex);
+            }
+        }
+
+        /// <summary>
+        /// <c>stop host &lt;hostname&gt;</c>: the machine stops answering, and each of its calls ends: a logged-in user
+        /// of a host folder machine first gets the logout text, every other call is cleared. New calls to it are
+        /// cleared with cause 0 (a DTE clears with cause 0 only, X.25 Table 5-7) and the log says it is stopped.
+        /// </summary>
+        /// <param name="hostname">The machine.</param>
+        /// <returns>What happened, for the console.</returns>
+        public string StopHost(string hostname)
+        {
+            Machine? m = Find(hostname);
+            if (m == null)
+            {
+                return "no machine called " + hostname;
+            }
+
+            if (m.Stopped)
+            {
+                return m.Entry.Hostname + " is already stopped";
+            }
+
+            m.Stopped = true;
+            int ended = 0;
+            List<string> r = OnWorker(_ =>
+            {
+                foreach (KeyValuePair<int, CallRef> kv in _calls)
+                {
+                    if (kv.Value.Machine != m)
+                    {
+                        continue;
+                    }
+
+                    if (m.Host is IHostOperator op && op.TryDescribe(kv.Key, out HostSessionInfo info) && info.User.Length > 0)
+                    {
+                        op.OperatorLogout(kv.Key);
+                    }
+                    else
+                    {
+                        ClearCall(kv.Key);
+                        m.Host!.Disconnect(kv.Key);
+                    }
+
+                    ended++;
+                }
+            });
+            _log.LogInformation("{Host}: stopped by the operator, {Calls} call(s) ended", m.Entry.Hostname, ended);
+            return r.Count > 0 ? r[0] : m.Entry.Hostname + " stopped, " + ended.ToString(CultureInfo.InvariantCulture) + " call(s) ended";
+        }
+
+        /// <summary>
+        /// <c>start host &lt;hostname&gt;</c>: a stopped machine reads its host folder or script again and answers
+        /// again, with its counters from zero. A folder that does not load leaves it stopped, with the reason.
+        /// </summary>
+        /// <param name="hostname">The machine.</param>
+        /// <returns>What happened, for the console.</returns>
+        public string StartHost(string hostname)
+        {
+            Machine? m = Find(hostname);
+            if (m == null)
+            {
+                return "no machine called " + hostname;
+            }
+
+            if (!m.Stopped)
+            {
+                return m.Entry.Hostname + " is running (stop it first, or restart host)";
+            }
+
+            string answer = string.Empty;
+            List<string> r = OnWorker(_ =>
+            {
+                try
+                {
+                    m.Host = BuildHost(m);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    answer = m.Entry.Hostname + " stays stopped: " + ex.Message;
+                    return;
+                }
+
+                m.Host.Start(DateTime.Now);
+                m.CallsIn = m.RefusedBusy = m.RefusedNotPad = m.BytesIn = m.BytesOut = m.PacketsIn = m.PacketsOut = 0;
+                m.Stopped = false;
+                answer = m.Entry.Hostname + " started";
+            });
+            _log.LogInformation("{Host}: start by the operator: {Answer}", m.Entry.Hostname, r.Count > 0 ? r[0] : answer);
+            return r.Count > 0 ? r[0] : answer;
+        }
+
+        private Machine? Find(string hostname)
+        {
+            for (int i = 0; i < _machines.Count; i++)
+            {
+                if (string.Equals(_machines[i].Entry.Hostname, hostname, StringComparison.OrdinalIgnoreCase))
+                {
+                    return _machines[i];
+                }
+            }
+
+            return null;
         }
 
         /// <summary>Calls open now, on every machine.</summary>
@@ -196,7 +304,7 @@ namespace RetroX25.Host
                 for (int i = 0; i < _machines.Count; i++)
                 {
                     Machine m = _machines[i];
-                    string state = m.Line != null && m.Line.Client != null ? "up" : "redialling";
+                    string state = m.Stopped ? "stopped" : m.Line != null && m.Line.Client != null ? "up" : "redialling";
                     lines.Add(string.Create(CultureInfo.InvariantCulture,
                         $"{m.Entry.Hostname,-12} {m.Entry.Type,-10} {m.Entry.Nua,-15} {m.Entry.Group,-10} {state,-10} calls {m.Host!.SessionCount}"));
                 }
@@ -257,15 +365,7 @@ namespace RetroX25.Host
         /// <returns>How many sessions; -1 when no such machine, -2 when it is a script machine.</returns>
         public int ToUsers(string hostname, string user, string? text)
         {
-            Machine? m = null;
-            for (int i = 0; i < _machines.Count; i++)
-            {
-                if (string.Equals(_machines[i].Entry.Hostname, hostname, StringComparison.OrdinalIgnoreCase))
-                {
-                    m = _machines[i];
-                }
-            }
-
+            Machine? m = Find(hostname);
             if (m == null)
             {
                 return -1;
@@ -489,6 +589,13 @@ namespace RetroX25.Host
                 _log.LogWarning("x25host: call from {Calling} to {Called} on line {Line}: no machine has that number, cleared",
                     vc.CallingAddress, vc.CalledAddress, line.Key);
                 client.Clear(vc, CauseDteOriginated, DiagnosticInvalidCalled);
+                return;
+            }
+
+            if (m.Stopped)
+            {
+                _log.LogInformation("{Host}: call from {Calling} refused: the machine is stopped (stop host)", m.Entry.Hostname, vc.CallingAddress);
+                client.Clear(vc, CauseDteOriginated, 0);
                 return;
             }
 
@@ -754,6 +861,9 @@ namespace RetroX25.Host
             public MachineEntry Entry { get; }
 
             public IHostMachine? Host { get; set; }
+
+            /// <summary>Stopped by the operator (stop host): calls to it are cleared.</summary>
+            public volatile bool Stopped;
 
             /// <summary>The switch line it answers on.</summary>
             public HostLine? Line { get; set; }

@@ -16,7 +16,7 @@ namespace RetroX25.Host
     {
         private static readonly string[] NotBuilt =
         {
-            "show host", "stop host", "start host", "restart host", "reload", "log",
+            "show host", "reload", "log",
         };
 
         private readonly HostRunner _runner;
@@ -76,6 +76,9 @@ namespace RetroX25.Host
                         + "show users   every logged-in user of a host folder machine\n"
                         + "clear call <hostname> <lcn>   clear one call at once\n"
                         + "logout <hostname> <user|*>    log a user (or everybody) out\n"
+                        + "stop host <hostname>   end its calls and stop answering\n"
+                        + "start host <hostname>  read its folder again and answer again\n"
+                        + "restart host <hostname>\n"
                         + "send <hostname> <user|*> <text>   a line to a user (or everybody)\n"
                         + "quit        stop x25host (asks first)\n";
                 case "quit":
@@ -95,6 +98,26 @@ namespace RetroX25.Host
             }
 
             string[] words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (cmd.StartsWith("stop host", StringComparison.Ordinal) || cmd.StartsWith("start host", StringComparison.Ordinal)
+                || cmd.StartsWith("restart host", StringComparison.Ordinal))
+            {
+                if (words.Length != 3)
+                {
+                    return "usage: " + words[0].ToLowerInvariant() + " host <hostname>\n";
+                }
+
+                switch (words[0].ToLowerInvariant())
+                {
+                    case "stop":
+                        return _runner.StopHost(words[2]) + "\n";
+                    case "start":
+                        return _runner.StartHost(words[2]) + "\n";
+                    default:
+                        string stopped = _runner.StopHost(words[2]);
+                        return stopped.StartsWith("no machine", StringComparison.Ordinal) ? stopped + "\n" : stopped + "\n" + _runner.StartHost(words[2]) + "\n";
+                }
+            }
+
             if (cmd.StartsWith("logout ", StringComparison.Ordinal) || cmd == "logout")
             {
                 return words.Length != 3 ? "usage: logout <hostname> <user|*>\n" : Count(_runner.ToUsers(words[1], words[2], null), words[1], "logged out");

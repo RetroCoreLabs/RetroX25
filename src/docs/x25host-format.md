@@ -255,7 +255,7 @@ share a switch port share one XOT connection, and each call goes to the machine 
 called number; any other number is cleared (cause 0, diagnostic 67). The switch gives the full number
 (`called_address = international`, the default for every port). Not built yet: `nui`, the telnet console (`--console-port`) and most console commands. On stdin the console
 has `show hosts`, `show stats`, `show calls`, `show users` (without bytes per user), `clear call`, `logout`,
-`send`, `help` and `quit`; a script machine does not report its users, so `show users`, `logout` and `send` say
+`send`, `stop host`, `start host`, `restart host`, `help` and `quit`; a script machine does not report its users, so `show users`, `logout` and `send` say
 so for it; the other commands answer that they are not built yet.
 `--stats-log` is built: each
 machine's line of the `show stats` counters, then a `total` line, go to the log once a minute. The working example is
@@ -346,7 +346,7 @@ over telnet on that port (bound to 127.0.0.1 unless `--console-bind` says otherw
 | `show stats` | Per machine: calls in, calls refused (busy, not a PAD call), bytes in, bytes out, data packets in, data packets out, wrong logins |
 | `show users` | Every logged-in session: hostname, user, calling address, logged in since, idle time, bytes in/out |
 | `show calls` | Every call now, logged in or not: hostname, calling address, logical channel, since, state (banner, login, shell, menu) |
-| `stop host <hostname>` | Clears the machine's calls (each user first gets the `logout_text`) and stops answering; its NUA then gets Number out of order from the switch |
+| `stop host <hostname>` | Clears the machine's calls (each user first gets the `logout_text`) and stops answering: a new call to it is cleared with cause 0 (DTE originated), as a DTE may give no other cause (X.25 Table 5-7); the line stays up for the other machines on it, so the switch does not see the machine as out of order |
 | `start host <hostname>` | Starts a stopped machine again (re-reads its host folder; a broken folder leaves it stopped, with the reason) |
 | `restart host <hostname>` | `stop` and `start` |
 | `logout <hostname> <user>` | Logs that user out: sends the `logout_text`, clears the call. `logout <hostname> *` logs out everybody on it |

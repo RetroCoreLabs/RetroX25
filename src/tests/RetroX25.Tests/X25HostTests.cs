@@ -430,6 +430,49 @@ namespace RetroX25.Tests
             Assert.That(c.Cleared.Wait(5000), Is.True, "the logout did not end the call");
         }
 
+        /// <summary>
+        /// <c>stop host</c> logs the user out, and a new call is then cleared; a folder broken meanwhile keeps
+        /// <c>start host</c> from starting it, with the reason; mended, it starts and answers again.
+        /// </summary>
+        [Test]
+        public void Console_StopHost_EndsTheCalls_AndStartHost_ReadsTheFolderAgain()
+        {
+            WriteTinyHost();
+            (XotSwitchPort line, XotSwitchPort callers) = BuildSwitch();
+            List<MachineEntry> m = Parse("[defaults]", "library = library",
+                "[machine.0]", "type = tiny", "nua = " + Folder, "switch = 127.0.0.1:" + line.BoundPort);
+            HostRunner runner = new HostRunner(m, NullLogger.Instance);
+            _disposables.Add(runner);
+            runner.Start();
+            Assert.That(SpinWait.SpinUntil(() => runner.AllLinesUp, 10000), Is.True);
+            OperatorConsole console = new OperatorConsole(runner);
+
+            X25Client client = OpenCaller(callers, out Caller c);
+            c.Vc = client.CallWait(Folder, 5000);
+            Assert.That(c.WaitFor("Username: "), Is.True, c.Text);
+            c.Send("guest\rSECRET\r");
+            Assert.That(c.WaitFor("$ "), Is.True, c.Text);
+
+            Assert.That(console.Execute("stop host tiny"), Is.EqualTo("tiny stopped, 1 call(s) ended\n"));
+            Assert.That(c.WaitFor("Bye guest."), Is.True, c.Text);
+            Assert.That(c.Cleared.Wait(5000), Is.True);
+            Assert.That(console.Execute("show hosts"), Does.Contain(" stopped "));
+            Assert.That(client.CallWait(Folder, 5000), Is.Null, "a stopped machine answers no call");
+
+            string ini = Path.Combine(_folder, "library", "tiny", "host.ini");
+            string good = File.ReadAllText(ini);
+            File.WriteAllText(ini, good + "\n[hots]\n");
+            Assert.That(console.Execute("start host tiny"), Does.Contain("stays stopped").And.Contain("[hots]"));
+            File.WriteAllText(ini, good);
+            Assert.That(console.Execute("start host tiny"), Is.EqualTo("tiny started\n"));
+            Assert.That(console.Execute("show stats"), Does.StartWith("tiny: calls in 0,"), "start clears the counters");
+
+            X25Client again = OpenCaller(callers, out Caller c2);
+            c2.Vc = again.CallWait(Folder, 5000);
+            Assert.That(c2.Vc, Is.Not.Null);
+            Assert.That(c2.WaitFor("Username: "), Is.True, c2.Text);
+        }
+
         [Test]
         public void AFullFolderMachine_RefusesTheNextCall_WithCauseDteOriginated()
         {
