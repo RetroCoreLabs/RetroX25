@@ -1,6 +1,6 @@
 # RetroX25 plan - outstanding work only
 
-**Next:** the Altos chat test (waits for the altoschat session's chat service), then the rest of B3. Push (A6) only after Ronny has looked at the commits.
+**Next:** the rest of B3. Push (A6) only after Ronny has looked at the commits.
 
 Rules for this file: finished items are deleted, not ticked. Each item says what to build, how it is proved,
 and what it waits for. What was measured is in `docs/xot-peers.md`, `docs/trunk-links.md`,
