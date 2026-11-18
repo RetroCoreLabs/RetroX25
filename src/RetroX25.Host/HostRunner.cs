@@ -7,6 +7,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using RetroIO.Protocols.X25.Client;
 using RetroIO.Protocols.X25.Host;
@@ -145,6 +146,48 @@ namespace RetroX25.Host
         /// <summary>Calls open now, on every machine.</summary>
         public int CallCount => _calls.Count;
 
+        /// <summary>
+        /// How often the counters go to the log (<c>--stats-log</c>, once a minute); 0 (the default) never. Set before
+        /// <see cref="Start"/>.
+        /// </summary>
+        public int StatsLogMs { get; set; }
+
+        /// <summary>
+        /// One line per machine with the counters of <c>show stats</c> (docs/x25host-format.md), then the totals.
+        /// Wrong logins are counted by host folder machines only; a script machine shows 0.
+        /// </summary>
+        /// <returns>The lines.</returns>
+        public List<string> StatsLines()
+        {
+            List<string> lines = new List<string>(_machines.Count + 1);
+            long[] total = new long[8];
+            for (int i = 0; i < _machines.Count; i++)
+            {
+                Machine m = _machines[i];
+                long[] v =
+                {
+                    Interlocked.Read(ref m.CallsIn), Interlocked.Read(ref m.RefusedBusy), Interlocked.Read(ref m.RefusedNotPad),
+                    Interlocked.Read(ref m.BytesIn), Interlocked.Read(ref m.BytesOut), Interlocked.Read(ref m.PacketsIn),
+                    Interlocked.Read(ref m.PacketsOut), m.Host is DescribedHost d ? d.LoginsRefused : 0,
+                };
+                for (int j = 0; j < v.Length; j++)
+                {
+                    total[j] += v[j];
+                }
+
+                lines.Add(StatsLine(m.Entry.Hostname, v));
+            }
+
+            lines.Add(StatsLine("total", total));
+            return lines;
+        }
+
+        private static string StatsLine(string name, long[] v)
+        {
+            return string.Create(CultureInfo.InvariantCulture,
+                $"{name}: calls in {v[0]}, refused busy {v[1]}, refused not a PAD call {v[2]}, bytes in {v[3]}, bytes out {v[4]}, data packets in {v[5]}, data packets out {v[6]}, wrong logins {v[7]}");
+        }
+
         /// <summary>True when every line has its connection to the switch.</summary>
         public bool AllLinesUp
         {
@@ -231,6 +274,7 @@ namespace RetroX25.Host
         private void WorkLoop()
         {
             Stopwatch tick = Stopwatch.StartNew();
+            Stopwatch stats = Stopwatch.StartNew();
             while (!_stopped)
             {
                 try
@@ -247,6 +291,16 @@ namespace RetroX25.Host
                         for (int i = 0; i < _machines.Count; i++)
                         {
                             _machines[i].Host!.Tick(now);
+                        }
+
+                        if (StatsLogMs > 0 && stats.ElapsedMilliseconds >= StatsLogMs)
+                        {
+                            stats.Restart();
+                            List<string> lines = StatsLines();
+                            for (int i = 0; i < lines.Count; i++)
+                            {
+                                _log.LogInformation("stats: {Line}", lines[i]);
+                            }
                         }
                     }
                 }
@@ -319,6 +373,7 @@ namespace RetroX25.Host
 
             if (answer != HostAdmission.Accept)
             {
+                Interlocked.Increment(ref answer == HostAdmission.Busy ? ref m.RefusedBusy : ref m.RefusedNotPad);
                 call.Gone = true;
                 // A DTE clears with cause 0 (X.25 Table 5-7); "Number busy" is a network cause it cannot give. The log
                 // says why.
@@ -329,6 +384,7 @@ namespace RetroX25.Host
             }
 
             vc.UserData = session;
+            Interlocked.Increment(ref m.CallsIn);
             client.Accept(vc);
             _log.LogInformation("{Host}: call {Session} from {Calling}", m.Entry.Hostname, session, vc.CallingAddress);
         }
@@ -342,6 +398,8 @@ namespace RetroX25.Host
                 return;
             }
 
+            Interlocked.Increment(ref call.Machine.PacketsIn);
+            Interlocked.Add(ref call.Machine.BytesIn, length);
             byte[] copy = new byte[length];
             Buffer.BlockCopy(data, 0, copy, 0, length);
             Post(() => call.Machine.Host!.Input(session, copy));
@@ -472,6 +530,8 @@ namespace RetroX25.Host
                     offset += piece;
                     int session = next.Session;
                     Machine m = next.Call.Machine;
+                    Interlocked.Increment(ref m.PacketsOut);
+                    Interlocked.Add(ref m.BytesOut, piece);
                     Post(() => m.Host!.OutputDrained(session, piece));
                     if (offset >= next.Data.Length)
                     {
@@ -528,6 +588,16 @@ namespace RetroX25.Host
             public MachineEntry Entry { get; }
 
             public IHostMachine? Host { get; set; }
+
+            // The counters of docs/x25host-format.md "The operator console" (show stats), from the start. Written on
+            // the client and sender threads, so with Interlocked.
+            public long CallsIn;
+            public long RefusedBusy;
+            public long RefusedNotPad;
+            public long BytesIn;
+            public long BytesOut;
+            public long PacketsIn;
+            public long PacketsOut;
 
             public void SetEcho(int session, bool echo)
             {

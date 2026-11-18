@@ -350,6 +350,13 @@ namespace RetroX25.Tests
             Assert.That(c.Cleared.Wait(1000), Is.False, "the host cleared instead of waiting for the PAD");
             client.Clear(c.Vc!, 0, 0);
             Assert.That(SpinWait.SpinUntil(() => runner.CallCount == 0, 5000), Is.True, "the host did not see the PAD's clear");
+
+            // The counters of --stats-log: one call, the 20 typed bytes ("guest\rSECRET\r" and "logout\r"), nothing refused.
+            List<string> stats = runner.StatsLines();
+            Assert.That(stats, Has.Count.EqualTo(2));
+            Assert.That(stats[0], Does.StartWith("tiny: calls in 1, refused busy 0, refused not a PAD call 0, bytes in 20,"), stats[0]);
+            Assert.That(stats[0], Does.EndWith(", wrong logins 0"), stats[0]);
+            Assert.That(stats[1], Does.StartWith("total: calls in 1,"), stats[1]);
         }
 
         [Test]

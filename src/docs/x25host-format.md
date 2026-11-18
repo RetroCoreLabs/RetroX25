@@ -253,8 +253,8 @@ machine `type`, `script`, `hostname`, `nua`, `switch`, `group`, `setting.*`. A m
 folder stops the program at start with the file and line; two machines with one `nua` are refused. Machines that
 share a switch port share one XOT connection, and each call goes to the machine whose `nua` is exactly the
 called number; any other number is cleared (cause 0, diagnostic 67). The switch gives the full number
-(`called_address = international`, the default for every port). Not built yet: `nui`, the operator console,
-`--stats-log`. The working example is
+(`called_address = international`, the default for every port). Not built yet: `nui` and the operator console. `--stats-log` is built: each
+machine's line of the `show stats` counters, then a `total` line, go to the log once a minute. The working example is
 `demo/x75-countries/machines.ini`.
 
 One file lists every machine of a demo network; one command starts them all. The list says which type folder

@@ -440,7 +440,7 @@ description files, nothing in them runs; C# first, then C in x25emu reading the 
 limits) later and in C# only.
 
 - G1. What `x25host` still lacks from `docs/x25host-format.md` ("Many machines at once"): `nui` per machine, the operator console (`--console-port`, `show hosts`,
-  `stop host`, ...) and `--stats-log`.
+  `stop host`, ...); its counters exist already (`HostRunner.StatsLines`, `--stats-log`).
 - G3. C `x25host` in x25emu reading the same files (ask the altoschat session before editing x25emu); a test that
   runs both on the same example and compares the screens.
 - G4. JavaScript hosts (C# only). The engine is built: `ScriptedHost` in RetroIO `RetroIO.Protocols.X25.Host`

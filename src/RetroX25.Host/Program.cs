@@ -29,6 +29,7 @@ namespace RetroX25.Host
             string? sw = null;
             string? address = null;
             string? hostname = null;
+            bool statsLog = false;
             int verbosity = 0;
             for (int i = 0; i < args.Length; i++)
             {
@@ -56,6 +57,10 @@ namespace RetroX25.Host
                 else if (arg == "--group" && i + 1 < args.Length)
                 {
                     group = args[++i];
+                }
+                else if (arg == "--stats-log")
+                {
+                    statsLog = true;
                 }
                 else if (arg == "-v")
                 {
@@ -113,7 +118,7 @@ namespace RetroX25.Host
             HostRunner runner;
             try
             {
-                runner = new HostRunner(machines, log);
+                runner = new HostRunner(machines, log) { StatsLogMs = statsLog ? 60000 : 0 };
             }
             catch (InvalidOperationException ex)
             {
@@ -147,6 +152,7 @@ namespace RetroX25.Host
             Console.Error.WriteLine("  -n hostname      its name (default: [host] hostname, else the folder name)");
             Console.Error.WriteLine("  --machines file  the machine list: one [machine.N] per machine (type, nua, switch, hostname)");
             Console.Error.WriteLine("  --group name     run only the machines with group = name");
+            Console.Error.WriteLine("  --stats-log      each machine's counters (calls, bytes, packets, wrong logins) to the log once a minute");
             Console.Error.WriteLine("  -v               verbose (repeat for more)");
             return 1;
         }
