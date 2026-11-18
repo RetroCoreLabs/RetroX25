@@ -102,8 +102,10 @@ X.75 1988): transit networks, call identifier, throughput class, window, packet 
 carried byte for byte. The call identifier has no byte
 order to get right: its content is "under the responsibility of the originating network" (5.3.2 Note), so it is a
 3-octet name that the other networks only carry and compare; all zeros means "not significant".
-- Still to do: the utility length octet and field in the Call Request / Call Connected / Clear packets (4.2.1.4: after
-  the addresses, before the facility length) - part of B3, since only an STE port sends them.
+- Packets done 2026-11-18 (RetroIO `X75PacketTests`, 11 tests from 4.2 and Figures 7, 8): the builder takes the
+  utility field for Call Request, Call Connected (always carries it, 5.4.1) and the extended Clear Request; the parser
+  reads it with `ParsePacket(data, x75: true)`, and refuses a three-octet Call Connected and a Clear Confirmation
+  longer than three octets (Figure 8).
 - Read against x25emu 2026-11-18 (its `x25.h`, `x25switch.c`): the same codes (marker 00, transit 41, call identifier
   81), the call identifier's three octets kept in arrival order, the DNIC as two BCD octets. One difference: x25emu cites "Table 29/X.75",
   "Figure 8" and a 323-octet packet limit with no separate field maximum, and allows 64 octets; the 1988 text on disk
@@ -113,6 +115,17 @@ order to get right: its content is "under the responsibility of the originating 
 ### B3. STE port mode
 A port with no DTE/DCE roles. Channel ranges and the collision rule are agreed in the configuration: a call collision clears
 both calls with "network congestion". Sequence numbers modulo 8 (modulo 128 is out of scope, see the scope decisions).
+Read 2026-11-18 in X.75 1988 section 3.1 and Table 13, for the packet layer (`X25Layer`, which today knows only
+DTE and DCE):
+- Collision (3.1.4): both calls cleared, cause "Network congestion" = 0x05 (Table 13). Which end searches channels
+  from the lowest number and which from the highest is "agreed bilaterally" - a port setting.
+- T31 200 s for a Call Request, T33 180 s for a Clear Request (3.1.2, 3.1.5); Annex D says what happens when T33 runs
+  out - not yet read.
+- Table 13 has no "local procedure error" cause, which the engine sends as a DCE today; what an STE sends instead for a
+  procedure error (Annex C/E) is not yet read. A cause not in Table 13 is passed on or changed to 0x05 (4.2.3.1).
+- Clear collision (3.1.7): no confirmation, the channel is free. Restart between STEs (section 3.5?) not yet read.
+- Every Call Request and Call Connected sent on the port carries the utility field (`X25PacketBuilder`'s
+  `networkUtilities`), and every one received is parsed with `x75: true`.
 - Prove: two switches as STEs over HDLC-over-TCP; a call crosses; a collision test clears both; the call identifier and
   the transit list arrive intact.
 
