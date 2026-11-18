@@ -12,6 +12,7 @@ at NUA 0262 45 8900 40004 (Hans Korneder, Munich, 1987). The original source is 
 "Chat": {
   "Address": "26245890040004",
   "MaxUsers": 30,
+  "MaxCalls": 128,
   "OutputLimitBytes": 4096,
   "WaitPauseMs": 3000,
   "StartingNickname": "guest"
@@ -22,9 +23,15 @@ at NUA 0262 45 8900 40004 (Hans Korneder, Munich, 1987). The original source is 
 |---|---|---|
 | `Address` | The chat's own X.121 address. Empty means there is no chat. It must differ from `X25.LocalMachineId`, which is the TAD's address: if they are the same, the chat is not started and the log says why. | empty |
 | `MaxUsers` | Most users at one time. The next caller sees `open of answerpipe failed.` and is cleared, as on the original (its `NUSERS`). | 30 |
+| `MaxCalls` | Most calls at one time, every state counted (waiting, in the chat, thrown out as slow). The next call is refused before it is answered: a clear of cause 0 "DTE originated", diagnostic 0 (X.25 (10/96) 4.1.7, Table 5-7). The same as `-c` of x25emu's `x25chat`. | 128 |
 | `OutputLimitBytes` | How many bytes may be on their way to one user. A user who falls this far behind is put out of the chat, as the original did after a write had been stuck for 2 seconds. | 4096 |
 | `WaitPauseMs` | The pause between `Waiting for connection.` and `Connection established.` The original slept 3 seconds there. | 3000 |
 | `StartingNickname` | The name every caller starts with. | `guest` |
+
+Output to one caller, the same in this service and in x25emu's `x25chat`: packets of at most 128 bytes, or the
+call's own packet size when that is smaller; at most 32 KB waiting to be sent, and a caller who would go past that
+is put out of the chat and cleared after what is already queued; a reset of the call throws away the output still
+waiting, as X.25 (10/96) 4.4.3 says a reset does.
 
 A call reaches the chat only if an incoming route lets its number in. Add a `Local` route for the address:
 
@@ -41,7 +48,7 @@ terminal and the chat does not take it. The chat ranks above the TAD (priority 1
 ## What the chat asks the PAD to do
 
 On every accepted call the chat first sends one X.29 **set** message (a data packet with the Q bit set), the bytes
-`02 02 01 03 02 0D 04 0F 01 10 7F 11 18 12 12`:
+`02 02 01 03 02 0D 04 0F 01 10 7F 11 18 12 12 13 02`:
 
 | X.3 parameter | Value | Meaning |
 |---|---|---|
@@ -52,9 +59,13 @@ On every accepted call the chat first sends one X.29 **set** message (a data pac
 | 16, character delete | 127 | DEL |
 | 17, line delete | 24 | CAN (Ctrl-X) |
 | 18, line display | 18 | DC2 (Ctrl-R) |
+| 19, editing PAD service signals | 2 | for a screen: a deleted character is rubbed out with BS SP BS, a deleted line with one BS SP BS per character |
 
 The values of 16, 17 and 18 are the ones both standard profiles of X.28 (12/97) Table 1 use. A terminal whose
-backspace key sends BS (8) does not delete with them; change parameter 16 at the PAD.
+backspace key sends BS (8) does not delete with them; change parameter 16 at the PAD. For 19 both profiles have 1,
+the backslash `\` of a printing terminal; the chat asks for 2, "editing PAD service signals for display terminals"
+(X.3 (03/00) 3.19), so the PAD answers a deleted character with "the characters 0/8 (BS) 2/0 (SP) 0/8 (BS)"
+(X.28 (12/97) 3.5.24, value 2). Both PADs (the C# PAD and x25emu's `x25pad`) do this.
 
 When the call ends, the C# PAD goes back to the parameters it had when the call was placed: what you SET at the
 prompt before the call stays, what the chat (or anything during the call) set is dropped. No standard says this;

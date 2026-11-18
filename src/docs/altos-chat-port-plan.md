@@ -1,6 +1,6 @@
 # Altos CHAT 3.1 port - plan
 
-**Next:** nothing. All eight steps are built and tested (2026-11-18); what is left is under "Open" below. How
+**Next:** nothing. All eight steps are built and tested (2026-11-18), and nothing is open. How
 to run and use the chat: [altos-chat.md](altos-chat.md).
 
 The goal is to bring back the chat that ran on the Altos system in Munich in the 1980s, reached over X.25. It becomes a
@@ -123,11 +123,16 @@ Kept, through a log interface.
   `Disconnect(session)`, `Tick(now)`. It writes actions to a list: send bytes to a session, clear a session, a log
   line. A line reader per session (as `get_line`) and a server core (as `process()`) with the same order of command
   checks and the same texts.
-- **Settings:** maximum users (default 30), output line end (CR LF), output limit per user, starting nickname,
-  pause after "Waiting".
+- **Settings:** maximum users (default 30), maximum calls (default 128, every state counted; the call past it is
+  cleared before it is answered, cause 0 "DTE originated", X.25 4.1.7 and Table 5-7), output line end (CR LF), output
+  limit per user, starting nickname, pause after "Waiting".
 - **X.3 setup on connect:** the service sends an X.29 Set with the Q bit: echo on (parameter 2 = 1), forward on CR
-  (3 = 2), LF after CR in the echo (13 = 4), editing on (15 = 1), and the erase, kill and display characters (16, 17, 18). Exact values are taken from
-  X.3 / X.29 when the code is written, with the clause cited.
+  (3 = 2), LF after CR in the echo (13 = 4), editing on (15 = 1), the erase, kill and display characters (16, 17, 18),
+  and editing PAD service signals for display terminals (19 = 2, BS SP BS; X.3 3.19, X.28 3.5.24). The bytes:
+  `02 02 01 03 02 0D 04 0F 01 10 7F 11 18 12 12 13 02`.
+- **The X.25 side, the same in C and C#** (Ronny, 2026-11-18): packets of at most 128 bytes or the call's own packet
+  size when smaller; at most 32 KB waiting per call, past it the call is ended (the others see `---nick---`) and
+  cleared after the queued output; a reset drops the waiting output (X.25 4.4.3).
 
 **C# (built in).** In `RetroIO.Protocols.X25`: `AltosChatEngine` (pure) and `ChatProtocolService : IProtocolService`
 registered next to the TAD in `ProtocolRuntime.RegisterProtocolServices` (`ProtocolRuntime.cs`). A new config setting
@@ -149,13 +154,7 @@ edits locally and never reaches the server. Anything a PAD does not obey is fixe
 
 ## Open
 
-- **C and C# differ inside, not on the screen.** The cross tests (`tests/RetroX25.Tests/Interop/AltosChatCrossTests.cs`)
-  prove both send the same bytes for the same 51-step session. The C program also limits waiting output to 32 KB per
-  caller, sizes packets to the call's packet size (C# always 128), drops waiting output on a reset and takes at most
-  128 calls. Make the two the same, or say why not.
-- **The two PADs show a deleted character differently**, because their own profiles differ in X.3 parameter 19, which
-  the chat's Set does not change. The C# PAD uses 1 (`\`, the value of both profiles in X.28 Table 1); x25pad's own
-  "standard" profile (not an ITU-T one) uses 2 (BS SP BS, for a screen).
+Nothing.
 
 ## Tests (each written to fail first)
 

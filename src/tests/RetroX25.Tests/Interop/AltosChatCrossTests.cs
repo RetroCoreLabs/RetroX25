@@ -47,8 +47,9 @@ namespace RetroX25.Tests
         // X.29 (12/97) 4.2.1: the PAD protocol identifier.
         private static readonly byte[] PadCud = { 0x01, 0x00, 0x00, 0x00 };
 
-        // The X.29 set PAD message both chats send first (plan, test 21): 2=1 3=2 13=4 15=1 16=127 17=24 18=18.
-        private static readonly byte[] SetPad = { 0x02, 0x02, 0x01, 0x03, 0x02, 0x0D, 0x04, 0x0F, 0x01, 0x10, 0x7F, 0x11, 0x18, 0x12, 0x12 };
+        // The X.29 set PAD message both chats send first (plan, test 21): 2=1 3=2 13=4 15=1 16=127 17=24 18=18 19=2
+        // (19 = 2: editing PAD service signals for display terminals, X.3 (03/00) 3.19; BS SP BS, X.28 (12/97) 3.5.24).
+        private static readonly byte[] SetPad = { 0x02, 0x02, 0x01, 0x03, 0x02, 0x0D, 0x04, 0x0F, 0x01, 0x10, 0x7F, 0x11, 0x18, 0x12, 0x12, 0x13, 0x02 };
 
         // CHAT 3.1 chat.c:248-250, 277, 270; serv.c:253, with CR LF line ends (plan, decisions).
         private const string Banner =
@@ -518,6 +519,10 @@ namespace RetroX25.Tests
             // sender's screen is the PAD's echo.
             Assert.That(one.WaitForCount("lo from one\r\n", 1, Wait), Is.True, one.Name + " did not echo the line with CR LF:\n" + Show(one.Screen));
             Assert.That(one.Screen, Does.Not.Contain("says: hello from one"), "the sender got its own line back");
+
+            // The chat's set makes parameter 19 = 2, so either PAD rubs the deleted "o" out with BS SP BS (X.28 (12/97)
+            // 3.5.24, "Value 2: the characters 0/8 (BS) 2/0 (SP) 0/8 (BS) will be sent"), after the echoed DEL.
+            Assert.That(one.Screen, Does.Contain("helo\u007F\b \blo from one\r\n"), one.Name + " did not show BS SP BS for the deleted character:\n" + Show(one.Screen));
 
             two.Type("and hello from two\r");
             Assert.That(one.WaitForCount("guest says: and hello from two\r\n", 1, Wait), Is.True, one.Name + " did not get the line:\n" + Show(one.Screen));

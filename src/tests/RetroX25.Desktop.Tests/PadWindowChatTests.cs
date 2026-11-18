@@ -101,8 +101,10 @@ namespace RetroX25.Desktop.Tests
 
         /// <summary>
         /// Window A types "helo", Delete, "lo", Enter. Window B shows "guest says: hello"; the chat never saw "helo".
-        /// A's own echo shows the DEL as "\" (X.28 3.5.24, parameter 19 = 0 printer style) and the line ends with CR
-        /// LF (parameter 13 = 4), so B's answer does not overwrite it.
+        /// The chat's set makes parameter 19 = 2, editing PAD service signals for display terminals, so A's PAD answers
+        /// the DEL with BS SP BS (X.28 (12/97) 3.5.24, "Value 2: the characters 0/8 (BS) 2/0 (SP) 0/8 (BS) will be sent"):
+        /// the window rubs the "o" out and A's own screen reads "hello". The line ends with CR LF (parameter 13 = 4), so
+        /// B's answer does not overwrite it.
         /// </summary>
         [AvaloniaTest]
         public void TwoPadWindows_TalkThroughTheChat_DeleteKeyEditsInThePad()
@@ -122,8 +124,8 @@ namespace RetroX25.Desktop.Tests
             WaitUntil(() => b.ConsoleText.Contains("guest says: hello"), "B gets A's line", () => b.ConsoleText);
             Assert.That(b.ConsoleText, Does.Not.Contain("helo"), "an edited-away character reached the chat");
             string aEcho = a.ConsoleText.Substring(aBefore);
-            Assert.That(aEcho, Does.StartWith("helo\\lo" + Environment.NewLine),
-                "A's echo: the DEL shown as \\ and a new line after Enter\n" + a.ConsoleText);
+            Assert.That(aEcho, Does.StartWith("hello" + Environment.NewLine),
+                "A's echo: the deleted o rubbed out by BS SP BS, and a new line after Enter\n" + a.ConsoleText);
 
             // The chat monitor shows both callers.
             ChatServerWindowViewModel monitor = new ChatServerWindowViewModel(
