@@ -457,6 +457,10 @@ dotnet test tests\RetroX25.Desktop.Tests -nodeReuse:false --filter "FullyQualifi
 dotnet test tests\RetroX25.Tests -nodeReuse:false --filter "FullyQualifiedName~CiscoR1SwitchNegotiationTests"
 ```
 
+Calling addresses: the x25pad tests give `-a 23400055` and the raw caller gives 23400077; x25traffic is run without `-a`,
+so it sends no calling address (it used to send 99990001, which is no X.121 address; see the comment in
+`RetroX25.Traffic/Program.cs`). Whether a 25xx accepts an XOT call with no calling address is **not verified**.
+
 The tests are marked Explicit, so they run only when named like this. One load case alone:
 `--filter "Name~_FullSpeed20000"` (the case names are `_FullSpeed`, `_20PerSecond`, `_30PerSecond`, `_40PerSecond`,
 `_16Calls`, `_TenMinutes`, `_TenMinutesAt40`, `_FullSpeed20000`, `_OneWayFullSpeed`).
