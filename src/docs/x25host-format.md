@@ -240,6 +240,51 @@ the real networks a host on its own line was billed by its line and address, and
 PAD users. Calls TO the machine are paid by the caller (or by the machine when the caller asks for reverse
 charging and the machine accepts it).
 
+### One x25host or several
+
+How many `x25host` processes run is a choice of the setup, not of the program. A machine line may carry
+`group = <name>` (for example the country), and `--group` picks which machines one process runs:
+
+```text
+x25host --machines machines.ini                    # every machine, one process
+x25host --machines machines.ini --group norway     # only the machines with group = norway
+x25host --machines norway-hosts.ini                # or one list file per process
+```
+
+So one large process for all countries, one per country, or any other mix (all BBSes in one, the
+mainframes in another) is the same program with other arguments. A machine with no `group` is in the group
+`default`. Two processes may never run the same machine: each process registers its NUAs with the switch,
+and a second one that tries the same NUA is refused at start with the name of the machine.
+
+### The operator console
+
+`x25host` has a console for the person running it: on its own terminal (stdin) and, with `--console-port <N>`,
+over telnet on that port (bound to 127.0.0.1 unless `--console-bind` says otherwise, with the login of an
+`[operator.N]` section in the list file: `name`, `password`). Several processes have several ports
+(`--console-port 9301` for Norway's, `9302` for England's ...). Commands:
+
+| Command | What it does |
+|---|---|
+| `show hosts` | One line per machine: hostname, type, NUA, group, state (`up`, `stopped`, `redialling`, `failed`), calls now / `sessions`, logged-in users |
+| `show host <hostname>` | One machine in full: the above plus its switch, uptime, calls since start, refused logins, and the counters below |
+| `show stats` | Per machine: calls in, calls refused (busy, not a PAD call), bytes in, bytes out, data packets in, data packets out, wrong logins |
+| `show users` | Every logged-in session: hostname, user, calling address, logged in since, idle time, bytes in/out |
+| `show calls` | Every call now, logged in or not: hostname, calling address, logical channel, since, state (banner, login, shell, menu) |
+| `stop host <hostname>` | Clears the machine's calls (each user first gets the `logout_text`) and stops answering; its NUA then gets Number out of order from the switch |
+| `start host <hostname>` | Starts a stopped machine again (re-reads its host folder; a broken folder leaves it stopped, with the reason) |
+| `restart host <hostname>` | `stop` and `start` |
+| `logout <hostname> <user>` | Logs that user out: sends the `logout_text`, clears the call. `logout <hostname> *` logs out everybody on it |
+| `clear call <hostname> <lcn>` | Clears one call at once, logged in or not |
+| `send <hostname> <user\|*> <text>` | A line of text to one user or to every user on the machine (an operator message, as `REPLY` / `SEND` on the real systems) |
+| `reload` | Re-reads every host folder and the list file: new machines start, removed ones stop, changed ones restart only when they have no calls |
+| `log <hostname\|*> <level>` | The log level for one machine or all |
+| `help` | The commands |
+| `quit` | Leaves the telnet console (on stdin it asks, then stops the process) |
+
+The counters are kept per machine from the moment it starts and are cleared by `start`; `show stats` also gives
+the totals for the process. The same figures go to the process log once a minute when `--stats-log` is given,
+so a test can read them without a console.
+
 ## Limits (both programs, not settable from the file)
 
 - A typed line longer than 256 characters is cut there.
