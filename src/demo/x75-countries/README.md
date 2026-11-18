@@ -22,6 +22,7 @@ script and these same files, then dials in. What you start by hand is what the t
 
 | File | What it is |
 |---|---|
+| `desktop-norway.json` | The desktop app as one more PAD user on Norway's line (see "The desktop app as a PAD user") |
 | `norway.ini` | Norway's switch: PAD users' line (NUI required), echo, X.75 to England, the NUI accounts |
 | `england.ini` | England's switch: X.75 from Norway, X.75 to Germany, echo |
 | `germany.ini` | Germany's switch: X.75 from England, the Altos host line, echo |
@@ -131,6 +132,43 @@ Each gets the 1987 welcome, `Waiting for connection.`, a pause of `WaitPauseMs` 
 `Connection established.` and `+++guest+++`. What one types, the other reads as `guest says: <text>`. The
 chat does not echo your own line back (the PAD does). `.h` is help, `.x` leaves (the others see
 `---guest---`). It takes up to 30 users (`MaxUsers`).
+
+## The desktop app as a PAD user
+
+The desktop app (`RetroX25.exe`, the Avalonia program) can join the network as one more PAD user on Norway's
+PAD line, the same line `x25pad` uses. `desktop-norway.json` in this folder is its configuration: one XOT
+entry that dials Norway's port 0 (TCP 25001) for each call, and one route that sends every call there.
+
+1. Start the network: `./x75.ps1 start`.
+2. Start the app on the file, from this folder:
+
+   ```powershell
+   ..\..\publish\win-x64\RetroX25.exe desktop-norway.json
+   ```
+
+   Or start it as usual, then **Tools → Configuration → Load...**, pick `desktop-norway.json`, **Apply**.
+3. Open the **PAD Client** window (Ctrl+5).
+4. Give a NUI. Norway refuses every call without one, cleared with Local procedure error, diagnostic 84.
+   Either type it once for the session:
+
+   ```text
+   ID242226500000103
+   026245890040004
+   ```
+
+   or put it in the call itself (X.28 3.5.15): `N242226500000103-026245890040004`. The NUI is not echoed while
+   it is typed. Take a NUI of its own (uit-3 or uit-4) so the app's calls are counted apart from the
+   `x25pad` users in `show x25 account`.
+5. The chat answers as in "The Altos chat" above: talk to an `./x75.ps1 pad 1` user in another window.
+
+The **Packets** window (Ctrl+2) shows the CALL REQUEST with the NUI facility, the CALL CONNECTED and every
+DATA packet as you chat. Every other address in "Every address (NUA)" can be called the same way.
+
+The app's own address is `24227001` (`X25.LocalMachineId` in the file): the chat and Norway's call records
+show it as the caller.
+
+Not yet checked by hand. The file uses the same kind of XOT entry as `altos-chat.json`, and the PAD window
+runs the same X.28 code as `x25pad`, which the script tests use. No test starts the app on this file yet.
 
 ## Management consoles
 

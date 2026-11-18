@@ -1,0 +1,56 @@
+{
+  "SerialPort": "NONE",
+  "BaudRate": 19200,
+  "HistoryCapacity": 500,
+
+  "X25": {
+    "LocalMachineId": "24227001",
+    "T20Timeout": "00:00:30",
+    "T21Timeout": "00:03:00",
+    "T22Timeout": "00:00:30",
+    "T23Timeout": "00:03:00",
+    "MaxRetries": 3,
+    "WindowSize": 2,
+    "PacketSize": 128,
+    "Modulo": 8
+  },
+
+  "Routing": {
+    "Enabled": true,
+    "SerialInterfaces": [],
+    "XotInterfaces": [
+      {
+        "Name": "Norway PAD line",
+        "Enabled": true,
+        "Mode": "Client",
+        "RemoteIPAddress": "127.0.0.1",
+        "RemotePort": 25001,
+        "TcpKeepalive": true,
+        "ProtocolMode": "X25Only",
+        "Description": "Norway port 0 (norway.ini), the PAD users' line, the same line x25pad uses. Every call needs a NUI: type ID<nui> once, or N<nui>-<address> per call"
+      }
+    ],
+    "TcpLapbInterfaces": [],
+    "RoutingTable": [
+      {
+        "Name": "Everything to Norway",
+        "X121AddressPattern": ".*",
+        "Type": "Interface",
+        "Destination": "Norway PAD line",
+        "Priority": 100,
+        "Enabled": true,
+        "Description": "Every call goes to Norway's switch, which routes it on (abroad with the prefix 0)"
+      }
+    ],
+    "KnownHosts": []
+  },
+
+  "Timers": {
+    "CentralTimerManagement": true
+  },
+
+  "Logging": {
+    "EnableFileLogging": false,
+    "LogLevel": "Information"
+  }
+}
