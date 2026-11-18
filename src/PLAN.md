@@ -1,6 +1,6 @@
 # RetroX25 plan - outstanding work only
 
-**Next:** the Altos chat test (waits for the altoschat session's chat service), the C# transit list across internal trunks (B4), then the rest of B3. Push (A6) only after Ronny has looked at the commits.
+**Next:** the Altos chat test (waits for the altoschat session's chat service), then the rest of B3. Push (A6) only after Ronny has looked at the commits.
 
 Rules for this file: finished items are deleted, not ticked. Each item says what to build, how it is proved,
 and what it waits for. What was measured is in `docs/xot-peers.md`, `docs/trunk-links.md`,
@@ -129,10 +129,6 @@ Built 2026-11-18: only a transit network adds its DNIC (5.3.1); the originating 
 (5.3.2); the Call Connected carries the transit list back; a list that already holds our DNIC is cleared 0x05 # 120
 (Annex F a) row 42); refusals for a bad field per Annex F a) rows 10, 14-16, 18. Proved Norway 2422 - England 2342 -
 Germany 2624 with a PAD calling 26245890040004 under NUI 242226500000101.
-- C# switch: the transit list is lost on an internal trunk (a network of several switches). x25emu carries the whole
-  utility field across internal trunks in a private facility, and tells transit from originating by whether a call
-  identifier is already present (5.3.2: always present between networks, set only by the originating network); the
-  C# switch needs the same.
 - A Clear Request that answers a Call Request must carry the transit list (5.3.1); not built in either switch.
 - x25emu follows 5.3.1 since `9395421` (2026-11-18): only a transit network names itself.
 ### B5. Demos
