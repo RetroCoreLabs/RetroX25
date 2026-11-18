@@ -76,8 +76,15 @@ without the DNIC (the national number).
 Any other number in 2624… goes to Germany and is cleared there (no route); 2342… to England; any other DNIC
 is cleared in Norway (no route).
 
-The PAD users themselves have no address of their own: `x25pad` always sends the calling address `10000`.
-What tells the users apart is their NUI.
+The PAD users get their address from the network, as on a real public network: Norway writes
+`24227000` + the call's channel number into every call on its PAD line (`calling_address_base` in `norway.ini`),
+whatever address the PAD sent. So callers show up as `24227001`, `24227002`, ... in the chat's `.s` list, in
+the call records and in the other countries. Two calls at the same time never share an address; the same user
+may get another one on the next call, as a dial-in user got another port of the network's PAD.
+
+The address and the NUI are two different things. The address says where a call comes from and reaches the
+called machine. The NUI only tells Norway who pays and never leaves it: X.25 (10/96) 6.21, "Network user
+identifier is never transmitted to the remote DTE".
 
 ## Every NUI (who pays)
 
@@ -213,8 +220,8 @@ desktop app's connection on Norway's PAD line.
 So a full GUI session is: `./x75.ps1 start`, the desktop app on `desktop-norway.json` for typing, `x25monitor` on
 4201 for watching, and an `./x75.ps1 pad 2` window as the other chat user.
 
-The app's own address is `24227001` (`X25.LocalMachineId` in the file): the chat and Norway's call records
-show it as the caller.
+The app sends `24227001` as its own address (`X25.LocalMachineId` in the file), but Norway's PAD line replaces
+it like any other PAD's: the chat and the call records show `24227000` + the call's channel.
 
 Not yet checked by hand. The file uses the same kind of XOT entry as `altos-chat.json`, and the PAD window
 runs the same X.28 code as `x25pad`, which the script tests use. No test starts the app on this file yet.
