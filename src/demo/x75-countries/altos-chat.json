@@ -1,0 +1,65 @@
+{
+  "SerialPort": "NONE",
+  "BaudRate": 19200,
+  "HistoryCapacity": 500,
+
+  "X25": {
+    "LocalMachineId": "26245890040001",
+    "T20Timeout": "00:00:30",
+    "T21Timeout": "00:03:00",
+    "T22Timeout": "00:00:30",
+    "T23Timeout": "00:03:00",
+    "MaxRetries": 3,
+    "WindowSize": 2,
+    "PacketSize": 128,
+    "Modulo": 8
+  },
+
+  "Chat": {
+    "Address": "26245890040004",
+    "MaxUsers": 30,
+    "OutputLimitBytes": 4096,
+    "WaitPauseMs": 3000,
+    "StartingNickname": "guest"
+  },
+
+  "Routing": {
+    "Enabled": true,
+    "SerialInterfaces": [],
+    "XotInterfaces": [
+      {
+        "Name": "Altos",
+        "Enabled": true,
+        "Mode": "Client",
+        "RemoteIPAddress": "127.0.0.1",
+        "RemotePort": 25022,
+        "KeepConnectionForIncomingCalls": true,
+        "TcpKeepalive": true,
+        "ProtocolMode": "X25Only",
+        "Description": "The chat's line: Germany port 1 (germany.ini), which listens on TCP 25022 for its subscriber and has calls for 2624589004... routed to it. This entry dials it and keeps one connection open for the switch to put each arriving call on"
+      }
+    ],
+    "TcpLapbInterfaces": [],
+    "RoutingTable": [
+      {
+        "Name": "AltosChat",
+        "X121AddressPattern": "26245890040004",
+        "Type": "Local",
+        "Destination": "CHAT",
+        "Priority": 200,
+        "Enabled": true,
+        "Description": "Lets calls to the chat in; the chat takes them by its address (Chat.Address)"
+      }
+    ],
+    "KnownHosts": []
+  },
+
+  "Timers": {
+    "CentralTimerManagement": true
+  },
+
+  "Logging": {
+    "EnableFileLogging": false,
+    "LogLevel": "Information"
+  }
+}

@@ -23,6 +23,9 @@ README.template.md
 # and demo.sh create both on start; the scripts and switch-*.ini files beside them are tracked.
 src/demo/.pids
 src/demo/logs/
+# The same for the three-country X.75 network (src/demo/x75-countries/x75.ps1), plus its call records.
+src/demo/x75-countries/.pids
+src/demo/x75-countries/logs/
 
 # Working notes for coding agents stay on disk, never in the repository
 CLAUDE.md

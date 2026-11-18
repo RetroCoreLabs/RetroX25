@@ -5,6 +5,7 @@
     <Project Path="RetroX25.Monitor.Desktop/RetroX25.Monitor.Desktop.csproj" />
     <Project Path="RetroX25.Nmc/RetroX25.Nmc.csproj" />
     <Project Path="RetroX25.Pad/RetroX25.Pad.csproj" />
+    <Project Path="RetroX25.Service/RetroX25.Service.csproj" />
     <Project Path="RetroX25.Switch/RetroX25.Switch.csproj" />
     <Project Path="RetroX25.Trace/RetroX25.Trace.csproj" />
     <Project Path="RetroX25.Traffic/RetroX25.Traffic.csproj" />
