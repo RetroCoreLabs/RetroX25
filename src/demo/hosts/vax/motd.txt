@@ -1,0 +1,4 @@
+
+        Welcome to VAX/VMS version V5.5-2 on node {node}
+    Last interactive login on {date} {time}
+

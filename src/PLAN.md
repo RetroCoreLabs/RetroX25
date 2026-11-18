@@ -1,6 +1,6 @@
 # RetroX25 plan - outstanding work only
 
-**Next:** the rest of B3. Push (A6) only after Ronny has looked at the commits.
+**Next:** x25host (G), then the rest of B3. Push (A6) only after Ronny has looked at the commits.
 
 Rules for this file: finished items are deleted, not ticked. Each item says what to build, how it is proved,
 and what it waits for. What was measured is in `docs/xot-peers.md`, `docs/trunk-links.md`,
@@ -320,3 +320,17 @@ C# switch, x25emu and GNS3/Cisco, every pair in both directions, on XOT and on h
 link set-up (one SABM, crossing SABMs, SABM refused with DM), keepalive polls over minutes, restart, calls,
 data with sequence wrap, clear. Then SINTRAN X.25 against each of the three. Proved by: decoded captures of
 every run kept with the results in `docs/crossenv-testing.md`.
+
+## G. x25host: fake machines and services from description files (Ronny, 2026-11-18)
+
+Format: `src/docs/x25host-format.md`. Examples: `src/demo/hosts/vax`, `src/demo/hosts/bbs`. Ronny chose: ini-style
+description files, nothing in them runs; C# first, then C in x25emu reading the same files; JavaScript (Jint, hard
+limits) later and in C# only.
+
+- G1. C# `x25host` in RetroX25 (engine in RetroIO): read and check a host folder, answer calls over XOT, login,
+  shell, menus, files, the built-in actions, the limits. Unit tests on the two examples.
+- G2. Add both examples to `demo/x75-countries` (x75.ps1 starts them) and to `X75CountriesScriptTests`.
+- G3. C `x25host` in x25emu reading the same files (ask the altoschat session before editing x25emu); a test that
+  runs both on the same example and compares the screens.
+- G4. JavaScript hosts (C# only): Jint with memory, time, statement and recursion limits, no .NET access; each
+  host in its own process under a Windows job object capping memory and CPU.

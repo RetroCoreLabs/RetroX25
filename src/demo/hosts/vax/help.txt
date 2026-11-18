@@ -1,0 +1,3 @@
+  Information available:
+
+  DIRECTORY   HELP   LOGOUT   SET   SHOW   TYPE

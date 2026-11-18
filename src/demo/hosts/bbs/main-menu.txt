@@ -1,0 +1,5 @@
+
+  N  News
+  B  Bulletins
+  W  Who is on
+  G  Goodbye

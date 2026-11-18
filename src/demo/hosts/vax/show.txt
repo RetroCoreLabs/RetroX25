@@ -1,0 +1,1 @@
+  VAX/VMS V5.5-2  on node {node}  {date} {time}  Uptime  12 03:41:17
