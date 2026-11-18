@@ -334,3 +334,11 @@ limits) later and in C# only.
   runs both on the same example and compares the screens.
 - G4. JavaScript hosts (C# only): Jint with memory, time, statement and recursion limits, no .NET access; each
   host in its own process under a Windows job object capping memory and CPU.
+- G5. A library of host folders, one per scenario in `src/docs/research-os.md` (VMS, TOPS-20, RSTS/E, 4.3BSD,
+  SunOS, System V, TSO, VM/370, OS/400 as plain-text screens, SINTRAN III, PRIMOS, Multics, Maximus, WWIV,
+  Citadel, the PAD/network texts...), each ready to copy: its own `host.ini` and text files, a README line saying
+  which texts are verbatim and which reconstructed (from research-os.md), and no fixed address or port (given on
+  the command line or by the network that uses it). Then a way to compose many of them into one large demo
+  network: a network file that lists countries, switches and which library hosts sit where, and a script that
+  turns it into the switch ini files and starts it all (as `demo/x75-countries`, but generated). Every host in
+  the library gets a test that logs in and runs its commands.
