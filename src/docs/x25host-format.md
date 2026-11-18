@@ -126,6 +126,55 @@ Built-in actions. This list is closed: a file cannot add one, and each is a few 
 | `menu.<name>` | Goes to that menu |
 | `clear` | Clears the call at once, no text |
 
+### Users on the same machine
+
+Every machine keeps one list of its sessions (who is logged in, from which address, since when, idle how long).
+Everything users of one machine do to each other goes through that list, never through files or the host's
+operating system. Machines never see each other's lists, even inside one process.
+
+More built-in actions, on top of the table above:
+
+| `do` | What it does | Real-system model |
+|---|---|---|
+| `who` | One line per session: user, calling address, logged in since, idle time (`who_format` in `[shell]` shapes the line) | VMS `SHOW USERS`, Unix `who`, TENEX `SYSTAT` |
+| `finger` | `{args}` names a user: their sessions, or `user_unknown` | Unix `finger` |
+| `wall` | `{args}` goes to every session on the machine, framed by `wall_text` | Unix `wall`, VMS `REPLY/ALL` |
+| `send` | First word of `{args}` is a user, the rest goes to their sessions, framed by `send_text`; `user_not_on` if they are not logged in | VMS `REPLY/USER`, PRIMOS `MESSAGE`, ITS `:SEND`, Dialcom `MAIL`-less message |
+| `room.<name>` | The session joins the chat room `<name>`: every line it types goes to the others in the room (`room_text`), until it types `room_leave` (default `.x`); joins and leaves are announced (`room_join_text`, `room_leave_text`) | Altos CHAT, CompuServe CB, BBS teleconference |
+| `mesg` | `{args}` `y` or `n`: whether `wall` and `send` reach this session | Unix `mesg` |
+
+New `[shell]` keys for their texts (placeholders as usual, plus `{from}` the sending user, `{text}` the message):
+
+| Key | Default |
+|---|---|
+| `wall_text` | `{nl}Broadcast message from {from} at {time}...{nl}{text}{nl}` |
+| `send_text` | `{nl}Message from {from}: {text}{nl}` |
+| `user_not_on` | `{args}: not logged in` |
+| `user_unknown` | `{args}: no such user` |
+| `who_format` | `{user} {calling} {since} {idle}` (the per-line placeholders `{since}` and `{idle}` exist only here) |
+| `room_text` | `{from} says: {text}` |
+| `room_join_text` / `room_leave_text` | `+++{from}+++` / `---{from}---` |
+| `room_leave` | `.x` |
+
+A message arriving while the user is typing is sent at once on its own line, and the line being typed is
+shown again after it (as the real systems did). Limits: a message is cut at 256 characters; a session gets at
+most 20 messages a second from others, the rest are dropped and counted (`show stats`), so one user cannot
+flood another.
+
+**For the later JavaScript hosts (G4)** the same list is the `machine` object, and nothing else is shared:
+
+| Name | What it is |
+|---|---|
+| `machine.sessions()` | A copy of the session list: `user`, `calling`, `since`, `idle`, `room` per entry |
+| `machine.send(user, text)` | To one user's sessions; false if not logged in |
+| `machine.broadcast(text, exceptSelf)` | To every session |
+| `machine.room(name)` | A room: `join()`, `leave()`, `say(text)`, `members()`, and an `onMessage(fn)` the script sets |
+| `machine.store` | A small key/value store shared by the sessions of this machine only (strings, at most 64 KB in total, gone when the machine stops): a high-score table, a bulletin list |
+| `session.onMessage(fn)` | Called when a `send`, `broadcast` or room message reaches this session |
+
+With these the Altos chat (PLAN G6) is a room plus a few commands, a scripted `WHO` is `machine.sessions()`,
+and nothing in the interface reaches a file, the network or another machine.
+
 ### [menu.<name>]
 
 A menu: a title, numbered or lettered choices, a prompt.
