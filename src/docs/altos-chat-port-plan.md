@@ -11,7 +11,8 @@ system calls.
 The source is `chat.c`, `chat.h`, `serv.c`, `README`, `README.linux`, `INSTALL` and `Makefile` of CHAT 3.1 (Hans Korneder,
 DataVision, Munich, 29 May 1987; 3.0 was put in the public domain; Linux patch by Paolo Ventafridda, 1995). The
 original Altos address was X.25 NUA 0262 45 8900 40004, login `guest` (README). The source is kept outside this
-repository; every `file:line` below refers to it.
+repository; every `file:line` below refers to it. **The original source can be found here:
+<https://archive.org/details/altoschat>** (Internet Archive).
 
 ## Decisions (Ronny, 2026-11-18)
 
@@ -154,7 +155,8 @@ edits locally and never reaches the server. Anything a PAD does not obey is fixe
 5. **C engine and `tools/x25chat`**, the same test list in `tests/unit`, plus an integration test over the switch.
 6. **x25pad follows the X.29 Set**; tests.
 7. **Cross tests:** x25emu's pad to the C# chat; the C# PAD to x25chat; 40 users across both.
-8. **Docs:** a user page (commands, settings) in RetroX25 `docs/` and in x25emu `docs/`; config samples.
+8. **Docs:** a user page (commands, settings) in RetroX25 `docs/` and in x25emu `docs/`; config samples. Each page
+   says where the original source is: <https://archive.org/details/altoschat>.
 
 ## Tests (each written to fail first)
 
