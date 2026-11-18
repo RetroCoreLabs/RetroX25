@@ -16,8 +16,7 @@ namespace RetroX25.Host
     {
         private static readonly string[] NotBuilt =
         {
-            "show host", "show users", "show calls", "stop host", "start host", "restart host", "logout", "clear call",
-            "send", "reload", "log",
+            "show host", "show users", "stop host", "start host", "restart host", "logout", "send", "reload", "log",
         };
 
         private readonly HostRunner _runner;
@@ -64,13 +63,29 @@ namespace RetroX25.Host
                     return Join(_runner.HostLines());
                 case "show stats":
                     return Join(_runner.StatsLines());
+                case "show calls":
+                    List<string> calls = _runner.CallLines();
+                    return calls.Count == 0 ? "no calls\n" : Join(calls);
                 case "help":
                     return "show hosts   one line per machine: hostname, type, NUA, group, state, calls now\n"
                         + "show stats   per machine: calls, refusals, bytes and data packets each way, wrong logins\n"
-                        + "quit         stop x25host (asks first)\n";
+                        + "show calls   every call now: hostname, calling address, logical channel, since\n"
+                        + "clear call <hostname> <lcn>   clear one call at once\n"
+                        + "quit        stop x25host (asks first)\n";
                 case "quit":
                     _confirming = true;
                     return "stop x25host and clear every call? (yes/no) ";
+            }
+
+            if (cmd.StartsWith("clear call", StringComparison.Ordinal))
+            {
+                string[] w = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (w.Length != 4 || !ushort.TryParse(w[3], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out ushort lcn))
+                {
+                    return "usage: clear call <hostname> <lcn>\n";
+                }
+
+                return _runner.ClearCall(w[2], lcn) ? "cleared\n" : "no call on lcn " + w[3] + " at " + w[2] + "\n";
             }
 
             for (int i = 0; i < NotBuilt.Length; i++)

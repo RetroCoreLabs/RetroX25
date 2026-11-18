@@ -359,6 +359,38 @@ namespace RetroX25.Tests
             Assert.That(stats[1], Does.StartWith("total: calls in 1,"), stats[1]);
         }
 
+        /// <summary>The console's <c>show calls</c> lists a real call, and <c>clear call</c> clears it at both ends.</summary>
+        [Test]
+        public void Console_ShowCalls_ListsTheCall_AndClearCall_ClearsIt()
+        {
+            WriteTinyHost();
+            (XotSwitchPort line, XotSwitchPort callers) = BuildSwitch();
+            List<MachineEntry> m = Parse("[defaults]", "library = library",
+                "[machine.0]", "type = tiny", "nua = " + Folder, "switch = 127.0.0.1:" + line.BoundPort);
+            HostRunner runner = new HostRunner(m, NullLogger.Instance);
+            _disposables.Add(runner);
+            runner.Start();
+            Assert.That(SpinWait.SpinUntil(() => runner.AllLinesUp, 10000), Is.True);
+            OperatorConsole console = new OperatorConsole(runner);
+            Assert.That(console.Execute("show calls"), Is.EqualTo("no calls\n"));
+
+            X25Client client = OpenCaller(callers, out Caller c);
+            c.Vc = client.CallWait(Folder, 5000);
+            Assert.That(c.Vc, Is.Not.Null);
+            Assert.That(c.WaitFor("Username: "), Is.True, c.Text);
+
+            string calls = console.Execute("show calls");
+            Assert.That(calls, Does.StartWith("tiny "), calls);
+            string[] w = calls.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            int at = Array.IndexOf(w, "lcn");
+            Assert.That(at, Is.GreaterThan(0), calls);
+
+            Assert.That(console.Execute("clear call tiny 999"), Is.EqualTo("no call on lcn 999 at tiny\n"));
+            Assert.That(console.Execute("clear call TINY " + w[at + 1]), Is.EqualTo("cleared\n"));
+            Assert.That(c.Cleared.Wait(5000), Is.True, "the caller was not cleared");
+            Assert.That(runner.CallCount, Is.EqualTo(0));
+        }
+
         [Test]
         public void AFullFolderMachine_RefusesTheNextCall_WithCauseDteOriginated()
         {

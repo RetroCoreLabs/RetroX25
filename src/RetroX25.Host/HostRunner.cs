@@ -214,6 +214,54 @@ namespace RetroX25.Host
             return lines;
         }
 
+        /// <summary>
+        /// <c>show calls</c>: every call now, logged in or not: hostname, calling address, logical channel, since.
+        /// The machine's own state of the call (banner, login, shell, menu) is not shown: the machines do not report
+        /// it yet.
+        /// </summary>
+        /// <returns>The lines, in no particular order; empty when there are no calls.</returns>
+        public List<string> CallLines()
+        {
+            List<string> lines = new List<string>();
+            foreach (KeyValuePair<int, CallRef> kv in _calls)
+            {
+                CallRef c = kv.Value;
+                lines.Add(string.Create(CultureInfo.InvariantCulture,
+                    $"{c.Machine.Entry.Hostname,-12} from {(c.Vc.CallingAddress.Length > 0 ? c.Vc.CallingAddress : "-"),-15} lcn {c.Vc.Lcn,-4} since {c.Since:HH:mm:ss}"));
+            }
+
+            return lines;
+        }
+
+        /// <summary>
+        /// <c>clear call &lt;hostname&gt; &lt;lcn&gt;</c>: clears one call at once (cause 0, DTE originated), logged in or
+        /// not; the machine is told the call has gone, as for a clear from the caller.
+        /// </summary>
+        /// <param name="hostname">The machine.</param>
+        /// <param name="lcn">The logical channel, as <c>show calls</c> gives it.</param>
+        /// <returns>True when such a call was found and cleared.</returns>
+        public bool ClearCall(string hostname, ushort lcn)
+        {
+            foreach (KeyValuePair<int, CallRef> kv in _calls)
+            {
+                CallRef c = kv.Value;
+                if (c.Vc.Lcn != lcn || !string.Equals(c.Machine.Entry.Hostname, hostname, StringComparison.OrdinalIgnoreCase)
+                    || !_calls.TryRemove(kv.Key, out _))
+                {
+                    continue;
+                }
+
+                c.Gone = true;
+                c.Line.Client?.Clear(c.Vc, CauseDteOriginated, 0);
+                int session = kv.Key;
+                Post(() => c.Machine.Host!.Disconnect(session));
+                _log.LogInformation("{Host}: call {Session} on lcn {Lcn} cleared by the operator", c.Machine.Entry.Hostname, session, lcn);
+                return true;
+            }
+
+            return false;
+        }
+
         private static string StatsLine(string name, long[] v)
         {
             return string.Create(CultureInfo.InvariantCulture,
@@ -598,6 +646,9 @@ namespace RetroX25.Host
             public HostLine Line { get; }
 
             public X25Vc Vc { get; }
+
+            /// <summary>When the call came in (for <c>show calls</c>).</summary>
+            public DateTime Since { get; } = DateTime.Now;
 
             /// <summary>Cleared from the far end, or never accepted: what is still queued for it is dropped.</summary>
             public volatile bool Gone;

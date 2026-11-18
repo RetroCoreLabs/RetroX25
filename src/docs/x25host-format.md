@@ -254,7 +254,7 @@ folder stops the program at start with the file and line; two machines with one 
 share a switch port share one XOT connection, and each call goes to the machine whose `nua` is exactly the
 called number; any other number is cleared (cause 0, diagnostic 67). The switch gives the full number
 (`called_address = international`, the default for every port). Not built yet: `nui`, the telnet console (`--console-port`) and most console commands. On stdin the console
-has `show hosts`, `show stats`, `help` and `quit`; the other commands answer that they are not built yet.
+has `show hosts`, `show stats`, `show calls` (without the call's state), `clear call`, `help` and `quit`; the other commands answer that they are not built yet.
 `--stats-log` is built: each
 machine's line of the `show stats` counters, then a `total` line, go to the log once a minute. The working example is
 `demo/x75-countries/machines.ini`.
