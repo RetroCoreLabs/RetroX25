@@ -1,6 +1,7 @@
 # Altos CHAT 3.1 port - plan
 
-**Next:** step 1, the C# chat engine and its tests.
+**Next:** nothing. All eight steps are built and tested (2026-11-18); what is left is under "Open" below. How
+to run and use the chat: [altos-chat.md](altos-chat.md).
 
 The goal is to bring back the chat that ran on the Altos system in Munich in the 1980s, reached over X.25. It becomes a
 new X.25 service beside the TAD and the echo service, in C# (RetroIO / RetroX25) and as a separate C program in
@@ -146,21 +147,15 @@ drive it directly.
 x25emu's `src/pad/pad.c`. Tests: the server's Set arrives, echo and editing switch on, a line is sent on CR, backspace
 edits locally and never reaches the server. Anything a PAD does not obey is fixed in that PAD, with the X.3 clause.
 
-## Steps
+## Open
 
-1. **C# engine and its tests** (all cases below), driven directly, no X.25.
-2. **C# service:** `ChatProtocolService`, address setting, route, call user data rule; tests through the runtime.
-   A test must be able to start the RetroIO runtime in-process with the chat, as the XOT client of a switch's
-   subscriber port on `127.0.0.1:<port chosen at run time>`, with the chat answering 26245890040004 (the Altos
-   address). This is for RetroIO's three-country X.75 test (`X75ThreeCountryTests`), which that test's owner wires
-   in; if the runtime cannot be the XOT client side, write down what it needs.
-3. **The C# PAD follows the X.29 Set**; tests.
-4. **Desktop chat monitor window**; view-model tests.
-5. **C engine and `tools/x25chat`**, the same test list in `tests/unit`, plus an integration test over the switch.
-6. **x25pad follows the X.29 Set**; tests.
-7. **Cross tests:** x25emu's pad to the C# chat; the C# PAD to x25chat; 40 users across both.
-8. **Docs:** a user page (commands, settings) in RetroX25 `docs/` and in x25emu `docs/`; config samples. Each page
-   says where the original source is: <https://archive.org/details/altoschat>.
+- **C and C# differ inside, not on the screen.** The cross tests (`tests/RetroX25.Tests/Interop/AltosChatCrossTests.cs`)
+  prove both send the same bytes for the same 51-step session. The C program also limits waiting output to 32 KB per
+  caller, sizes packets to the call's packet size (C# always 128), drops waiting output on a reset and takes at most
+  128 calls. Make the two the same, or say why not.
+- **The two PADs show a deleted character differently**, because their own profiles differ in X.3 parameter 19, which
+  the chat's Set does not change. The C# PAD uses 1 (`\`, the value of both profiles in X.28 Table 1); x25pad's own
+  "standard" profile (not an ITU-T one) uses 2 (BS SP BS, for a screen).
 
 ## Tests (each written to fail first)
 
