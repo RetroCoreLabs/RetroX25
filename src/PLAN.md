@@ -1,6 +1,6 @@
 # RetroX25 plan - outstanding work only
 
-**Next:** B1b (segment and duration counting in the C# switch, charging answer, PVC records), then B1c. Push (A6) only after Ronny has looked at the commits.
+**Next:** B2's check against x25emu's encoder, then B3 (STE port). Push (A6) only after Ronny has looked at the commits.
 
 Rules for this file: finished items are deleted, not ticked. Each item says what to build, how it is proved,
 and what it waits for. What was measured is in `docs/xot-peers.md`, `docs/trunk-links.md`,
@@ -97,10 +97,17 @@ changed). Both PADs do `ID` / `IDOFF` / `N<nui>-` with no echo; x25emu's `x25pad
   `show x25 account` or x25nmc.
 
 ### B2. X.75 packets
-Parser and builder for the X.75 utility field (up to 63 octets in Call Request, Call Connected, Clear): transit network
-identification (DNIC list), call identifier (24 bit), throughput class, window, packet size.
-- Prove: byte vectors written from the standard's figures; round trip; every field.
-- Then check the same vectors against x25emu's encoder (that catches a regression, it does not prove fidelity).
+The utility field itself is done (RetroIO `X75Utilities`, 2026-11-18, 17 tests from Table 21, Figure 21 and 5.4.3 of
+X.75 1988): transit networks, call identifier, throughput class, window, packet size, clearing network; the rest
+carried byte for byte. X.75 does not say the byte order of the 24-bit call identifier; high octet first is assumed,
+as for the other binary values in X.75.
+- Still to do: the utility length octet and field in the Call Request / Call Connected / Clear packets (4.2.1.4: after
+  the addresses, before the facility length) - part of B3, since only an STE port sends them.
+- Read against x25emu 2026-11-18 (its `x25.h`, `x25switch.c`): the same codes (marker 00, transit 41, call identifier
+  81), the call identifier high octet first, the DNIC as two BCD octets. One difference: x25emu cites "Table 29/X.75",
+  "Figure 8" and a 323-octet packet limit with no separate field maximum, and allows 64 octets; the 1988 text on disk
+  numbers those Table 21 / Figure 5 and says 63 (4.2.1.5), and its length octet has 6 bits. x25emu's text is another
+  edition, not on disk. Find which edition each switch should follow before B6.
 
 ### B3. STE port mode
 A port with no DTE/DCE roles. Channel ranges and the collision rule are agreed in the configuration: a call collision clears
