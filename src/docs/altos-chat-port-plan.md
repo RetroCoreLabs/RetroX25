@@ -79,7 +79,7 @@ unknown dot command is sent as ordinary text.
 | `.n name` (with the space) | `>>>old>>>name>>>` to everyone on the sender's channel, the sender included. Up to 32 characters kept; empty and duplicate names allowed. `.nfoo` is text. |
 | `.c N`, `.cN`, `.cN,pw` | Change channel (number read like `atol`, so `.c`, `.cool` mean channel 0; a minus sign is dropped). `>>>nick>>> chan N` to the old and the new channel. Same channel: silent. Protected: `Channel is protected. Use a passwd` (no comma) or `Wrong passwd.` |
 | `.p pw` | Protect your channel: `Channel 0 cannot be protected.`, `You are not alone on the channel.`, or silent success. 8 characters kept. Freed when the channel empties. |
-| `!N text` | `nick whispers: !N text` to slot N on any channel; a bad or empty slot is silent; no confirmation. |
+| `!N text` | `nick whispers: !N text` to slot N on any channel; a bad or empty slot is silent; no confirmation. Not 1987 (2026-11-18): with no number after `!` (`!name`), the sender gets `Whisper with the user number from .s: !# text` and nothing is sent; the original read it as slot 0. |
 | `.m` | `This is disabled by default- use SMTP!` |
 | `--!` | `Function is being disabled by default` |
 | `.w`, `.b` | See the decisions above; both end with `--- back in chat ---`. |
@@ -169,7 +169,7 @@ Nothing.
 9. `.s`: header and rows exact, every channel; `.so` gives the disabled text.
 10. `.c`: `.c5`, `.c 5`, `.c-5`, `.c`, `.cool`, same channel silent, old and new channel told.
 11. `.p`: channel 0, not alone, silent success, no comma, wrong, right, longer than 8, empty, freed when empty.
-12. `!N`: exact whisper text, across channels, bad or empty slot silent, `!hi` to slot 0, to yourself.
+12. `!N`: exact whisper text, across channels, bad or empty slot silent, `!hi` (no number) warns the sender and sends nothing.
 13. `.m`, `--!`, `.w`, `.b` replies and `--- back in chat ---`.
 14. Unknown `.foo` and upper case commands are text.
 15. The lowest free slot is reused; `.s` numbering after people leave.

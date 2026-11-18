@@ -162,12 +162,12 @@ starts the same way whatever the chat changed. Settings you made yourself with `
 call are kept. No X.25 standard says what a PAD must do here; this is our choice. Both PADs work this way, the
 C# one and x25emu's. The message's exact bytes are in `src/docs/altos-chat.md`.
 
-Whispering works exactly as in the 1987 program, which surprises people:
+Whispering works as in the 1987 program, with one change:
 
-- `!` takes the **place number** from `.s` (the first column), not a name: `!3 hello` goes to place 3. A name
-  after `!` reads as the number 0, so the whisper goes to whoever is at place 0. When that is you, you get your
-  own whisper back; when it is someone else, `!anything` reaches them, which makes it look as if names work one
-  way only.
+- `!` takes the **place number** from `.s` (the first column), not a name: `!3 hello` goes to place 3.
+- **The change:** in 1987 a name after `!` read as the number 0, so `!ronny hi` went to whoever was at place 0,
+  often yourself. Now the chat answers `Whisper with the user number from .s: !# text` and sends nothing
+  (the original code is `k=atol(cp.cp_text+1)` in `serv.c`, line 370).
 - The receiver sees the **whole line as typed**: `ronny whispers: !3 hello`.
 - Nothing tells you when the place is empty; the whisper simply goes nowhere.
 
