@@ -1,0 +1,1 @@
+SunOS Release 4.1.1 (GENERIC) #1: Thu Oct 11 12:00:00 PDT 1990

@@ -70,6 +70,43 @@ namespace RetroX25.Tests
             Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
         }
 
+        [Test]
+        public void SunOs_LogsIn_RunsItsCommands_AndLogsOut()
+        {
+            (DescribedHost h, Output o) = Load("sunos");
+            h.Connect(1, string.Empty, "24227001");
+            Assert.That(o.Take(1), Is.EqualTo("\r\n\r\nSunOS UNIX (csdc_1)\r\n\r\nlogin: "));
+            Type(h, "guest\rguest\r");
+            Assert.That(o.Take(1), Is.EqualTo("Password:\r\nSunOS Release 4.1.1 (GENERIC) #1: Thu Oct 11 12:00:00 PDT 1990\r\ncsdc_1% "));
+            Type(h, "cd /home/guest\r"); // the format has no home folder: the shell starts in /, as on 4.3BSD here
+            o.Take(1);
+            Type(h, "cat README\r");
+            Assert.That(o.Take(1), Does.Contain("demonstration SunOS host"));
+            Type(h, "frob\r");
+            Assert.That(o.Take(1), Is.EqualTo("frob: Command not found.\r\ncsdc_1% "));
+            Type(h, "exit\r");
+            Assert.That(o.Take(1), Does.StartWith("logout"));
+            Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
+        }
+
+        [Test]
+        public void SystemV_LogsIn_RunsItsCommands_AndExits()
+        {
+            (DescribedHost h, Output o) = Load("sysv");
+            h.Connect(1, string.Empty, "24227001");
+            Assert.That(o.Take(1), Is.EqualTo("\r\nUNIX(r) System V Release 4.0 (joe)\r\n\r\nlogin: "));
+            Type(h, "guest\rwrong\r");
+            Assert.That(o.Take(1), Is.EqualTo("Password:\r\nLogin incorrect\r\nlogin: "));
+            Type(h, "guest\rguest\r");
+            Assert.That(o.Take(1), Is.EqualTo("Password:\r\n$ "));
+            Type(h, "cat /etc/issue\r");
+            Assert.That(o.Take(1), Does.Contain("System V Release 4.0"));
+            Type(h, "foo\r");
+            Assert.That(o.Take(1), Is.EqualTo("foo: not found\r\n$ "));
+            Type(h, "exit\r");
+            Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
+        }
+
         private static (DescribedHost Host, Output Out) Load(string folder)
         {
             HostDescription d = HostDescription.Load(FindHostFolder(folder), null, "24221999");
