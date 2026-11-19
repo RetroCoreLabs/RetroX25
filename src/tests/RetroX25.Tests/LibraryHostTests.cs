@@ -107,6 +107,46 @@ namespace RetroX25.Tests
             Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
         }
 
+        [Test]
+        public void Tso_LogsOnWithTheLogonCommand_RunsItsCommands_AndLogsOff()
+        {
+            (DescribedHost h, Output o) = Load("tso");
+            h.Connect(1, string.Empty, "24227001");
+            Assert.That(o.Take(1), Is.EqualTo("IKJ54012A ENTER LOGON -\r\n"));
+            Type(h, "logon guest\r");
+            Assert.That(o.Take(1), Is.EqualTo("ENTER CURRENT PASSWORD FOR guest-\r\n"));
+            Type(h, "GUEST\r");
+            Assert.That(o.Take(1), Is.EqualTo("\r\nIKJ56455I guest LOGON IN PROGRESS AT 09:48:40 ON 19-NOV-2026\r\nREADY\r\n"));
+            Type(h, "listc\r");
+            Assert.That(o.Take(1), Does.Contain("GUEST.CLIST"));
+            Type(h, "frob\r");
+            Assert.That(o.Take(1), Is.EqualTo("IKJ56500I COMMAND FROB NOT FOUND\r\nREADY\r\n"));
+            Type(h, "LOGOFF\r");
+            Assert.That(o.Take(1), Does.StartWith("IKJ56470I guest LOGGED OFF TSO AT 09:48:40 ON 19-NOV-2026"));
+            Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
+        }
+
+        [Test]
+        public void Vm370_LogsOn_GivesTheLogmsg_RunsCms_AndLogsOff()
+        {
+            (DescribedHost h, Output o) = Load("vm370");
+            h.Connect(1, string.Empty, "24227001");
+            Assert.That(o.Take(1), Is.EqualTo("VM/370 ONLINE\r\n.\r\n"));
+            Type(h, "query time\r");
+            Assert.That(o.Take(1), Is.EqualTo("?CP: query\r\n.\r\n"));
+            Type(h, "logon guest\rnope\r");
+            Assert.That(o.Take(1), Is.EqualTo("ENTER PASSWORD:\r\n\r\nDMKLOG050E PASSWORD INCORRECT\r\n.\r\n"));
+            Type(h, "logon guest\rGUEST\r");
+            Assert.That(o.Take(1), Does.Contain("LOGON AT 09:48:40 EST 19-NOV-2026\r\nCMS...VERSION 6.1"));
+            Type(h, "type PROFILE EXEC\r");
+            Assert.That(o.Take(1), Does.Contain("DEMONSTRATION VM/370 SYSTEM"));
+            Type(h, "frob\r");
+            Assert.That(o.Take(1), Is.EqualTo("UNKNOWN CP/CMS COMMAND\r\nR;\r\n"));
+            Type(h, "logoff\r");
+            Assert.That(o.Take(1), Does.StartWith("CONNECT=00:01:12 VIRTCPU=000:00.04 TOTCPU=000:00.11\r\nLOGOFF AT 09:48:40 EST 19-NOV-2026"));
+            Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
+        }
+
         private static (DescribedHost Host, Output Out) Load(string folder)
         {
             HostDescription d = HostDescription.Load(FindHostFolder(folder), null, "24221999");

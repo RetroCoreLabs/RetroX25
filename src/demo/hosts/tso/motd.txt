@@ -1,0 +1,1 @@
+IKJ56455I {user} LOGON IN PROGRESS AT {time} ON {date}

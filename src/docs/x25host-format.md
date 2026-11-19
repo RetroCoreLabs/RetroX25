@@ -228,7 +228,7 @@ values. `{{` and `}}` are a literal brace.
 | `{sessions}` | Calls to this host right now, this one included | always |
 | `{uptime}` | How long the host has been running, `d hh:mm:ss` | always |
 | `{nl}` | A line end (`line_end`), for a value of more than one line | always |
-| `{user}` | The name the caller logged in with, as typed | after login (empty in the banner and at the login prompts) |
+| `{user}` | The name the caller logged in with, as typed | after login; at the password prompt and its `fail_text`, the name just typed (TSO: `ENTER CURRENT PASSWORD FOR {user}-`); empty in the banner and at the user prompt |
 | `{cwd}` | The current directory of the fake file tree | after login |
 | `{word}` | The command word just typed | in `unknown` |
 | `{args}` | The rest of the line after the command word | in a command's `text`, and in `unknown_file` |
