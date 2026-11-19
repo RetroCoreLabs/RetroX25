@@ -443,12 +443,9 @@ limits) later and in C# only.
   machine places calls yet, so nothing would send it; comes with the first machine that calls out).
 - G3. C `x25host` in x25emu reading the same files (ask the altoschat session before editing x25emu); a test that
   runs both on the same example and compares the screens.
-- G4. JavaScript hosts (C# only). The engine is built: `ScriptedHost` in RetroIO `RetroIO.Protocols.X25.Host`
-  (Jint, no .NET access, memory/time/statement/recursion limits per call, a failing call cleared alone; 15 tests
-  in `ScriptedHostTests`). `type = script` machines run in x25host and three of them are in the x75 demo.
-  Left: the rest of the shared API in
-  `docs/x25host-format.md` (send by user name, rooms, `store`, `onMessage`); and the whole x25host process
-  under a Windows job object capping memory and CPU (one process runs many machines, so the cap is per process).
+- G4. JavaScript hosts: the whole script API is built (`ScriptedHost` in RetroIO, its README lists it). Left: the
+  whole x25host process under a Windows job object capping memory and CPU (one process runs many machines, so the
+  cap is per process).
 - G5. A library of host folders, one per scenario in `src/docs/research-os.md`. Done and in the x75 demo:
   `demo/hosts/vax`, `bbs`, `sintran`, `primos`, `wwiv`, `bsd`, `maximus` (each `host.ini` says which texts are
   verbatim). Left: TOPS-20, RSTS/E, SunOS, System V, TSO, VM/370, OS/400 as plain-text screens, Multics,

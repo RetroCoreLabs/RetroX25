@@ -168,11 +168,13 @@ flood another.
 shared by every caller on that machine. Built and tested so far: the events `onStart`, `onConnect(s)`,
 `onInput(s, text)`, `onDisconnect(s)`; the session's `id`, `login`, `calling`, `connectedAt`, `send`, `clear`,
 `pending`, `isOpen`; and `machine.settings`, `log`, `now`, `after`/`cancel` (timers), `wireLength`, `session`,
-`sessions`, `broadcast`. The Altos chat runs on these alone (`scripts/altos-chat.js` in that package) and is checked
-byte for byte against the C# chat. Still to build from the table below: `send(user, ...)` by user name, rooms,
-`store`, and `session.onMessage`.
+`sessions`, `broadcast`; and since 2026-11-19 `send(user, text, from)` by user name (`s.user`), rooms,
+`store` and `session.onMessage` (the package README has their exact form). The Altos chat runs on the first
+part alone (`scripts/altos-chat.js` in that package) and is checked byte for byte against the C# chat.
+`machine.sessions()` gives the session objects themselves (with `user`, `calling`, `connectedAt`), not copies with
+`idle` and `room` as the table below first planned.
 
-The planned shape, of which the above is the first part:
+The shape as planned:
 
 | Name | What it is |
 |---|---|
