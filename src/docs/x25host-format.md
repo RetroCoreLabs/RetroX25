@@ -255,7 +255,7 @@ share a switch port share one XOT connection, and each call goes to the machine 
 called number; any other number is cleared (cause 0, diagnostic 67). The switch gives the full number
 (`called_address = international`, the default for every port). Not built yet: `nui`, and the console command `reload`. `log` sets a machine's lowest log level; the program's
 own level (`-v`) still applies on top of it. The console (on stdin, and over telnet
-with `--console-port` and the `[operator.N]` logins; three wrong logins close the connection) has `show hosts`, `show host`, `show stats`, `show calls`, `show users` (without bytes per user), `clear call`, `logout`,
+with `--console-port` and the `[operator.N]` logins; three wrong logins close the connection) has `show hosts`, `show host`, `show stats`, `show calls`, `show users`, `clear call`, `logout`,
 `send`, `stop host`, `start host`, `restart host`, `help` and `quit`; a script machine does not report its users, so `show users`, `logout` and `send` say
 so for it; the other commands answer that they are not built yet.
 `--stats-log` is built: each

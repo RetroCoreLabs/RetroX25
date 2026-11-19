@@ -395,8 +395,8 @@ namespace RetroX25.Host
 
         /// <summary>
         /// <c>show users</c>: every logged-in session of a host folder machine: hostname, user, calling address,
-        /// logged in since, idle seconds. Bytes in and out per user (in the format's table) are not shown: they are
-        /// counted per machine, not per call.
+        /// logged in since, idle seconds, and the bytes of the call each way (typed data in; text sent out, not the
+        /// X.29 messages to the PAD).
         /// </summary>
         /// <returns>The lines; empty when nobody is logged in.</returns>
         public List<string> UserLines()
@@ -410,7 +410,7 @@ namespace RetroX25.Host
                     if (c.Machine.Host is IHostOperator op && op.TryDescribe(kv.Key, out HostSessionInfo info) && info.User.Length > 0)
                     {
                         lines.Add(string.Create(CultureInfo.InvariantCulture,
-                            $"{c.Machine.Entry.Hostname,-12} {info.User,-12} from {(c.Vc.CallingAddress.Length > 0 ? c.Vc.CallingAddress : "-"),-15} since {info.LoggedInAt:HH:mm:ss} idle {(int)(now - info.LastInput).TotalSeconds}s"));
+                            $"{c.Machine.Entry.Hostname,-12} {info.User,-12} from {(c.Vc.CallingAddress.Length > 0 ? c.Vc.CallingAddress : "-"),-15} since {info.LoggedInAt:HH:mm:ss} idle {(int)(now - info.LastInput).TotalSeconds}s, bytes in {Interlocked.Read(ref c.BytesIn)} out {Interlocked.Read(ref c.BytesOut)}"));
                     }
                 }
             });
@@ -733,6 +733,7 @@ namespace RetroX25.Host
 
             Interlocked.Increment(ref call.Machine.PacketsIn);
             Interlocked.Add(ref call.Machine.BytesIn, length);
+            Interlocked.Add(ref call.BytesIn, length);
             byte[] copy = new byte[length];
             Buffer.BlockCopy(data, 0, copy, 0, length);
             Post(() => call.Machine.Host!.Input(session, copy));
@@ -865,6 +866,10 @@ namespace RetroX25.Host
                     Machine m = next.Call.Machine;
                     Interlocked.Increment(ref m.PacketsOut);
                     Interlocked.Add(ref m.BytesOut, piece);
+                    if (!next.Q)
+                    {
+                        Interlocked.Add(ref next.Call.BytesOut, piece);
+                    }
                     Post(() => m.Host!.OutputDrained(session, piece));
                     if (offset >= next.Data.Length)
                     {
@@ -899,6 +904,12 @@ namespace RetroX25.Host
             public HostLine Line { get; }
 
             public X25Vc Vc { get; }
+
+            /// <summary>Bytes the caller typed, and bytes sent to the caller (for <c>show users</c>).</summary>
+            public long BytesIn;
+
+            /// <summary>Bytes sent to the caller.</summary>
+            public long BytesOut;
 
             /// <summary>When the call came in (for <c>show calls</c>).</summary>
             public DateTime Since { get; } = DateTime.Now;

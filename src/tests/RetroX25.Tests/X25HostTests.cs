@@ -421,6 +421,7 @@ namespace RetroX25.Tests
             string users = console.Execute("show users");
             Assert.That(users, Does.StartWith("tiny "), users);
             Assert.That(users, Does.Contain(" guest "), users);
+            Assert.That(users, Does.Contain(", bytes in 13 out "), users + " (\"guest\\rSECRET\\r\" is 13 bytes)");
             Assert.That(console.Execute("send nosuch * hi"), Is.EqualTo("no machine called nosuch\n"));
             Assert.That(console.Execute("send tiny GUEST  going down soon"), Is.EqualTo("sent to 1 session\n"));
             Assert.That(c.WaitFor("\r\ngoing down soon\r\n$ "), Is.True, c.Text);
