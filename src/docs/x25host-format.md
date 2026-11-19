@@ -6,8 +6,10 @@ code. The same files are read by the C# `x25host` (RetroX25) and the C `x25host`
 the same under both emulators.
 
 Status (2026-11-19): the C# `x25host` reads and runs this format (the engine is `DescribedHost` in the RetroIO
-package `RetroIO.Protocols.X25.Host`); the C `x25host` in x25emu is not written yet (PLAN.md G3). What is not
-built yet is listed under "Many machines at once".
+package `RetroIO.Protocols.X25.Host`), and so does the C `x25host` in x25emu (`tools/x25host.c`, host folders and
+`--machines`; a JavaScript machine is refused there, by design). `tests/RetroX25.Tests/Interop/X25hostCrossTests.cs`
+runs both on every folder in `demo/hosts` and checks that a caller gets the same bytes. What is not built yet is
+listed under "Many machines at once".
 
 ## Why a description and not a script
 
@@ -59,7 +61,7 @@ keys stop the program with the file, line and name (a typo is never a silently m
 | `sessions` | Calls served at once; one more is cleared with cause 0 "DTE originated" (a DTE cannot give the network's cause Number busy, X.25 Table 5-7; the host's log says why) | 8 |
 | `line_end` | `crlf` or `cr` or `lf`, sent after every line | `crlf` |
 | `idle_minutes` | Clear a call after this many minutes with no input; 0 = never | 15 |
-| `pad_calls_only` | `yes`: answer only calls whose call user data starts `01 00 00 00` (X.29) or is empty | `yes` |
+| `pad_calls_only` | `yes`: answer only calls whose call user data starts `01 00 00 00` (X.29) or is empty. A call with empty call user data is not taken as a PAD call: when the host ends it, it clears it once its last data is acknowledged, with no X.29 invitation to clear first | `yes` |
 | `banner` | Text file sent when the call is connected | none |
 | `start` | Where a call starts: `login`, `shell` or `menu.<name>` | `login` if there is a `[login]`, else `shell` |
 
@@ -124,7 +126,7 @@ Built-in actions. This list is closed: a file cannot add one, and each is a few 
 | `logout` | Sends `logout_text`, then clears the call |
 | `echo` | Sends `{args}` back |
 | `time` | The current date and time, in the form `time_format` gives |
-| `who` | One line per call to this host now: user name and calling address |
+| `who` | One line per logged-in session on this host (calls still at the login are not shown), shaped by `who_format` (see "Users on the same machine") |
 | `ls` | The names in `[file.N]` under the current directory |
 | `cat` | The text file of `[file.N]` named by `{args}`, or `unknown_file` |
 | `cd` | Changes `{cwd}` to a directory named in `[file.N]` |
@@ -376,9 +378,10 @@ x25host refuses to start with these options. The limits per script call stay as 
 ## Limits (both programs, not settable from the file)
 
 - A typed line longer than 256 characters is cut there.
-- A host folder of more than 1 MB of text files is refused at start.
-- Output per typed line is at most 64 KB.
 - Only files directly in the host's folder are read, and only when the program starts.
+
+Not limits (they were planned here, and neither program has them): the size of a host folder, and the output
+per typed line.
 
 ## Examples
 
