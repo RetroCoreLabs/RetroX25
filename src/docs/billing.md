@@ -46,6 +46,29 @@ A call the called side refuses (it answers with a clear) did reach the far end, 
 shows it never connected (connect time 0) and carries no packets or segments, so nothing is charged; the attempt does
 count in the account's calls made. Both switches do this.
 
+### A host on its own line (the emulated SINTRAN machine)
+
+A computer on its own X.25 line that places calls, such as the emulated SINTRAN ND-100, sends no NUI. It is billed
+by its line:
+
+- **The usual way:** an account whose address range covers the host's address (rule 4 above). This is billing by the
+  line's own subscription, with no NUI at all.
+- **When the bill should go to a named account instead:** `default_nui` on the host's port (rule 2). That account
+  then pays for every call on the line that names no NUI of its own.
+
+Nothing has to change in SINTRAN for either. Why the host does not send a NUI itself, researched 2026-11-19:
+
+| Finding | Source |
+|---|---|
+| "The network user identifier is transmitted by the DTE to the DCE in the NUI selection facility": the computer on the line sends it, the network never adds one | X.25 (10/96) 6.21 |
+| NUI selection "may be requested by a DTE only if it has subscribed to the NUI subscription facility ... and/or the NUI override facility": a line without that subscription sends none | X.25 (10/96) 6.21.3 |
+| A NUI (or reverse charging) is how a call is charged to "another party" than the line; without one the line's own subscription pays (our reading of 6.20; no single sentence says it) | X.25 (10/96) 6.20 |
+| ND's X.25 library lets a program set reverse charging, closed user group, D bit, window and packet sizes, throughput class and fast select in a call, and no NUI | COSMOS X.25 Programmer Guide, ND-60.227.1, section 2.3.2 (in the NDInsight repository) |
+| Dial-up PAD users typed a NUI and paid a monthly fee for it (Datex-P) | 64'er magazine 3/86, "Datex-P" |
+
+Not found: how any named network (PSS, Datex-P, Transpac, Datapak, Telenet, Tymnet) billed a host on a leased line,
+and whether the SINTRAN X.25 driver itself (as opposed to the COSMOS library) can send a NUI.
+
 ### In the configuration file
 
 ```ini
