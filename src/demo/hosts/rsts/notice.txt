@@ -1,0 +1,2 @@
+This is a demonstration RSTS/E system on the X.25 test network.
+Type BYE to log off.

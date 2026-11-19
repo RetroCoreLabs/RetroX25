@@ -48,6 +48,28 @@ namespace RetroX25.Tests
             Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
         }
 
+        [Test]
+        public void Rsts_LogsInWithAProjectProgrammerNumber_RunsItsCommands_AndSaysBye()
+        {
+            (DescribedHost h, Output o) = Load("rsts");
+            h.Connect(1, string.Empty, "24227001");
+            Assert.That(o.Take(1), Is.EqualTo("RSTS V10.1-L 19-NOV-2026 09:48:40\r\nUser: "));
+            Type(h, "200,200\rnope\r");
+            Assert.That(o.Take(1), Is.EqualTo("Password: \r\nInvalid entry - try again\r\nUser: "));
+            Type(h, "200,200\rGUEST\r");
+            Assert.That(o.Take(1), Is.EqualTo("Password: \r\nLast interactive login on 19-NOV-2026, 09:48:40 at KB0:\r\n"
+                + "Last non-interactive login on 19-NOV-2026, 09:48:40\r\n$ "));
+            Type(h, "dir\r");
+            Assert.That(o.Take(1), Does.Contain("NOTICE.TXT"));
+            Type(h, "TYPE NOTICE.TXT\r");
+            Assert.That(o.Take(1), Does.Contain("Type BYE to log off."));
+            Type(h, "mc ncp\r");
+            Assert.That(o.Take(1), Is.EqualTo("^\r\n?Invalid command\r\n$ "));
+            Type(h, "BYE\r");
+            Assert.That(o.Take(1), Does.Contain("Job 7 User 200,200 logged off KB41 at 19-NOV-2026 09:48:40"));
+            Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
+        }
+
         private static (DescribedHost Host, Output Out) Load(string folder)
         {
             HostDescription d = HostDescription.Load(FindHostFolder(folder), null, "24221999");

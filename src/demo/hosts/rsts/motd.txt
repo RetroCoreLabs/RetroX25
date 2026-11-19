@@ -1,0 +1,2 @@
+Last interactive login on {date}, {time} at KB0:
+Last non-interactive login on {date}, {time}
