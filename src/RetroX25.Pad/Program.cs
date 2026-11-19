@@ -125,7 +125,7 @@ namespace RetroX25.Pad
 
             if (telnetPort > 0)
             {
-                return RunTelnet(host, port, telnetPort, telnetBind, verbosity, loggerFactory, log, nui);
+                return RunTelnet(host, port, telnetPort, telnetBind, verbosity, loggerFactory, log, nui, style);
             }
 
             Console.Error.WriteLine($"Connecting to {host}:{port}...");
@@ -267,7 +267,7 @@ namespace RetroX25.Pad
         /// Telnet mode: listens on a port and gives every telnet connection its own PAD and its own XOT
         /// connection to the peer. Runs until Ctrl+C.
         /// </summary>
-        private static int RunTelnet(string host, ushort port, int telnetPort, string bind, int verbosity, ILoggerFactory loggerFactory, ILogger log, string? nui)
+        private static int RunTelnet(string host, ushort port, int telnetPort, string bind, int verbosity, ILoggerFactory loggerFactory, ILogger log, string? nui, PadStyle style)
         {
             TelnetPadConfig telnet = new TelnetPadConfig { Enabled = true, Port = telnetPort, BindAddress = bind };
             string? problem = telnet.Validate();
@@ -277,7 +277,7 @@ namespace RetroX25.Pad
                 return 1;
             }
 
-            using TelnetPadHost server = new TelnetPadHost(host, port, verbosity, log, loggerFactory.CreateLogger("x25pad.telnet"), nui);
+            using TelnetPadHost server = new TelnetPadHost(host, port, verbosity, log, loggerFactory.CreateLogger("x25pad.telnet"), nui, style);
             if (!server.Start(telnet))
             {
                 Console.Error.WriteLine("x25pad: " + server.GetStatus().Text);
@@ -310,7 +310,7 @@ namespace RetroX25.Pad
             Console.Error.WriteLine("  --telnet-port N    listen for telnet on port N (one PAD and one XOT connection per telnet client)");
             Console.Error.WriteLine("  --telnet-bind addr address to listen on (default 127.0.0.1)");
             Console.Error.WriteLine("  -n nui        a NUI for every call, as if ID<nui> had been typed (each telnet session too)");
-            Console.Error.WriteLine("  --style x28|pss  PAD texts: X.28 as written (default) or BT PSS (a clear shows call time and packet counts); console only");
+            Console.Error.WriteLine("  --style x28|pss  PAD texts: X.28 as written (default) or BT PSS (a clear shows call time and packet counts); telnet sessions too");
             Console.Error.WriteLine("  -v            Verbose (repeat for more)");
             return 1;
         }

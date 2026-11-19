@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using RetroIO.Protocols.X25.Client;
 using RetroIO.Protocols.X25.Modules;
+using RetroIO.Protocols.X25.Protocols;
 using RetroIO.Protocols.X25.Runtime;
 
 namespace RetroX25.Pad
@@ -28,6 +29,7 @@ namespace RetroX25.Pad
         private readonly Dictionary<PadClient, X25Client> _clients = new Dictionary<PadClient, X25Client>();
         private readonly TelnetPadServer _server;
         private readonly string? _nui;
+        private readonly PadStyle _style;
 
         /// <summary>
         /// Creates a stopped host.
@@ -41,9 +43,11 @@ namespace RetroX25.Pad
         /// <c>-n</c>: the NUI every session's PAD starts with, as if <c>ID</c> and the NUI had been typed (X.28 5.2); null for none.
         /// Already checked by the caller. Each session has its own PAD, so one session's <c>IDOFF</c> does not touch another's.
         /// </param>
-        public TelnetPadHost(string host, ushort port, int verbosity, ILogger log, ILogger serverLog, string? nui = null)
+        /// <param name="style"><c>--style</c>: which network's PAD texts every session's PAD uses (the clear line).</param>
+        public TelnetPadHost(string host, ushort port, int verbosity, ILogger log, ILogger serverLog, string? nui = null, PadStyle style = PadStyle.X28)
         {
             _nui = nui;
+            _style = style;
             _host = host;
             _port = port;
             _verbosity = verbosity;
@@ -87,6 +91,7 @@ namespace RetroX25.Pad
         private PadClient CreatePad(string name)
         {
             Program.OpenPad(_host, _port, _verbosity, _log, out X25Client client, out PadClient pad);
+            pad.Style = _style;
             if (_nui != null)
             {
                 pad.SetNui(_nui);
