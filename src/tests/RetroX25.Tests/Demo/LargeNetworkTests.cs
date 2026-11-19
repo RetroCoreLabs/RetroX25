@@ -50,6 +50,11 @@ namespace RetroX25.Tests.Demo
         private readonly List<int> _pids = new List<int>();
         private readonly List<DateTime> _pidStarts = new List<DateTime>();
 
+        // One row per call placed, for the report written at the end (demo/large-network/logs/test-report.md):
+        // from, to, number dialled, links crossed, ms, result.
+        private readonly List<string[]> _rows = new List<string[]>();
+        private readonly DateTime _runStarted = DateTime.Now;
+
         [OneTimeSetUp]
         public void ReadTheNetwork()
         {
@@ -76,6 +81,7 @@ namespace RetroX25.Tests.Demo
                 return;
             }
 
+            WriteReport();
             string output = RunScript("stop", out int exit);
             TestContext.Progress.WriteLine(output);
 
@@ -231,13 +237,227 @@ namespace RetroX25.Tests.Demo
             Assert.That(failures, Is.Empty, from.Name + ": calls that failed:\n" + string.Join("\n", failures));
         }
 
-        private static void Report(List<string> failures, string from, string what, string number, int links, long ms, string result)
+        private void Report(List<string> failures, string from, string what, string number, int links, long ms, string result)
         {
             string line = from + " -> " + what + " (" + number + ", " + links + " link" + (links == 1 ? "" : "s") + ", " + ms + " ms): " + result;
             TestContext.Progress.WriteLine(line);
+            _rows.Add(new[] { from, what, number, links.ToString(), ms.ToString(), result });
             if (!result.StartsWith("ok", StringComparison.Ordinal))
             {
                 failures.Add(line);
+            }
+        }
+
+        /// <summary>
+        /// Writes demo/large-network/logs/test-report.md (the folder is not in git): a summary, the links crossed
+        /// between every pair of countries, and one row per call with what came back. Written before the network is
+        /// stopped, so a failing run still leaves its report.
+        /// </summary>
+        private void WriteReport()
+        {
+            int failed = 0;
+            for (int i = 0; i < _rows.Count; i++)
+            {
+                if (!_rows[i][5].StartsWith("ok", StringComparison.Ordinal))
+                {
+                    failed++;
+                }
+            }
+
+            StringBuilder b = new StringBuilder();
+            b.Append("# Large network test report\n\n");
+            b.Append("Run started ").Append(_runStarted.ToString("yyyy-MM-dd HH:mm:ss")).Append(", written by ")
+                .Append("`tests/RetroX25.Tests/Demo/LargeNetworkTests.cs`.\n\n");
+            b.Append("| | |\n|---|---|\n");
+            b.Append("| Countries | ").Append(_net.Countries.Count).Append(" |\n");
+            b.Append("| Hosts | ").Append(_net.Hosts.Count).Append(" |\n");
+            b.Append("| Calls placed | ").Append(_rows.Count).Append(" |\n");
+            b.Append("| Calls that worked | ").Append(_rows.Count - failed).Append(" |\n");
+            b.Append("| Calls that failed | ").Append(failed).Append(" |\n\n");
+
+            // How many X.75 links a call crosses from the row's country to the column's (the shortest chain).
+            b.Append("## Links crossed between countries\n\n| From \\ to |");
+            for (int c = 0; c < _net.Countries.Count; c++)
+            {
+                b.Append(' ').Append(_net.Countries[c].Name).Append(" (").Append(_net.Countries[c].Dnic).Append(") |");
+            }
+
+            b.Append("\n|---|");
+            for (int c = 0; c < _net.Countries.Count; c++)
+            {
+                b.Append("---|");
+            }
+
+            b.Append('\n');
+            for (int r = 0; r < _net.Countries.Count; r++)
+            {
+                int[] dist = _net.Distances(r);
+                b.Append("| ").Append(_net.Countries[r].Name).Append(" |");
+                for (int c = 0; c < _net.Countries.Count; c++)
+                {
+                    b.Append(' ').Append(dist[c]).Append(" |");
+                }
+
+                b.Append('\n');
+            }
+
+            b.Append("\n## Every call\n\nThe result is what the test saw: for a host its first text, for an echo the line that came back.\n\n");
+            b.Append("| From | To | Number dialled | Links | ms | Result |\n|---|---|---|---|---|---|\n");
+            for (int i = 0; i < _rows.Count; i++)
+            {
+                string[] row = _rows[i];
+                b.Append("| ");
+                for (int k = 0; k < row.Length; k++)
+                {
+                    // A pipe or a line end in the host's text would break the table.
+                    b.Append(row[k].Replace("|", "\\|").Replace("\r", " ").Replace("\n", " ")).Append(" | ");
+                }
+
+                b.Append('\n');
+            }
+
+            // Every country's switch, as its own console tells it after all the calls: the traffic counters and the
+            // state of each port (the PAD line, echo line, host line and the X.75 links).
+            b.Append("\n## Switch statistics after the calls\n\nRead from each switch's management console (telnet 9400 + the country's number, admin / admin).\n");
+            for (int c = 0; c < _net.Countries.Count; c++)
+            {
+                Country country = _net.Countries[c];
+                b.Append("\n### ").Append(country.Name).Append(" (").Append(country.Dnic).Append(")\n\n```text\n");
+                b.Append(SwitchConsole(9400 + c, new[] { "show x25 stats", "show x25 port" }));
+                b.Append("\n```\n");
+            }
+
+            string logs = Path.Combine(_folder, "logs");
+            Directory.CreateDirectory(logs);
+            string file = Path.Combine(logs, "test-report.md");
+            File.WriteAllText(file, b.ToString());
+            TestContext.Progress.WriteLine("report: " + file);
+        }
+
+        /// <summary>
+        /// Logs in to a switch's management console over telnet and returns what each command printed. Telnet option
+        /// bytes (IAC sequences) are dropped. The answer to a step is everything until the console has been quiet for
+        /// 700 ms. A switch that cannot be reached gives a line saying so, which the report shows as it is.
+        /// </summary>
+        private static string SwitchConsole(int port, string[] commands)
+        {
+            try
+            {
+                using TcpClient client = new TcpClient();
+                if (!client.ConnectAsync("127.0.0.1", port).Wait(5000))
+                {
+                    return "(the console on port " + port + " did not answer)";
+                }
+
+                NetworkStream stream = client.GetStream();
+                ConsoleReader reader = new ConsoleReader(stream);
+                reader.ReadQuiet(700);
+                WriteLine(stream, "admin");
+                reader.ReadQuiet(700);
+                WriteLine(stream, "admin");
+                reader.ReadQuiet(700);
+                StringBuilder all = new StringBuilder();
+                for (int i = 0; i < commands.Length; i++)
+                {
+                    WriteLine(stream, commands[i]);
+                    all.Append(reader.ReadQuiet(700).TrimEnd()).Append("\n\n");
+                }
+
+                return all.ToString().TrimEnd();
+            }
+            catch (Exception e)
+            {
+                return "(console on port " + port + " failed: " + e.Message + ")";
+            }
+        }
+
+        private static void WriteLine(NetworkStream stream, string text)
+        {
+            byte[] bytes = Encoding.ASCII.GetBytes(text + "\r\n");
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        /// <summary>
+        /// Reads a telnet console, dropping IAC sequences (IAC cmd opt, and IAC SB ... IAC SE).
+        /// </summary>
+        /// <remarks>
+        /// A read still waiting when the quiet time runs out is kept and used by the next call. Starting a new read
+        /// instead left the old one waiting on the connection: it took the first byte of the next answer and nothing
+        /// ever looked at it (the report first showed "how x25 stats" for "show x25 stats" because of that).
+        /// </remarks>
+        private sealed class ConsoleReader
+        {
+            private readonly NetworkStream _stream;
+            private readonly byte[] _buffer = new byte[4096];
+            private Task<int>? _pending;
+            private int _state;
+
+            public ConsoleReader(NetworkStream stream)
+            {
+                _stream = stream;
+            }
+
+            // Everything until nothing has arrived for quietMs.
+            public string ReadQuiet(int quietMs)
+            {
+                StringBuilder text = new StringBuilder();
+                while (true)
+                {
+                    _pending ??= _stream.ReadAsync(_buffer, 0, _buffer.Length);
+                    if (!_pending.Wait(quietMs))
+                    {
+                        return text.ToString().Replace("\r", string.Empty);
+                    }
+
+                    int n = _pending.Result;
+                    _pending = null;
+                    if (n <= 0)
+                    {
+                        return text.ToString().Replace("\r", string.Empty);
+                    }
+
+                    Take(n, text);
+                }
+            }
+
+            private void Take(int n, StringBuilder text)
+            {
+                int state = _state;
+                for (int i = 0; i < n; i++)
+                {
+                    byte x = _buffer[i];
+                    if (state == 0)
+                    {
+                        if (x == 0xFF)
+                        {
+                            state = 1;
+                        }
+                        else if (x != 0)
+                        {
+                            text.Append((char)x);
+                        }
+                    }
+                    else if (state == 1)
+                    {
+                        // IAC IAC is a data 0xFF; SB starts a sub-negotiation; WILL/WONT/DO/DONT take one option byte.
+                        state = x == 0xFF ? 0 : x == 0xFA ? 3 : (x >= 0xFB && x <= 0xFE) ? 2 : 0;
+                    }
+                    else if (state == 2)
+                    {
+                        state = 0;
+                    }
+                    else if (state == 3)
+                    {
+                        state = x == 0xFF ? 4 : 3;
+                    }
+                    else
+                    {
+                        state = x == 0xF0 ? 0 : 3;
+                    }
+                }
+
+                // A telnet command may be split over two reads.
+                _state = state;
             }
         }
 

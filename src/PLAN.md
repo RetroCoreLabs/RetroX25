@@ -326,6 +326,15 @@ orders them. Every line was checked in the code and against the text: X.25 (10/9
 X.3 (03/00), X.121 (10/2000), RFC 1613. "Standard: none" means the texts do not cover it. None has a failing test
 yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO BUGS 34, 35) are B3/B4 above.
 
+### H0. A cross-environment test that sometimes fails (cause unknown)
+- `X25emuCalls_OneTwoAndTenAtOnce_UseOneTcpConnectionEach_PlusTheIdleOne` (RetroX25.Desktop.Tests, Interop) failed
+  once on 2026-11-19 in a full `demo/crossenv-test.ps1` run (15 of 16 passed), then passed alone and in the next full
+  run (16 of 16). The failing run's message was not kept, so which of its checks failed is not known. Its checks
+  read three counts of the TCP connections to port 2210 (Windows, WSL `ss`, our peer report) one after the other,
+  while x25emu may dial a spare connection at any time (its comment: 0 to 2 spares measured); a spare arriving
+  between two reads would make them disagree. That is a guess, not a measurement. Next: run it in a loop with its
+  `facts` text kept until it fails, read which check and which counts, then fix the test or the program.
+
 ### H1. A DTE must survive the switch (x25emu)
 - PVC over XOT is not set up again after its TCP connection closes, unless the program calls `x25c_pvc` again
   (BUGS 16; `x25_client.c` 283-307). RFC 1613 6.5: an XOT "MAY retry a failed PVC setup ... (5 minutes is
