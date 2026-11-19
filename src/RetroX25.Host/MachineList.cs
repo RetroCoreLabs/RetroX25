@@ -106,6 +106,31 @@ namespace RetroX25.Host
         /// <exception cref="FormatException">Anything wrong; the message names the file, line and name.</exception>
         public static List<MachineEntry> Parse(string[] lines, string fileName, string baseDirectory)
         {
+            return Parse(lines, fileName, baseDirectory, new List<OperatorLogin>());
+        }
+
+        /// <summary>Reads the operator logins of a machine list (<c>[operator.N]</c>: name, password).</summary>
+        /// <param name="path">The machine list.</param>
+        /// <returns>The logins; empty when the file has none.</returns>
+        /// <exception cref="FormatException">Anything wrong in the file.</exception>
+        public static List<OperatorLogin> LoadOperators(string path)
+        {
+            string full = Path.GetFullPath(path);
+            List<OperatorLogin> ops = new List<OperatorLogin>();
+            Parse(File.ReadAllLines(full), full, Path.GetDirectoryName(full) ?? ".", ops);
+            return ops;
+        }
+
+        /// <summary>As <see cref="Parse(string[], string, string)"/>, also giving the operator logins.</summary>
+        /// <param name="lines">The file's lines.</param>
+        /// <param name="fileName">The file's name, for messages.</param>
+        /// <param name="baseDirectory">The folder script paths are relative to.</param>
+        /// <param name="ops">Filled with the <c>[operator.N]</c> logins.</param>
+        /// <returns>The machines.</returns>
+        /// <exception cref="FormatException">Anything wrong; the message names the file, line and name.</exception>
+        public static List<MachineEntry> Parse(string[] lines, string fileName, string baseDirectory, List<OperatorLogin> ops)
+        {
+            OperatorLogin? currentOperator = null;
             SortedDictionary<int, MachineEntry> machines = new SortedDictionary<int, MachineEntry>();
             Dictionary<MachineEntry, int> sectionLine = new Dictionary<MachineEntry, int>();
             MachineEntry? current = null;
@@ -140,14 +165,26 @@ namespace RetroX25.Host
                         defaultsSeen = true;
                         inDefaults = true;
                         current = null;
+                        currentOperator = null;
                         continue;
                     }
 
                     inDefaults = false;
+                    currentOperator = null;
+                    if (name.StartsWith("operator.", StringComparison.Ordinal)
+                        && int.TryParse(name.AsSpan(9), NumberStyles.None, CultureInfo.InvariantCulture, out _))
+                    {
+                        // A login for the telnet console (--console-port): name and password.
+                        current = null;
+                        currentOperator = new OperatorLogin { Section = name, Where = where };
+                        ops.Add(currentOperator);
+                        continue;
+                    }
+
                     if (!name.StartsWith("machine.", StringComparison.Ordinal)
                         || !int.TryParse(name.AsSpan(8), NumberStyles.None, CultureInfo.InvariantCulture, out int number))
                     {
-                        throw new FormatException(where + ": unknown section [" + name + "] (only [defaults] and [machine.N])");
+                        throw new FormatException(where + ": unknown section [" + name + "] (only [defaults], [machine.N] and [operator.N])");
                     }
 
                     if (machines.ContainsKey(number))
@@ -185,12 +222,39 @@ namespace RetroX25.Host
                     continue;
                 }
 
+                if (currentOperator != null)
+                {
+                    if (key == "name" && value.Length > 0)
+                    {
+                        currentOperator.Name = value;
+                    }
+                    else if (key == "password" && value.Length > 0)
+                    {
+                        currentOperator.Password = value;
+                    }
+                    else
+                    {
+                        throw new FormatException(where + ": [" + currentOperator.Section + "] " + key
+                            + (key == "name" || key == "password" ? " may not be empty" : ": unknown key (only name and password)"));
+                    }
+
+                    continue;
+                }
+
                 if (current == null)
                 {
                     throw new FormatException(where + ": a key before the first [machine.N]");
                 }
 
                 SetKey(current, key, value, where, baseDirectory);
+            }
+
+            for (int i = 0; i < ops.Count; i++)
+            {
+                if (ops[i].Name.Length == 0 || ops[i].Password.Length == 0)
+                {
+                    throw new FormatException(ops[i].Where + ": [" + ops[i].Section + "] needs both name and password");
+                }
             }
 
             List<MachineEntry> result = new List<MachineEntry>(machines.Count);
@@ -294,6 +358,22 @@ namespace RetroX25.Host
 
             m.Hostname = hostname ?? string.Empty;
             return m;
+        }
+
+        /// <summary>One <c>[operator.N]</c>: a login for the telnet console.</summary>
+        public sealed class OperatorLogin
+        {
+            /// <summary>The section name, for messages.</summary>
+            public string Section { get; init; } = string.Empty;
+
+            /// <summary>The file and line of the section, for messages.</summary>
+            public string Where { get; init; } = string.Empty;
+
+            /// <summary>The login name (compared in any case).</summary>
+            public string Name { get; set; } = string.Empty;
+
+            /// <summary>The password (compared exactly).</summary>
+            public string Password { get; set; } = string.Empty;
         }
 
         private static void SetKey(MachineEntry m, string key, string value, string where, string baseDirectory)

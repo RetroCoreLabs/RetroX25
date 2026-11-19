@@ -439,11 +439,9 @@ Format: `src/docs/x25host-format.md`. Examples: `src/demo/hosts/vax`, `src/demo/
 description files, nothing in them runs; C# first, then C in x25emu reading the same files; JavaScript (Jint, hard
 limits) later and in C# only.
 
-- G1. What `x25host` still lacks from `docs/x25host-format.md` ("Many machines at once"): `nui` per machine, the operator console (`--console-port`, `show hosts`,
-  `stop host`, ...). Built: the console on stdin (`OperatorConsole.cs`) with `show hosts`, `show stats`, `show calls`,
-  `show users`, `clear call`, `logout`, `send`, `stop`/`start`/`restart host`, `help`, `quit`, and
-  `--stats-log`. Left: `--console-port` (telnet, `[operator.N]` login); `reload`, `log` (needs a logger per
-  machine); bytes per user. `show host` is built.
+- G1. What `x25host` still lacks from `docs/x25host-format.md` ("Many machines at once"): `nui` per machine (no
+  machine places calls yet, so nothing would send it); the console commands `reload` and `log` (needs a logger
+  per machine); bytes per user in `show users`.
 - G3. C `x25host` in x25emu reading the same files (ask the altoschat session before editing x25emu); a test that
   runs both on the same example and compares the screens.
 - G4. JavaScript hosts (C# only). The engine is built: `ScriptedHost` in RetroIO `RetroIO.Protocols.X25.Host`

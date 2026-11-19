@@ -25,13 +25,17 @@ namespace RetroX25.Host
 
         /// <summary>Makes a console for the machines of one runner.</summary>
         /// <param name="runner">The runner.</param>
-        public OperatorConsole(HostRunner runner)
+        /// <param name="overTelnet">True for a telnet console: <c>quit</c> leaves it at once and never stops the process.</param>
+        public OperatorConsole(HostRunner runner, bool overTelnet = false)
         {
             _runner = runner;
+            _overTelnet = overTelnet;
         }
 
-        /// <summary>Set by <c>quit</c>.</summary>
+        /// <summary>Set by <c>quit</c>: on stdin, stop the process (after "yes"); on telnet, close this connection.</summary>
         public bool QuitAsked { get; private set; }
+
+        private readonly bool _overTelnet;
 
         /// <summary>Runs one command line.</summary>
         /// <param name="line">What the operator typed.</param>
@@ -82,6 +86,9 @@ namespace RetroX25.Host
                         + "restart host <hostname>\n"
                         + "send <hostname> <user|*> <text>   a line to a user (or everybody)\n"
                         + "quit        stop x25host (asks first)\n";
+                case "quit" when _overTelnet:
+                    QuitAsked = true;
+                    return "bye\n";
                 case "quit":
                     _confirming = true;
                     return "stop x25host and clear every call? (yes/no) ";

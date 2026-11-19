@@ -30,6 +30,8 @@ namespace RetroX25.Host
             string? address = null;
             string? hostname = null;
             bool statsLog = false;
+            int consolePort = 0;
+            System.Net.IPAddress consoleBind = System.Net.IPAddress.Loopback;
             int verbosity = 0;
             for (int i = 0; i < args.Length; i++)
             {
@@ -58,6 +60,16 @@ namespace RetroX25.Host
                 {
                     group = args[++i];
                 }
+                else if (arg == "--console-port" && i + 1 < args.Length && ushort.TryParse(args[i + 1], out ushort cp) && cp > 0)
+                {
+                    consolePort = cp;
+                    i++;
+                }
+                else if (arg == "--console-bind" && i + 1 < args.Length && System.Net.IPAddress.TryParse(args[i + 1], out System.Net.IPAddress? ba))
+                {
+                    consoleBind = ba;
+                    i++;
+                }
                 else if (arg == "--stats-log")
                 {
                     statsLog = true;
@@ -80,11 +92,22 @@ namespace RetroX25.Host
             }
 
             List<MachineEntry> machines;
+            List<MachineList.OperatorLogin> operators = new List<MachineList.OperatorLogin>();
             try
             {
                 machines = folder != null
                     ? new List<MachineEntry> { MachineList.Single(folder, sw!, address, hostname) }
                     : MachineList.Load(list!);
+                if (consolePort > 0)
+                {
+                    // The logins are in the machine list; without one, nobody could log in.
+                    operators = list != null ? MachineList.LoadOperators(list) : operators;
+                    if (operators.Count == 0)
+                    {
+                        Console.Error.WriteLine("x25host: --console-port needs an [operator.N] (name, password) in the machine list");
+                        return 1;
+                    }
+                }
             }
             catch (FormatException ex)
             {
@@ -138,6 +161,22 @@ namespace RetroX25.Host
                 runner.Start();
                 log.LogInformation("x25host started: {Count} machine(s)", machines.Count);
 
+                TelnetConsole? telnet = null;
+                if (consolePort > 0)
+                {
+                    telnet = new TelnetConsole(runner, operators, consoleBind, consolePort, log);
+                    try
+                    {
+                        telnet.Start();
+                    }
+                    catch (System.Net.Sockets.SocketException ex)
+                    {
+                        Console.Error.WriteLine("x25host: the console cannot listen on " + consoleBind + ":" + consolePort + ": " + ex.Message);
+                        runner.Stop();
+                        return 1;
+                    }
+                }
+
                 // The operator console on stdin (docs/x25host-format.md). With no terminal (stdin closed or
                 // redirected from nothing) ReadLine returns null at once and the process just runs.
                 OperatorConsole console = new OperatorConsole(runner);
@@ -156,6 +195,7 @@ namespace RetroX25.Host
                 }) { IsBackground = true, Name = "x25host-console" };
                 reader.Start();
                 runner.Wait();
+                telnet?.Dispose();
             }
 
             return 0;
@@ -170,7 +210,9 @@ namespace RetroX25.Host
             Console.Error.WriteLine("  -n hostname      its name (default: [host] hostname, else the folder name)");
             Console.Error.WriteLine("  --machines file  the machine list: one [machine.N] per machine (type, nua, switch, hostname)");
             Console.Error.WriteLine("  --group name     run only the machines with group = name");
-            Console.Error.WriteLine("  --stats-log      each machine's counters (calls, bytes, packets, wrong logins) to the log once a minute");
+            Console.Error.WriteLine("  --console-port N the operator console over telnet on port N; the logins are [operator.N] in the list");
+            Console.Error.WriteLine("  --console-bind a the address it listens on (default 127.0.0.1)");
+            Console.Error.WriteLine("  --stats-log     each machine's counters (calls, bytes, packets, wrong logins) to the log once a minute");
             Console.Error.WriteLine("  -v               verbose (repeat for more)");
             return 1;
         }
