@@ -441,8 +441,11 @@ limits) later and in C# only.
 
 - G1. What `x25host` still lacks from `docs/x25host-format.md` ("Many machines at once"): `nui` per machine (no
   machine places calls yet, so nothing would send it; comes with the first machine that calls out).
-- G3. C `x25host` in x25emu reading the same files (ask the altoschat session before editing x25emu); a test that
-  runs both on the same example and compares the screens.
+- G3. The C `x25host` exists (x25emu 6416e96, host folders and `--machines`; JavaScript machines are refused, by
+  design). Left: a cross test here (with the other x25emu interop tests) that runs the C and the C# `x25host` on
+  every folder in `demo/hosts` and compares what a caller is sent. Also left: the format doc's 1 MB folder limit and
+  64 KB per-line output limit are in neither program, and its `who` and empty-call-user-data rows describe more
+  than C# does; doc and code must be made to agree.
 - G5. The host library (`demo/hosts`). Left: PAD texts that need a source first (`docs/research-os.md` 1.2-1.3) -
   PSS `<address>+COM` (the source shows the network's full address after a short one was typed; whether the PAD
   or the Call Connected packet supplied it is not known), the JANET commands `width=nn`, `transparent`, `break`,
