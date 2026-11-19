@@ -75,6 +75,9 @@ keys stop the program with the file, line and name (a typo is never a silently m
 | `fail_text` | Text after a wrong login | `Login incorrect` |
 | `motd` | Text file sent after a good login | none |
 | `then` | Where a good login goes: `shell` or `menu.<name>` | `shell` |
+| `command` | A login by command instead of the two prompts (TOPS-20 `LOGIN`, RSX-11 `HELLO`); several names with commas. The caller types `LOGIN user [password [account]]`: words after the password are taken and not looked at; without the password, `password_prompt` asks for it with echo off. A password typed on the line is echoed by the PAD, as everything typed is | none |
+| `command_prompt` | The prompt before login when `command` is set | `@` |
+| `command_refused` | The answer to any other line before login; `{word}` is the word typed | `?Please log in` |
 
 ### [user.N]
 
