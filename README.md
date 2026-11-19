@@ -42,6 +42,7 @@ them is a failing test rather than an argument.
 | `x25monitor` | Desktop network monitor: map, packet analyser, link status | [README](src/RetroX25.Monitor.Desktop/README.md) |
 | `x25pad` | Interactive terminal client — places calls | [README](src/RetroX25.Pad/README.md) |
 | `x25echo` | Answers calls and echoes data back | [README](src/RetroX25.Echo/README.md) |
+| `x25host` | Fake machines of the time (VMS, TOPS-20, SINTRAN, BBSes) described by host folders | [README](src/RetroX25.Host/README.md) |
 | `x25trace` | Wire tracer: connect or listen, decode, hex dump | [README](src/RetroX25.Trace/README.md) |
 | `x25traffic` | Load generator: streams and call storms | [README](src/RetroX25.Traffic/README.md) |
 | `x25nmc` | Network management console, in-band over X.25 | [README](src/RetroX25.Nmc/README.md) |
