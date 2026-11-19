@@ -55,7 +55,7 @@ keys stop the program with the file, line and name (a typo is never a silently m
 | Key | Meaning | Default |
 |---|---|---|
 | `hostname` | The machine's name: `{hostname}` in every text (the banner, the prompt, the logout line). Normally given by `-n` or the machine list, so one type folder serves many machines | the folder name |
-| `address` | The X.121 address the host answers | required, or `-a` |
+| `address` | The X.121 address the host answers, for a folder run on its own without `-a`. A folder in a library (the machine list's `nua` names the machine) leaves it out: the folders in `demo/hosts` have none | only when run alone without `-a` |
 | `sessions` | Calls served at once; one more is cleared with cause 0 "DTE originated" (a DTE cannot give the network's cause Number busy, X.25 Table 5-7; the host's log says why) | 8 |
 | `line_end` | `crlf` or `cr` or `lf`, sent after every line | `crlf` |
 | `idle_minutes` | Clear a call after this many minutes with no input; 0 = never | 15 |

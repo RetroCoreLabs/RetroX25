@@ -446,8 +446,7 @@ limits) later and in C# only.
 - G5. A library of host folders, one per scenario in `src/docs/research-os.md`. Done and in the x75 demo:
   `demo/hosts/vax`, `bbs`, `sintran`, `primos`, `wwiv`, `bsd`, `maximus` (each `host.ini` says which texts are
   verbatim). Left: TOPS-20, RSTS/E, SunOS, System V, TSO, VM/370, OS/400 as plain-text screens, Multics,
-  Citadel, the PAD/network texts; the host folders still carry an `address`, which the machine list overrides,
-  and should lose it. Then a way to compose many of them into one large demo
+  Citadel, the PAD/network texts. Then a way to compose many of them into one large demo
   network: a network file that lists countries, switches and which library hosts sit where, and a script that
   turns it into the switch ini files and starts it all (as `demo/x75-countries`, but generated). Every host in
   the library gets a test that logs in and runs its commands.
