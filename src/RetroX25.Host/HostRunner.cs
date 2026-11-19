@@ -91,6 +91,7 @@ namespace RetroX25.Host
             {
                 MachineEntry e = entries[i];
                 Machine m = new Machine(this, e);
+                m.MakeLog(_log);
                 m.Host = BuildHost(m);
 
                 if (!lines.TryGetValue(e.Line, out HostLine? line))
@@ -194,7 +195,7 @@ namespace RetroX25.Host
                     ended++;
                 }
             });
-            _log.LogInformation("{Host}: stopped by the operator, {Calls} call(s) ended", m.Entry.Hostname, ended);
+            m.Log.LogInformation("{Host}: stopped by the operator, {Calls} call(s) ended", m.Entry.Hostname, ended);
             return r.Count > 0 ? r[0] : m.Entry.Hostname + " stopped, " + ended.ToString(CultureInfo.InvariantCulture) + " call(s) ended";
         }
 
@@ -236,7 +237,7 @@ namespace RetroX25.Host
                 m.Stopped = false;
                 answer = m.Entry.Hostname + " started";
             });
-            _log.LogInformation("{Host}: start by the operator: {Answer}", m.Entry.Hostname, r.Count > 0 ? r[0] : answer);
+            m.Log.LogInformation("{Host}: start by the operator: {Answer}", m.Entry.Hostname, r.Count > 0 ? r[0] : answer);
             return r.Count > 0 ? r[0] : answer;
         }
 
@@ -277,6 +278,27 @@ namespace RetroX25.Host
             }
 
             return lines;
+        }
+
+        /// <summary>
+        /// <c>log &lt;hostname|*&gt; &lt;level&gt;</c>: the lowest level one machine (or every one) writes to the log.
+        /// </summary>
+        /// <param name="hostname">The machine, or <c>*</c>.</param>
+        /// <param name="level">The level.</param>
+        /// <returns>How many machines; 0 when no machine has that name.</returns>
+        public int SetLogLevel(string hostname, LogLevel level)
+        {
+            int n = 0;
+            for (int i = 0; i < _machines.Count; i++)
+            {
+                if (hostname == "*" || string.Equals(_machines[i].Entry.Hostname, hostname, StringComparison.OrdinalIgnoreCase))
+                {
+                    _machines[i].Log.Minimum = level;
+                    n++;
+                }
+            }
+
+            return n;
         }
 
         private Machine? Find(string hostname)
@@ -478,7 +500,7 @@ namespace RetroX25.Host
                 c.Line.Client?.Clear(c.Vc, CauseDteOriginated, 0);
                 int session = kv.Key;
                 Post(() => c.Machine.Host!.Disconnect(session));
-                _log.LogInformation("{Host}: call {Session} on lcn {Lcn} cleared by the operator", c.Machine.Entry.Hostname, session, lcn);
+                c.Machine.Log.LogInformation("{Host}: call {Session} on lcn {Lcn} cleared by the operator", c.Machine.Entry.Hostname, session, lcn);
                 return true;
             }
 
@@ -516,7 +538,7 @@ namespace RetroX25.Host
             {
                 _machines[i].Host!.Start(now);
                 _machines[i].StartedAt = now;
-                _log.LogInformation("{Host}: started, nua {Nua}, line {Line}", _machines[i].Entry.Hostname, _machines[i].Entry.Nua, _machines[i].Entry.Line);
+                _machines[i].Log.LogInformation("{Host}: started, nua {Nua}, line {Line}", _machines[i].Entry.Hostname, _machines[i].Entry.Nua, _machines[i].Entry.Line);
             }
 
             _worker = new Thread(WorkLoop) { IsBackground = true, Name = "x25host-machines" };
@@ -635,7 +657,7 @@ namespace RetroX25.Host
 
             if (m.Stopped)
             {
-                _log.LogInformation("{Host}: call from {Calling} refused: the machine is stopped (stop host)", m.Entry.Hostname, vc.CallingAddress);
+                m.Log.LogInformation("{Host}: call from {Calling} refused: the machine is stopped (stop host)", m.Entry.Hostname, vc.CallingAddress);
                 client.Clear(vc, CauseDteOriginated, 0);
                 return;
             }
@@ -676,7 +698,7 @@ namespace RetroX25.Host
                 {
                     Volatile.Write(ref timedOut, true);
                     call.Gone = true;
-                    _log.LogWarning("{Host}: call from {Calling} not answered by the machine in 2 s, cleared", m.Entry.Hostname, vc.CallingAddress);
+                    m.Log.LogWarning("{Host}: call from {Calling} not answered by the machine in 2 s, cleared", m.Entry.Hostname, vc.CallingAddress);
                     client.Clear(vc, CauseDteOriginated, 0);
                     return;
                 }
@@ -688,7 +710,7 @@ namespace RetroX25.Host
                 call.Gone = true;
                 // A DTE clears with cause 0 (X.25 Table 5-7); "Number busy" is a network cause it cannot give. The log
                 // says why.
-                _log.LogInformation("{Host}: call from {Calling} refused: {Why}", m.Entry.Hostname, vc.CallingAddress,
+                m.Log.LogInformation("{Host}: call from {Calling} refused: {Why}", m.Entry.Hostname, vc.CallingAddress,
                     answer == HostAdmission.Busy ? "every session is in use" : "not a PAD call (call user data does not start 01 00 00 00)");
                 client.Clear(vc, CauseDteOriginated, 0);
                 return;
@@ -697,7 +719,7 @@ namespace RetroX25.Host
             vc.UserData = session;
             Interlocked.Increment(ref m.CallsIn);
             client.Accept(vc);
-            _log.LogInformation("{Host}: call {Session} from {Calling}", m.Entry.Hostname, session, vc.CallingAddress);
+            m.Log.LogInformation("{Host}: call {Session} from {Calling}", m.Entry.Hostname, session, vc.CallingAddress);
         }
 
         private void OnData(X25Client client, X25Vc vc, byte[] data, int length, bool qBit)
@@ -725,7 +747,7 @@ namespace RetroX25.Host
 
             call.Gone = true;
 
-            _log.LogInformation("{Host}: call {Session} cleared (cause {Cause} diag {Diag})", call.Machine.Entry.Hostname, session, cause, diagnostic);
+            call.Machine.Log.LogInformation("{Host}: call {Session} cleared (cause {Cause} diag {Diag})", call.Machine.Entry.Hostname, session, cause, diagnostic);
             Post(() => call.Machine.Host!.Disconnect(session));
         }
 
@@ -808,14 +830,14 @@ namespace RetroX25.Host
                         // last text: the switch only took it, and X.25 4.5 lets data still on its way be lost when a
                         // clear passes it. The PAD clears; if it has not within InvitationWaitMs, we do.
                         client.Send(vc, InvitationToClear, InvitationToClear.Length, qBit: true);
-                        _log.LogInformation("{Host}: call {Session} ended by the machine: invitation to clear sent to the PAD", closed.Entry.Hostname, next.Session);
+                        closed.Log.LogInformation("{Host}: call {Session} ended by the machine: invitation to clear sent to the PAD", closed.Entry.Hostname, next.Session);
                         CallRef ending = next.Call;
                         X25Client c = client;
                         _ = Task.Delay(InvitationWaitMs).ContinueWith(_ =>
                         {
                             if (!ending.Gone && ending.Vc.Connected)
                             {
-                                _log.LogWarning("{Host}: the PAD did not clear in {Ms} ms after the invitation; clearing", closed.Entry.Hostname, InvitationWaitMs);
+                                closed.Log.LogWarning("{Host}: the PAD did not clear in {Ms} ms after the invitation; clearing", closed.Entry.Hostname, InvitationWaitMs);
                                 c.Clear(ending.Vc, CauseDteOriginated, 0);
                             }
                         }, TaskScheduler.Default);
@@ -826,7 +848,7 @@ namespace RetroX25.Host
                     // last data is let through to the switch first.
                     client.WaitForAcknowledgement(vc, 2000);
                     client.Clear(vc, CauseDteOriginated, 0);
-                    _log.LogInformation("{Host}: call {Session} cleared by the machine", closed.Entry.Hostname, next.Session);
+                    closed.Log.LogInformation("{Host}: call {Session} cleared by the machine", closed.Entry.Hostname, next.Session);
                     continue;
                 }
 
@@ -903,6 +925,15 @@ namespace RetroX25.Host
 
             public IHostMachine? Host { get; set; }
 
+            /// <summary>
+            /// The machine's own log: the runner's log, letting through only what is at or above
+            /// <see cref="MachineLog.Minimum"/> (the console's <c>log &lt;hostname&gt; &lt;level&gt;</c>).
+            /// </summary>
+            public MachineLog Log { get; private set; } = null!;
+
+            /// <summary>Gives the machine its log (from the constructor; the runner's log is set by then).</summary>
+            public void MakeLog(ILogger runnerLog) => Log = new MachineLog(runnerLog);
+
             /// <summary>When it was last started (the runner's start, or start host).</summary>
             public DateTime StartedAt { get; set; } = DateTime.Now;
 
@@ -940,9 +971,9 @@ namespace RetroX25.Host
                 _runner.ClearCall(session);
             }
 
-            public void Log(string text)
+            void IHostOutput.Log(string text)
             {
-                _runner._log.LogInformation("{Host}: {Text}", Entry.Hostname, text);
+                Log.LogInformation("{Host}: {Text}", Entry.Hostname, text);
             }
         }
 

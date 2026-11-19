@@ -16,7 +16,7 @@ namespace RetroX25.Host
     {
         private static readonly string[] NotBuilt =
         {
-            "reload", "log",
+            "reload",
         };
 
         private readonly HostRunner _runner;
@@ -84,6 +84,7 @@ namespace RetroX25.Host
                         + "stop host <hostname>   end its calls and stop answering\n"
                         + "start host <hostname>  read its folder again and answer again\n"
                         + "restart host <hostname>\n"
+                        + "log <hostname|*> <level>   trace, debug, info, warning, error, critical or none\n"
                         + "send <hostname> <user|*> <text>   a line to a user (or everybody)\n"
                         + "quit        stop x25host (asks first)\n";
                 case "quit" when _overTelnet:
@@ -106,6 +107,21 @@ namespace RetroX25.Host
             }
 
             string[] words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (cmd == "log" || cmd.StartsWith("log ", StringComparison.Ordinal))
+            {
+                // trace, debug, information (or info), warning, error, critical, none: the names of LogLevel.
+                string lv = words.Length == 3 && words[2].Equals("info", StringComparison.OrdinalIgnoreCase) ? "Information" : words.Length == 3 ? words[2] : string.Empty;
+                if (words.Length != 3 || !Enum.TryParse(lv, ignoreCase: true, out Microsoft.Extensions.Logging.LogLevel level) || !Enum.IsDefined(level)
+                    || char.IsDigit(lv[0]))
+                {
+                    return "usage: log <hostname|*> <trace|debug|info|warning|error|critical|none>\n";
+                }
+
+                int n = _runner.SetLogLevel(words[1], level);
+                return n == 0 ? "no machine called " + words[1] + "\n"
+                    : "log level " + level.ToString().ToLowerInvariant() + " for " + n.ToString(System.Globalization.CultureInfo.InvariantCulture) + " machine(s)\n";
+            }
+
             if (cmd.StartsWith("show host ", StringComparison.Ordinal))
             {
                 return words.Length != 3 ? "usage: show host <hostname>\n" : Join(_runner.HostDetail(words[2]));

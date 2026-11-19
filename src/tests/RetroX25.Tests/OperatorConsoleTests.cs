@@ -74,6 +74,42 @@ namespace RetroX25.Tests
         }
 
         [Test]
+        public void Log_SetsTheLevelOfOneMachine_OrAll_AndRefusesANumberOrAWrongName()
+        {
+            OperatorConsole c = new OperatorConsole(_runner!);
+            Assert.That(c.Execute("log one warning"), Is.EqualTo("log level warning for 1 machine(s)\n"));
+            Assert.That(c.Execute("log * info"), Is.EqualTo("log level information for 1 machine(s)\n"));
+            Assert.That(c.Execute("log two error"), Is.EqualTo("no machine called two\n"));
+            Assert.That(c.Execute("log one 3"), Does.StartWith("usage: log"));
+            Assert.That(c.Execute("log one loud"), Does.StartWith("usage: log"));
+        }
+
+        [Test]
+        public void AMachineLog_LetsThroughOnlyItsLevelAndAbove()
+        {
+            List<string> seen = new List<string>();
+            MachineLog log = new MachineLog(new ListLogger(seen)) { Minimum = Microsoft.Extensions.Logging.LogLevel.Warning };
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(log, "quiet");
+            Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(log, "loud");
+            Assert.That(seen, Is.EqualTo(new List<string> { "loud" }));
+        }
+
+        private sealed class ListLogger : Microsoft.Extensions.Logging.ILogger
+        {
+            private readonly List<string> _seen;
+
+            public ListLogger(List<string> seen) => _seen = seen;
+
+            public IDisposable? BeginScope<TState>(TState state)
+                where TState : notnull => null;
+
+            public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+            public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state,
+                Exception? exception, Func<TState, Exception?, string> formatter) => _seen.Add(formatter(state, exception));
+        }
+
+        [Test]
         public void Quit_AsksFirst_AndOnlyYesStops()
         {
             OperatorConsole c = new OperatorConsole(_runner!);
@@ -90,6 +126,7 @@ namespace RetroX25.Tests
         {
             OperatorConsole c = new OperatorConsole(_runner!);
             Assert.That(c.Execute("reload"), Is.EqualTo("'reload' is not built yet (see src/PLAN.md, G1)\n"));
+            Assert.That(c.Execute("help"), Does.Contain("log <hostname|*> <level>"));
             Assert.That(c.Execute("frob"), Does.StartWith("unknown command: frob"));
             Assert.That(c.Execute(""), Is.Empty);
         }
