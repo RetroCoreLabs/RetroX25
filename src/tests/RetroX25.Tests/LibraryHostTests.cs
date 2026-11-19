@@ -207,6 +207,36 @@ namespace RetroX25.Tests
             Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
         }
 
+        /// <summary>
+        /// The seven folders of the x75 demo, each loaded from disk: the same steps <see cref="X75CountriesScriptTests"/>
+        /// takes through the network. A step is what is typed (null: nothing, only look) and text that must then have
+        /// been sent.
+        /// </summary>
+        [TestCase("vax", new[] { null, "TOMVAX - VAX 8650", "guest\r", "Password: ", "GUEST\r", "$ ", "directory\r", "NOTES.TXT", "logout\r", "logged out at" })]
+        [TestCase("bbs", new[] { null, "Name (GUEST for a guest visit): ", "guest\r", "Password: ", "x\r", "Choice: ", "w\r", "guest from 24227001", "g\r", "Thank you for calling NORDBBS." })]
+        [TestCase("sintran", new[] { null, "SINTRAN III - VSX/500 K REVISION 0B", "guest\r", "PASSWORD: ", "GUEST\r", "@", "terminal-status\r", "  guest   24227001", "logout\r", "-- EXIT --" })]
+        [TestCase("primos", new[] { null, "PRIMENET 19.2.7F PPOA1", "guest\r", "Password? ", "prime\r", "Invalid user id or password; please try again.", "guest\rPRIME\r", "Welcome to PRIMOS version 19.4.9.", "frob\r", "Invalid command \"FROB\".", "lo\r", "(user 39) logged out" })]
+        [TestCase("wwiv", new[] { null, "Enter your name or number: ", "guest\r", "Password: ", "x\r", "[Sub 1] [Messages from The Management] : ", "g\r", "About X.25", "q\ro\r", "Thanks for calling THAMESWWIV." })]
+        [TestCase("bsd", new[] { null, "4.3 BSD UNIX (ucbvax) (ttyp0)", "guest\r", "Password:", "guest\r", "You have mail.", "cd /usr/guest\rcat notes\r", "demonstration 4.3BSD host", "frob\r", "frob: Command not found.", "exit\r", "logout" })]
+        [TestCase("maximus", new[] { null, "What is your name: ", "guest\r", "Password: ", "x\r", "[MAIN]: ", "y\r", "Sorry, but there's no answer.", "g\r", "thanks for calling.  Please hang up now." })]
+        public void AnX75DemoFolder_LogsIn_RunsItsCommands_AndLeaves(string folder, string?[] steps)
+        {
+            (DescribedHost h, Output o) = Load(folder);
+            h.Connect(1, string.Empty, "24227001");
+            for (int i = 0; i < steps.Length; i += 2)
+            {
+                if (steps[i] != null)
+                {
+                    Type(h, steps[i]!);
+                }
+
+                string sent = o.Take(1);
+                Assert.That(sent, Does.Contain(steps[i + 1]), folder + ", after typing " + (steps[i] ?? "nothing"));
+            }
+
+            Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }), folder + ": the last step ends the call");
+        }
+
         private static (DescribedHost Host, Output Out) Load(string folder)
         {
             HostDescription d = HostDescription.Load(FindHostFolder(folder), null, "24221999");

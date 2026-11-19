@@ -443,7 +443,6 @@ limits) later and in C# only.
   machine places calls yet, so nothing would send it; comes with the first machine that calls out).
 - G3. C `x25host` in x25emu reading the same files (ask the altoschat session before editing x25emu); a test that
   runs both on the same example and compares the screens.
-- G5. The host library (`demo/hosts`). Left: the PAD/network texts; the seven folders of the x75 demo get a
-  direct test in `LibraryHostTests` too (today only through the network); a way to compose many of them into
+- G5. The host library (`demo/hosts`). Left: the PAD/network texts; a way to compose many of them into
   one large demo network: a network file that lists countries, switches and which library hosts sit where, and
   a script that turns it into the switch ini files and starts it all (as `demo/x75-countries`, but generated).
