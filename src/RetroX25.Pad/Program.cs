@@ -60,6 +60,7 @@ namespace RetroX25.Pad
             int telnetPort = 0;
             string telnetBind = TelnetPadConfig.DefaultBindAddress;
             string? nui = null;
+            PadStyle style = PadStyle.X28;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -96,6 +97,18 @@ namespace RetroX25.Pad
                             || string.Equals(cleaned, "OFF", StringComparison.OrdinalIgnoreCase))
                         {
                             Console.Error.WriteLine("x25pad: -n: not a NUI (no '-', ',' or '+', not empty, not OFF).");
+                            return 1;
+                        }
+                        break;
+                    case "--style":
+                        // Which network's PAD texts: x28 (as written) or pss (BT PSS: call time and packet counts on a clear).
+                        if (i + 1 >= args.Length) { return Usage(); }
+                        string s = args[++i];
+                        if (string.Equals(s, "pss", StringComparison.OrdinalIgnoreCase)) { style = PadStyle.Pss; }
+                        else if (string.Equals(s, "x28", StringComparison.OrdinalIgnoreCase)) { style = PadStyle.X28; }
+                        else
+                        {
+                            Console.Error.WriteLine("x25pad: --style is x28 or pss.");
                             return 1;
                         }
                         break;
@@ -141,6 +154,7 @@ namespace RetroX25.Pad
                 Console.Write("\r\nDisconnected.\r\n");
             };
 
+            pad.Style = style;
             pad.Initialize();
             if (nui != null)
             {
@@ -281,11 +295,12 @@ namespace RetroX25.Pad
         /// </returns>
         private static int Usage()
         {
-            Console.Error.WriteLine("Usage: x25pad [-x host:port] [-n nui] [--telnet-port N [--telnet-bind addr]] [-v]");
+            Console.Error.WriteLine("Usage: x25pad [-x host:port] [-n nui] [--style x28|pss] [--telnet-port N [--telnet-bind addr]] [-v]");
             Console.Error.WriteLine("  -x host:port  XOT peer (default localhost:1998)");
             Console.Error.WriteLine("  --telnet-port N    listen for telnet on port N (one PAD and one XOT connection per telnet client)");
             Console.Error.WriteLine("  --telnet-bind addr address to listen on (default 127.0.0.1)");
             Console.Error.WriteLine("  -n nui        a NUI for every call, as if ID<nui> had been typed (each telnet session too)");
+            Console.Error.WriteLine("  --style x28|pss  PAD texts: X.28 as written (default) or BT PSS (a clear shows call time and packet counts); console only");
             Console.Error.WriteLine("  -v            Verbose (repeat for more)");
             return 1;
         }
