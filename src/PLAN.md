@@ -443,8 +443,10 @@ limits) later and in C# only.
   machine places calls yet, so nothing would send it; comes with the first machine that calls out).
 - G3. C `x25host` in x25emu reading the same files (ask the altoschat session before editing x25emu); a test that
   runs both on the same example and compares the screens.
-- G5. The host library (`demo/hosts`). Left: the PAD's own texts from `docs/research-os.md` 1.2-1.3 - the PSS
-  look (`CLR PAD (00)` with call time and packets, the PAD identification line) and the JANET `PAD>` prompt - which are PAD work in RetroIO
-  (`X28.cs`, `PadClient`), not host folders; a way to compose many of them into
+- G5. The host library (`demo/hosts`). Left: PAD texts that need a source first (`docs/research-os.md` 1.2-1.3) -
+  PSS `<address>+COM` (the source shows the network's full address after a short one was typed; whether the PAD
+  or the Call Connected packet supplied it is not known), the JANET commands `width=nn`, `transparent`, `break`,
+  `help address` (named, never described: find the "JNT PAD Terminal Users' Guide"); `x25pad --style pss` in the
+  telnet PADs too; and a way to compose many of them into
   one large demo network: a network file that lists countries, switches and which library hosts sit where, and
   a script that turns it into the switch ini files and starts it all (as `demo/x75-countries`, but generated).
