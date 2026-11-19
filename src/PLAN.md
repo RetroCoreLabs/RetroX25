@@ -446,7 +446,6 @@ limits) later and in C# only.
 - G5. The host library (`demo/hosts`). Left: PAD texts that need a source first (`docs/research-os.md` 1.2-1.3) -
   PSS `<address>+COM` (the source shows the network's full address after a short one was typed; whether the PAD
   or the Call Connected packet supplied it is not known), the JANET commands `width=nn`, `transparent`, `break`,
-  `help address` (named, never described: find the "JNT PAD Terminal Users' Guide"); `x25pad --style pss` in the
-  telnet PADs too; and a way to compose many of them into
+  `help address` (named, never described: find the "JNT PAD Terminal Users' Guide"); and a way to compose many of them into
   one large demo network: a network file that lists countries, switches and which library hosts sit where, and
   a script that turns it into the switch ini files and starts it all (as `demo/x75-countries`, but generated).
