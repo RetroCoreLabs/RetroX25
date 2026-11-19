@@ -170,6 +170,43 @@ namespace RetroX25.Tests
             Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
         }
 
+        [Test]
+        public void Multics_LogsInWithL_GivesTheReadyMessage_AndLogsOut()
+        {
+            (DescribedHost h, Output o) = Load("multics");
+            h.Connect(1, string.Empty, "24227001");
+            Assert.That(o.Take(1), Does.StartWith("Multics MR10.2: Honeywell LCPD Phoenix, System M (Channel c.h118)\r\n"));
+            Type(h, "l Smith\r");
+            Assert.That(o.Take(1), Is.EqualTo("Password:\r\n"));
+            Type(h, "multics\r");
+            Assert.That(o.Take(1), Is.EqualTo("\r\nSmith.Project logged in 19-NOV-2026 09:48:40 mst from ASCII terminal \"none\".\r\n"
+                + "r 09:48:40 0.123 5\r\n\r\n"));
+            Type(h, "pr start_up.ec\r");
+            Assert.That(o.Take(1), Does.Contain("demonstration Multics system"));
+            Type(h, "frob\r");
+            Assert.That(o.Take(1), Does.StartWith("command_processor_: Command not found. frob\r\n"));
+            Type(h, "logout\r");
+            Assert.That(o.Take(1), Does.Contain("CPU usage 3 sec, memory usage 12.1 units, cost $1.25.\r\nhangup"));
+            Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
+        }
+
+        [Test]
+        public void Citadel_StartsInTheLobby_GoesToARoom_AndTerminates()
+        {
+            (DescribedHost h, Output o) = Load("citadel");
+            h.Connect(1, string.Empty, "24227001");
+            Assert.That(o.Take(1), Does.EndWith("Type H for help.\r\n\r\nLobby> "));
+            Type(h, "n\r");
+            Assert.That(o.Take(1), Does.StartWith("From Sysop: The X.25 Net room"));
+            Type(h, "g\r");
+            Assert.That(o.Take(1), Does.EndWith("X.25 Net> "));
+            Type(h, "h\r");
+            Assert.That(o.Take(1), Does.Contain("lets you leave the system gracefully"));
+            Type(h, "t\r");
+            Assert.That(o.Take(1), Does.StartWith("Goodbye, and thanks for calling ODD-DUCK."));
+            Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
+        }
+
         private static (DescribedHost Host, Output Out) Load(string folder)
         {
             HostDescription d = HostDescription.Load(FindHostFolder(folder), null, "24221999");

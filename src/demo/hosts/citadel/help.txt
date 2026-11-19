@@ -1,0 +1,6 @@
+ <N>ew      read the new messages in this room
+ <G>oto     go to the next room
+ <E>nter    enter a message
+ <L>ogin    log in
+ <H>elp     this list
+ <T>erminate lets you leave the system gracefully

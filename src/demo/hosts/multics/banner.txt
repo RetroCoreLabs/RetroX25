@@ -1,0 +1,2 @@
+Multics MR10.2: Honeywell LCPD Phoenix, System M (Channel c.h118)
+Load - 140.0 out of 210.0 units: users - 154, {date} {time} mst

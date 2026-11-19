@@ -1,0 +1,2 @@
+&command_line off
+&print This is a demonstration Multics system on the X.25 test network.

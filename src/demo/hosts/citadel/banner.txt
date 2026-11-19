@@ -1,0 +1,4 @@
+
+Welcome to {hostname}, a Citadel board on the X.25 test network.
+Type H for help.
+

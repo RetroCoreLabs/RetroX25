@@ -1,0 +1,1 @@
+{user}.Project logged in {date} {time} mst from ASCII terminal "none".
