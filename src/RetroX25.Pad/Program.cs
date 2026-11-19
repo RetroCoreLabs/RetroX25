@@ -232,6 +232,8 @@ namespace RetroX25.Pad
             opened.SetOnConnected((c, vc) => created.NotifyCallAccepted(vc.Lcn));
             opened.SetOnData((c, vc, data, length, qBit, mBit, dBit) => created.DeliverData(vc.Lcn, data, qBit));
             opened.SetOnClear((c, vc, cause, diagnostic) => created.DeliverClear(vc.Lcn, cause, diagnostic));
+            // A reset from the other end: the PAD prints RESET DTE/ERR/NC/RPE (X.28 3.5.7) and the call stays.
+            opened.SetOnReset((c, vc, cause, diagnostic) => created.DeliverReset(vc.Lcn, cause, diagnostic));
 
             client = opened;
             pad = created;
