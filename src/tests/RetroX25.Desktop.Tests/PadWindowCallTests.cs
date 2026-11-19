@@ -423,7 +423,7 @@ namespace RetroX25.Desktop.Tests
             window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
 
             WaitUntil(() => router.ClearSeen, "the Clear Request to reach the router");
-            WaitUntil(() => viewModel.ConsoleText.Contains("CLEARED"), "CLEARED in the window");
+            WaitUntil(() => viewModel.ConsoleText.Contains("CLR CONF"), "CLR CONF in the window"); // X.28 3.5.18
             Assert.That(router.HasData("CLEAR"), Is.False, "CLEAR was sent as text instead of being a command");
             Assert.That(router.QBitDataSeen, Is.False,
                 "the PAD sent an X.29 message; a PAD must not send the host-to-PAD invitation to clear");
@@ -533,7 +533,7 @@ namespace RetroX25.Desktop.Tests
             window.KeyPress(Key.P, RawInputModifiers.Control, PhysicalKey.P, null);
             window.KeyTextInput("CLEAR");
             window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-            WaitUntil(() => viewModel.ConsoleText.Contains("CLEARED"), "CLEARED", () => viewModel.ConsoleText);
+            WaitUntil(() => viewModel.ConsoleText.Contains("CLR CONF"), "CLR CONF", () => viewModel.ConsoleText);
             WaitUntil(() => viewModel.ConsoleText.TrimEnd().EndsWith("PAD>"), "PAD> again", () => viewModel.ConsoleText);
             window.Close();
         }
@@ -613,7 +613,7 @@ namespace RetroX25.Desktop.Tests
             window.KeyPress(Key.P, RawInputModifiers.Control, PhysicalKey.P, null);
             window.KeyTextInput("CLEAR");
             window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-            WaitUntil(() => viewModel.ConsoleText.Contains("CLEARED"), "CLEARED", () => viewModel.ConsoleText);
+            WaitUntil(() => viewModel.ConsoleText.Contains("CLR CONF"), "CLR CONF", () => viewModel.ConsoleText);
             window.Close();
 
             // 2. R1 -> built-in switch -> the app's TAD. Wait for the call, then for the traffic to go quiet.

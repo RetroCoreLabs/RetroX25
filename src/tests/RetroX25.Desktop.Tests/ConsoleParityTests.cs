@@ -2393,7 +2393,8 @@ namespace RetroX25.Desktop.Tests
         {
             pad.KeyPress(Key.P, RawInputModifiers.Control, PhysicalKey.P, null);
             Dispatcher.UIThread.RunJobs();
-            WaitUntil(() => vm.ConsoleText.Contains("PAD Command Mode"), "the PAD to enter command mode", () => Dump("escape", vm));
+            // X.28 3.5.23: the escape shows the PAD's prompt only (it printed a "PAD Command Mode" banner until 2026-11-19).
+            WaitUntil(() => vm.ConsoleText.EndsWith("PAD> ", StringComparison.Ordinal), "the PAD to enter command mode", () => Dump("escape", vm));
             WaitQuiet(vm);
             for (int i = 0; i < setLines.Length; i++)
             {
@@ -2467,7 +2468,7 @@ namespace RetroX25.Desktop.Tests
             using PadRig rig = new PadRig();
             rig.Press("Clear Console");
             Assert.That(rig.Vm.ConsoleText, Is.EqualTo("PAD> "), "an empty console with the PAD prompt");
-            rig.AskPad("STAT", "Mode: Command");
+            rig.AskPad("STAT", "FREE"); // X.28 3.5.11: no call
             rig.AskPad("PAR?", "1:1 2:1");
             rig.Call();
             Assert.That(rig.Vm.StatusText, Does.Contain("Connected"));
@@ -2653,7 +2654,7 @@ namespace RetroX25.Desktop.Tests
                 Assert.That(rig.Vm.ConsoleText, Does.EndWith("PAD> "), "round " + round + ": " + Dump("end", rig.Vm));
                 rig.Press("Clear Console");
                 Assert.That(rig.Vm.ConsoleText, Is.EqualTo("PAD> "), "round " + round);
-                rig.AskPad("STAT", "Mode: Command");
+                rig.AskPad("STAT", "FREE"); // X.28 3.5.11: no call
             }
         }
 

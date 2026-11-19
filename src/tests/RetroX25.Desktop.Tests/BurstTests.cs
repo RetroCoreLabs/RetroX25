@@ -761,7 +761,7 @@ namespace RetroX25.Desktop.Tests
                 window.KeyPress(Key.P, RawInputModifiers.Control, PhysicalKey.P, null);
                 window.KeyTextInput("CLEAR");
                 window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-                WaitUntil(() => vm.ConsoleText.Contains("CLEARED"), "CLEARED", () => vm.ConsoleText);
+                WaitUntil(() => vm.ConsoleText.Contains("CLR CONF"), "CLR CONF", () => vm.ConsoleText); // X.28 3.5.18
                 tool.Stop();
                 WaitUntil(() => TotalNumber(provider, "X.25 active virtual circuits") == 0, "no call left",
                     () => "active " + Total(provider, "X.25 active virtual circuits") + ", in total " + Total(provider, "X.25 virtual circuits in total")
