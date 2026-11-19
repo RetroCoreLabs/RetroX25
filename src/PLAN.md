@@ -440,7 +440,11 @@ description files, nothing in them runs; C# first, then C in x25emu reading the 
 limits) later and in C# only.
 
 - G1. What `x25host` still lacks from `docs/x25host-format.md` ("Many machines at once"): `nui` per machine (no
-  machine places calls yet, so nothing would send it; comes with the first machine that calls out).
+  machine places calls yet, so nothing would send it; comes with the first machine that calls out). A real machine
+  that calls out on its own line (the emulated SINTRAN) needs nothing new: the switch port's `default_nui` bills
+  every call on the line to an account. Research 2026-11-19: X.25 (10/96) 6.21 says the NUI "is transmitted by the
+  DTE to the DCE in the NUI selection facility" and only on a line with an NUI subscription; ND's COSMOS X.25
+  library (ND-60.227.1, 2.3.2) has no NUI field among the facilities a program can set.
 - G5. The host library (`demo/hosts`). Left: PAD texts that need a source first (`docs/research-os.md` 1.2-1.3) -
   PSS `<address>+COM` (the source shows the network's full address after a short one was typed; whether the PAD
   or the Call Connected packet supplied it is not known), the JANET commands `width=nn`, `transparent`, `break`,
