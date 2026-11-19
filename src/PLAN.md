@@ -444,6 +444,11 @@ limits) later and in C# only.
 - G5. The host library (`demo/hosts`). Left: PAD texts that need a source first (`docs/research-os.md` 1.2-1.3) -
   PSS `<address>+COM` (the source shows the network's full address after a short one was typed; whether the PAD
   or the Call Connected packet supplied it is not known), the JANET commands `width=nn`, `transparent`, `break`,
-  `help address` (named, never described: find the "JNT PAD Terminal Users' Guide"). The large network
+  `help address` (named, never described: find the "JNT PAD Terminal Users' Guide"). Found 2026-11-19: "The
+  SERCNET - PSS Gateway User's Guide" (A S Dunn, Rutherford, 1984; chilton-computing.org.uk/ca/technology/networking/p007.htm)
+  shows the JNT PAD's banner `PAD n line n speed nnnn`, the prompt `PAD>`, `call <name>`, BREAK back to the PAD,
+  `clear` answered `*** Cleared`; and a BT PSS session `N<NUI>-A22351919169` answered `23422351919169+COM` (the
+  short `A2...` shown as the full address) - it does not say whether the PAD or the Call Connected packet gave the
+  full address. The JNT PAD guide itself is only on paper (Computing History museum, Box 053 and Box 504). The large network
   (`demo/large-network`) has no unit test of its own: the generator is PowerShell, checked by hand on 2026-11-19
   (seven networks, calls up to three links away connected).
