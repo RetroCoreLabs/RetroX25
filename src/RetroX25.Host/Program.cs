@@ -30,6 +30,8 @@ namespace RetroX25.Host
             string? address = null;
             string? hostname = null;
             bool statsLog = false;
+            int maxMemoryMb = 0;
+            int maxCpuPercent = 0;
             int consolePort = 0;
             System.Net.IPAddress consoleBind = System.Net.IPAddress.Loopback;
             int verbosity = 0;
@@ -68,6 +70,16 @@ namespace RetroX25.Host
                 else if (arg == "--console-bind" && i + 1 < args.Length && System.Net.IPAddress.TryParse(args[i + 1], out System.Net.IPAddress? ba))
                 {
                     consoleBind = ba;
+                    i++;
+                }
+                else if (arg == "--max-memory-mb" && i + 1 < args.Length && int.TryParse(args[i + 1], out int mm) && mm > 0)
+                {
+                    maxMemoryMb = mm;
+                    i++;
+                }
+                else if (arg == "--max-cpu-percent" && i + 1 < args.Length && int.TryParse(args[i + 1], out int mc) && mc > 0 && mc <= 100)
+                {
+                    maxCpuPercent = mc;
                     i++;
                 }
                 else if (arg == "--stats-log")
@@ -128,6 +140,26 @@ namespace RetroX25.Host
 
             using ILoggerFactory loggerFactory = ToolSupport.CreateLoggerFactory(verbosity);
             ILogger log = loggerFactory.CreateLogger("x25host");
+
+            // The cap on the whole process, before any machine starts (ProcessLimits.cs).
+            ProcessLimits? limits = null;
+            if (maxMemoryMb > 0 || maxCpuPercent > 0)
+            {
+                try
+                {
+                    limits = new ProcessLimits(maxMemoryMb, maxCpuPercent);
+                    limits.ApplyToThisProcess();
+                    (ulong mem, uint rate) = limits.Query();
+                    log.LogInformation("x25host: capped at {Mb} MB, {Cpu}% CPU (0 = no cap)", mem / (1024 * 1024), rate / 100);
+                }
+                catch (Exception ex) when (ex is PlatformNotSupportedException || ex is System.ComponentModel.Win32Exception)
+                {
+                    Console.Error.WriteLine("x25host: " + ex.Message);
+                    return 1;
+                }
+            }
+
+            using ProcessLimits? keep = limits;
 
             HostRunner runner;
             try
@@ -222,7 +254,9 @@ namespace RetroX25.Host
             Console.Error.WriteLine("  --group name     run only the machines with group = name");
             Console.Error.WriteLine("  --console-port N the operator console over telnet on port N; the logins are [operator.N] in the list");
             Console.Error.WriteLine("  --console-bind a the address it listens on (default 127.0.0.1)");
-            Console.Error.WriteLine("  --stats-log     each machine's counters (calls, bytes, packets, wrong logins) to the log once a minute");
+            Console.Error.WriteLine("  --max-memory-mb N   the whole process may use at most N MB (Windows job object)");
+            Console.Error.WriteLine("  --max-cpu-percent N at most N percent of the machine's CPU (Windows job object)");
+            Console.Error.WriteLine("  --stats-log    each machine's counters (calls, bytes, packets, wrong logins) to the log once a minute");
             Console.Error.WriteLine("  -v               verbose (repeat for more)");
             return 1;
         }

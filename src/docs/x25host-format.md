@@ -365,6 +365,11 @@ The counters are kept per machine from the moment it starts and are cleared by `
 the totals for the process. The same figures go to the process log once a minute when `--stats-log` is given,
 so a test can read them without a console.
 
+`--max-memory-mb N` and `--max-cpu-percent N` cap the whole x25host process (all its machines together) with a
+Windows job object, set before the first machine starts. Past the memory cap an allocation fails (.NET reports
+OutOfMemoryException); the CPU cap is a hard cap in percent of the whole computer. Windows only: elsewhere
+x25host refuses to start with these options. The limits per script call stay as they are.
+
 ## Limits (both programs, not settable from the file)
 
 - A typed line longer than 256 characters is cut there.
