@@ -2469,7 +2469,7 @@ namespace RetroX25.Desktop.Tests
             rig.Press("Clear Console");
             Assert.That(rig.Vm.ConsoleText, Is.EqualTo("PAD> "), "an empty console with the PAD prompt");
             rig.AskPad("STAT", "FREE"); // X.28 3.5.11: no call
-            rig.AskPad("PAR?", "1:1 2:1");
+            rig.AskPad("PAR?", "PAR 1:1, 2:1"); // X.28 3.5.14
             rig.Call();
             Assert.That(rig.Vm.StatusText, Does.Contain("Connected"));
         }
@@ -2490,7 +2490,7 @@ namespace RetroX25.Desktop.Tests
             // Command mode works, and the PAD is back on its DEFAULT parameters: the built-in TAD set echo
             // (P2) to 0 during the call, and after the call it is 1 again (the rule: after a call the PAD
             // always goes back to the defaults, never to what the host set).
-            rig.AskPad("PAR?", "1:1 2:1");
+            rig.AskPad("PAR?", "PAR 1:1, 2:1"); // X.28 3.5.14
             WaitUntil(() => rig.TadVm.Sessions.Count == 0, "the session gone from the Local TAD server window", () => rig.TadVm.ConnectionStatsText, 9000);
 
             // And a new call works.
@@ -2589,7 +2589,7 @@ namespace RetroX25.Desktop.Tests
             AssertWindowShowsDefaults(rig.Vm, "after a host clear");
 
             // The PAD echoes the typed command again, and a new call starts from the defaults.
-            rig.AskPad("PAR?", "1:1 2:1");
+            rig.AskPad("PAR?", "PAR 1:1, 2:1"); // X.28 3.5.14
             Assert.That(rig.Vm.ConsoleText, Does.Contain("PAD> PAR?"), "the typed command is echoed once P2 is back: " + Dump("echo", rig.Vm));
             rig.Call();
             rig.AskHost("STATUS", "Echo service active");
@@ -2605,7 +2605,7 @@ namespace RetroX25.Desktop.Tests
             WaitUntil(() => rig.Vm.StatusText.Contains("Disconnected") && rig.Vm.ConsoleText.EndsWith("PAD> ", StringComparison.Ordinal), "the user's clear", () => Dump("CLR", rig.Vm));
             WaitQuiet(rig.Vm);
             AssertWindowShowsDefaults(rig.Vm, "after the user's CLR");
-            rig.AskPad("PAR?", "1:1 2:1");
+            rig.AskPad("PAR?", "PAR 1:1, 2:1"); // X.28 3.5.14
         }
 
         [AvaloniaTest]
