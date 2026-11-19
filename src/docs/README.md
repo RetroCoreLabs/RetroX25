@@ -42,5 +42,5 @@ main `README.md` at the top of the repository); these guides cover things that a
 
 ## Other files
 
-- [config-samples](config-samples): sample configuration files for the Desktop app and the routing sample.
-- [images](images): pictures used by these guides.
+- [config-samples](https://github.com/RetroCoreLabs/RetroX25/tree/main/src/docs/config-samples): sample configuration files for the Desktop app and the routing sample.
+- [images](https://github.com/RetroCoreLabs/RetroX25/tree/main/src/docs/images): pictures used by these guides.

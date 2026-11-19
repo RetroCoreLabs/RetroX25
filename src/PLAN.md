@@ -287,8 +287,6 @@ One scripted call through the C# switch and through x25emu gives the same record
 
 The wrong and misleading statements found by the audit of 2026-11-14 are fixed and committed in RetroIO, RetroX25 and
 x25emu. What is left:
-- Ten guides in `src/docs` are not on the docfx site (it publishes only the program READMEs and the demo README).
-  Adding them to `docfx.json`, `toc.yml` and `gen_toc.py` looks small; it needs a docfx build to prove.
 - Screenshot slots are placeholders (Ronny's to capture).
 - The XMSG protocol notes exist twice in RetroIO (`src/DOC/protocols` and a copy inside the Node package).
 - RetroIO `src/tests/demo/` is a dead copy of an old demo (its README now says so).

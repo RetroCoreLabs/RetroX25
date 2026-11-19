@@ -7,22 +7,60 @@
     href: ../RetroX25.Desktop/README.md
   - name: "x25echo — the echo service"
     href: ../RetroX25.Echo/README.md
+  - name: "x25host — fake machines on the network"
+    href: ../RetroX25.Host/README.md
   - name: "x25monitor — the network monitor"
     href: ../RetroX25.Monitor.Desktop/README.md
   - name: "x25nmc — the network management console"
     href: ../RetroX25.Nmc/README.md
   - name: "x25pad — the interactive terminal client"
     href: ../RetroX25.Pad/README.md
+  - name: "x25service"
+    href: ../RetroX25.Service/README.md
   - name: "x25switch — the packet switch"
     href: ../RetroX25.Switch/README.md
   - name: "x25trace — the wire tracer"
     href: ../RetroX25.Trace/README.md
   - name: "x25traffic — the load generator"
     href: ../RetroX25.Traffic/README.md
-  - name: "x25xot — the XOT test application"
+  - name: "x25xot — the XOT debug tool"
     href: ../RetroX25.Xot/README.md
   - name: "X.25 C# demo network"
     href: ../demo/README.md
+- name: Guides
+  items:
+  - name: "The guides"
+    href: ../docs/README.md
+  - name: "The Altos chat"
+    href: ../docs/altos-chat.md
+  - name: "Billing: accounts, NUIs and call records"
+    href: ../docs/billing.md
+  - name: "Testing RetroX25 against real Cisco routers (GNS3 and XOT)"
+    href: ../docs/cisco-gns3-xot-test.md
+  - name: "Cisco IOS and X.25: setup options for real routers (25xx and similar)"
+    href: ../docs/cisco-ios-x25-options.md
+  - name: "What we learned about the Cisco router (one page)"
+    href: ../docs/cisco-learnings.md
+  - name: "Testing against the C emulator (x25emu) and the Cisco router"
+    href: ../docs/crossenv-testing.md
+  - name: "Modulo 128: LAPB, X.25, and how Cisco uses them"
+    href: ../docs/modulo-128.md
+  - name: "What machines, networks and BBSes of the 1970s-1990s showed a caller"
+    href: ../docs/research-os.md
+  - name: "Using a PAD from a normal terminal program (telnet)"
+    href: ../docs/telnet-pad.md
+  - name: "The programs in this repository and what each one is for"
+    href: ../docs/tools.md
+  - name: "Trunk links: leased-line style trunks, with XOT as the extra"
+    href: ../docs/trunk-links.md
+  - name: "A country X.25 network, and how these programs simulate it"
+    href: ../docs/x25-network.md
+  - name: "x25host: the host description format"
+    href: ../docs/x25host-format.md
+  - name: "How XOT peers work: dial out, accept in, source IP, NAT"
+    href: ../docs/xot-peers.md
+- name: Network Atlas
+  href: ../docs/atlas/index.html
 - name: API Reference
   href: api/
   topicHref: api/index.md

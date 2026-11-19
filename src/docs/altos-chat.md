@@ -4,7 +4,7 @@ RetroIO's runtime can run **CHAT 3.1**, the conference program that ran on an Al
 at NUA 0262 45 8900 40004 (Hans Korneder, Munich, 1987). The original source is at
 <https://archive.org/details/altoschat>. A caller dials the chat's address from a PAD and is in the chat as
 `guest`, as every X.25 caller was on the Altos. The plan for the whole port is
-[altos-chat-port-plan.md](altos-chat-port-plan.md); this page covers the settings.
+[altos-chat-port-plan.md](https://github.com/RetroCoreLabs/RetroX25/blob/main/src/docs/altos-chat-port-plan.md); this page covers the settings.
 
 ## Turning it on: the `Chat` section
 
@@ -90,4 +90,4 @@ holds one connection per channel, so it needs one channel more than the most cal
 }
 ```
 
-The whole file is [config-samples/x25config-altos-chat.json](config-samples/x25config-altos-chat.json).
+The whole file is [config-samples/x25config-altos-chat.json](https://github.com/RetroCoreLabs/RetroX25/blob/main/src/docs/config-samples/x25config-altos-chat.json).

@@ -29,9 +29,19 @@
         "exclude": [ "**/obj/**", "**/bin/**" ],
         "src": "..",
         "dest": "apps"
+      },
+      {
+        "files": [ "docs/*.md" ],
+        "exclude": [ "docs/altos-chat-port-plan.md" ],
+        "src": "..",
+        "dest": "guides"
       }
     ],
-    "resource": [ { "files": [ "images/**" ] } ],
+    "resource": [
+      { "files": [ "images/**" ] },
+      { "files": [ "docs/images/**" ], "src": "..", "dest": "guides" },
+      { "files": [ "index.html" ], "src": "../docs/atlas", "dest": "atlas" }
+    ],
     "output": "_site",
     "globalMetadata": {
       "_appLogoPath": "images/RetroX25.png",

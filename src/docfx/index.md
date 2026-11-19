@@ -7,6 +7,12 @@ six console tools - built on the `RetroIO.Protocols.X25.*` packages from
 The source, the build instructions and the releases are on
 [GitHub](https://github.com/RetroCoreLabs/RetroX25).
 
+## The X.25 Network Atlas
+
+**[Open the X.25 Network Atlas](../docs/atlas/index.html)**: a map of the old public X.25 world, with the networks,
+their hosts and their NUAs (network user addresses), and a search. It is one page that needs no server and
+nothing from the internet, and it opens full-screen.
+
 ## Get started
 
 ```powershell
