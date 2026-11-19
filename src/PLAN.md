@@ -445,7 +445,7 @@ limits) later and in C# only.
   runs both on the same example and compares the screens.
 - G5. A library of host folders, one per scenario in `src/docs/research-os.md`. Done and in the x75 demo:
   `demo/hosts/vax`, `bbs`, `sintran`, `primos`, `wwiv`, `bsd`, `maximus` (each `host.ini` says which texts are
-  verbatim); `demo/hosts/tops20` (a login by command), `rsts`, `sunos`, `sysv`, `tso`, `vm370`, tested in `LibraryHostTests`. Left: OS/400 as plain-text screens, Multics,
+  verbatim); `demo/hosts/tops20` (a login by command), `rsts`, `sunos`, `sysv`, `tso`, `vm370`, `os400` (5250 screens as plain text), tested in `LibraryHostTests`. Left: Multics,
   Citadel, the PAD/network texts. Then a way to compose many of them into one large demo
   network: a network file that lists countries, switches and which library hosts sit where, and a script that
   turns it into the switch ini files and starts it all (as `demo/x75-countries`, but generated). Every host in

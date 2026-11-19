@@ -147,6 +147,29 @@ namespace RetroX25.Tests
             Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
         }
 
+        [Test]
+        public void Os400_SignsOn_ShowsTheMainMenu_TheMessages_AndSignsOff()
+        {
+            (DescribedHost h, Output o) = Load("os400");
+            h.Connect(1, string.Empty, "24227001");
+            string signOn = o.Take(1);
+            Assert.That(signOn, Does.StartWith("                      Sign On\r\n"));
+            Assert.That(signOn, Does.Contain("System  . . . . . :   S44A0060\r\n"));
+            Assert.That(signOn, Does.EndWith("        User  . . . . . . . . . . . . . .   "));
+            Type(h, "guest\rwrong\r");
+            Assert.That(o.Take(1), Does.Contain("CPF1107  Password not correct for user profile."));
+            Type(h, "guest\rGUEST\r");
+            string menu = o.Take(1);
+            Assert.That(menu, Does.Contain("MAIN                    AS/400 Main Menu"));
+            Assert.That(menu, Does.EndWith("Selection or command\r\n===> "));
+            Type(h, "dspmsg\r");
+            Assert.That(o.Take(1), Does.Contain("Load form type '*STD' device PRT02 writer PRT02."));
+            Type(h, "5\r");
+            Assert.That(o.Take(1), Does.StartWith("Option 5 is not available on this system."));
+            Type(h, "90\r");
+            Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
+        }
+
         private static (DescribedHost Host, Output Out) Load(string folder)
         {
             HostDescription d = HostDescription.Load(FindHostFolder(folder), null, "24221999");

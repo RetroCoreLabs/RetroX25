@@ -1,0 +1,8 @@
+                        Display Messages
+                                                      System:   {hostname}
+Queue . . . . . :   QSYSOPR                 Program . . . . :   *DSPMSG
+  Library . . . :     QSYS                    Library . . . :
+Severity  . . . :   40                      Delivery  . . . :   *HOLD
+Type reply (if required), press Enter.
+  Load form type '*STD' device PRT02 writer PRT02.  (H C G I R)
+                                                                  Bottom

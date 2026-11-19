@@ -1,0 +1,5 @@
+                      Sign On
+                                    System  . . . . . :   {hostname}
+                                    Subsystem . . . . :   QINTER
+                                    Display . . . . . :   QPADEV0001
+
