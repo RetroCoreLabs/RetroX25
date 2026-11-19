@@ -51,8 +51,9 @@ namespace RetroX25.Tests.Demo
         private readonly List<DateTime> _pidStarts = new List<DateTime>();
 
         // One row per call placed, for the report written at the end (demo/large-network/logs/test-report.md):
-        // from, to, number dialled, links crossed, ms, result.
+        // from, to, full address, number dialled, links crossed, ms, result.
         private readonly List<string[]> _rows = new List<string[]>();
+        private const int ResultColumn = 6;
         private readonly DateTime _runStarted = DateTime.Now;
 
         [OneTimeSetUp]
@@ -183,6 +184,28 @@ namespace RetroX25.Tests.Demo
                     Assert.That(_net.Distances(via)[o], Is.EqualTo(dist[o] - 1),
                         me.Name + ": the route to " + other.Name + " goes via " + trunk["peer_name"] + ", which is not on a shortest chain");
                 }
+
+                // Each of this country's hosts: its real number, exactly, to the host line (port 2).
+                for (int h = 0; h < _net.Hosts.Count; h++)
+                {
+                    if (_net.Hosts[h].Country != c)
+                    {
+                        continue;
+                    }
+
+                    int found = 0;
+                    foreach (KeyValuePair<string, Dictionary<string, string>> s in ini)
+                    {
+                        if (s.Key.StartsWith("route.", StringComparison.Ordinal) && s.Value.TryGetValue("number", out string? n) && n == _net.Hosts[h].Nua)
+                        {
+                            found++;
+                            Assert.That(s.Value["port"], Is.EqualTo("2"), me.Name + ": " + _net.Hosts[h].Hostname + " is not routed to the host line");
+                        }
+                    }
+
+                    Assert.That(found, Is.EqualTo(1), me.Name + ": routes to " + _net.Hosts[h].Hostname + " (" + _net.Hosts[h].Nua + ")");
+                    Assert.That(_net.Hosts[h].Nua, Does.StartWith(me.Dnic), _net.Hosts[h].Hostname + "'s number is not in " + me.Name);
+                }
             }
 
             Dictionary<string, Dictionary<string, string>> machines = Ini.Read(Path.Combine(gen, "machines.ini"));
@@ -238,6 +261,208 @@ namespace RetroX25.Tests.Demo
             Assert.That(failures, Is.Empty, from.Name + ": calls that failed:\n" + string.Join("\n", failures));
         }
 
+        /// <summary>
+        /// After every country has called every host and echo, each switch's own counters (show x25 stats and
+        /// show x25 port on its console) must agree with the calls the test made:
+        /// <list type="bullet">
+        /// <item><description>the PAD line took one call per host and per echo; the echo line gave out one call per
+        /// calling country; the host line one per calling country for each of its hosts;</description></item>
+        /// <item><description>every X.75 link carries as many calls out of one end as into the other end, both ways;</description></item>
+        /// <item><description>each switch's incoming and outgoing totals are the sums of its ports, are equal (every call
+        /// in went on), cleared counts both legs of every call, no call is still up, and every packet received was sent on;</description></item>
+        /// <item><description>over all switches, the calls counted are the sum of (links crossed + 1) over every call:
+        /// a call is counted once by each switch it passes.</description></item>
+        /// </list>
+        /// </summary>
+        [Test]
+        [Order(3)]
+        public void AfterTheCalls_EverySwitchCountsExactlyTheCallsThatPassedIt()
+        {
+            int countries = _net.Countries.Count;
+            int perCaller = _net.Hosts.Count + countries;
+            Assume.That(_rows.Count, Is.EqualTo(countries * perCaller),
+                "the counters can only be checked after every country's calls ran in this fixture (run the whole fixture, not one case)");
+
+            ReadSwitchConsoles();
+            List<string> wrong = new List<string>();
+            int[][] portIn = new int[countries][];
+            int[][] portOut = new int[countries][];
+            long allIncoming = 0;
+
+            for (int c = 0; c < countries; c++)
+            {
+                string name = _net.Countries[c].Name;
+                string text = _consoles[c];
+                long incoming = Counter(text, "Incoming:");
+                long outgoing = Counter(text, "Outgoing:");
+                long cleared = Counter(text, "Cleared:");
+                long received = Counter(text, "Received:");
+                long sent = Counter(text, "Sent:");
+                long active = Counter(text, "Active VCs:");
+                ReadPorts(text, out portIn[c], out portOut[c]);
+                allIncoming += incoming;
+
+                int hostsHere = 0;
+                for (int h = 0; h < _net.Hosts.Count; h++)
+                {
+                    if (_net.Hosts[h].Country == c)
+                    {
+                        hostsHere++;
+                    }
+                }
+
+                int links = 0;
+                for (int l = 0; l < _net.Links.Count; l++)
+                {
+                    if (_net.Links[l].A == c || _net.Links[l].B == c)
+                    {
+                        links++;
+                    }
+                }
+
+                // Port 0 PAD line, 1 echo, 2 hosts, 3.. the links in network.ini order (large.ps1 writes them so).
+                Expect(wrong, name + ": ports", portIn[c].Length, 3 + links);
+                if (portIn[c].Length != 3 + links)
+                {
+                    continue;
+                }
+
+                Expect(wrong, name + ": PAD line calls in", portIn[c][0], perCaller);
+                Expect(wrong, name + ": PAD line calls out", portOut[c][0], 0);
+                Expect(wrong, name + ": echo line calls in", portIn[c][1], 0);
+                Expect(wrong, name + ": echo line calls out", portOut[c][1], countries);
+                Expect(wrong, name + ": host line calls in", portIn[c][2], 0);
+                Expect(wrong, name + ": host line calls out", portOut[c][2], countries * hostsHere);
+
+                long sumIn = 0, sumOut = 0;
+                for (int p = 0; p < portIn[c].Length; p++)
+                {
+                    sumIn += portIn[c][p];
+                    sumOut += portOut[c][p];
+                }
+
+                Expect(wrong, name + ": incoming = sum of the ports' calls in", incoming, sumIn);
+                Expect(wrong, name + ": outgoing = sum of the ports' calls out", outgoing, sumOut);
+                Expect(wrong, name + ": outgoing = incoming", outgoing, incoming);
+                Expect(wrong, name + ": cleared = both legs of every call", cleared, 2 * incoming);
+                Expect(wrong, name + ": calls still up", active, 0);
+                Expect(wrong, name + ": packets sent = received", sent, received);
+            }
+
+            // Each link: what one end sent out, the other end took in.
+            for (int l = 0; l < _net.Links.Count; l++)
+            {
+                int a = _net.Links[l].A, b = _net.Links[l].B;
+                int pa = TrunkPort(a, l), pb = TrunkPort(b, l);
+                if (pa >= portIn[a].Length || pb >= portIn[b].Length)
+                {
+                    continue;
+                }
+
+                string link = _net.Countries[a].Name + "-" + _net.Countries[b].Name;
+                Expect(wrong, link + ": out of " + _net.Countries[a].Name + " = into " + _net.Countries[b].Name, portOut[a][pa], portIn[b][pb]);
+                Expect(wrong, link + ": out of " + _net.Countries[b].Name + " = into " + _net.Countries[a].Name, portOut[b][pb], portIn[a][pa]);
+            }
+
+            long expected = 0;
+            for (int i = 0; i < _rows.Count; i++)
+            {
+                expected += int.Parse(_rows[i][4]) + 1;
+            }
+
+            Expect(wrong, "all switches: calls counted", allIncoming, expected);
+            Assert.That(wrong, Is.Empty, "switch counters that do not match the calls made:\n" + string.Join("\n", wrong));
+        }
+
+        private static void Expect(List<string> wrong, string what, long got, long want)
+        {
+            if (got != want)
+            {
+                wrong.Add(what + ": " + got + ", expected " + want);
+            }
+        }
+
+        // The port number of link l at country c: links are ports 3, 4, ... in the order network.ini lists them.
+        private int TrunkPort(int c, int l)
+        {
+            int p = 3;
+            for (int i = 0; i < l; i++)
+            {
+                if (_net.Links[i].A == c || _net.Links[i].B == c)
+                {
+                    p++;
+                }
+            }
+
+            return p;
+        }
+
+        // The number after a label in show x25 stats ("  Incoming:  63"); -1 when the label is missing.
+        private static long Counter(string text, string label)
+        {
+            int i = text.IndexOf(label, StringComparison.Ordinal);
+            if (i < 0)
+            {
+                return -1;
+            }
+
+            i += label.Length;
+            while (i < text.Length && text[i] == ' ')
+            {
+                i++;
+            }
+
+            long v = 0;
+            int start = i;
+            while (i < text.Length && text[i] >= '0' && text[i] <= '9')
+            {
+                v = v * 10 + (text[i] - '0');
+                i++;
+            }
+
+            return i > start ? v : -1;
+        }
+
+        // The CallsIn and CallsOut columns of show x25 port, one entry per port row, in port order.
+        private static void ReadPorts(string text, out int[] callsIn, out int[] callsOut)
+        {
+            List<int> ins = new List<int>();
+            List<int> outs = new List<int>();
+            string[] lines = text.Split('\n');
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string[] f = lines[i].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                // "   0 access DCE  xot       yes         20        0"
+                if (f.Length == 7 && (f[1] == "access" || f[1] == "trunk") && int.TryParse(f[0], out int port) && port == ins.Count)
+                {
+                    ins.Add(int.Parse(f[5]));
+                    outs.Add(int.Parse(f[6].Trim()));
+                }
+            }
+
+            callsIn = ins.ToArray();
+            callsOut = outs.ToArray();
+        }
+
+        // Each switch's console text (show x25 stats, show x25 port), read once after the calls; the report shows it.
+        private string[] _consoles = Array.Empty<string>();
+
+        private void ReadSwitchConsoles()
+        {
+            if (_consoles.Length == _net.Countries.Count)
+            {
+                return;
+            }
+
+            string[] texts = new string[_net.Countries.Count];
+            for (int c = 0; c < texts.Length; c++)
+            {
+                texts[c] = SwitchConsole(9400 + c, new[] { "show x25 stats", "show x25 port" });
+            }
+
+            _consoles = texts;
+        }
+
         // full: the whole international address, DNIC first, which reaches the host from anywhere (also from the
         // host's own country, for a test that calls itself). number: what the PAD user really dialled.
         private void Report(List<string> failures, string from, string what, string full, string number, int links, long ms, string result)
@@ -261,7 +486,7 @@ namespace RetroX25.Tests.Demo
             int failed = 0;
             for (int i = 0; i < _rows.Count; i++)
             {
-                if (!_rows[i][5].StartsWith("ok", StringComparison.Ordinal))
+                if (!_rows[i][ResultColumn].StartsWith("ok", StringComparison.Ordinal))
                 {
                     failed++;
                 }
@@ -321,12 +546,14 @@ namespace RetroX25.Tests.Demo
 
             // Every country's switch, as its own console tells it after all the calls: the traffic counters and the
             // state of each port (the PAD line, echo line, host line and the X.75 links).
-            b.Append("\n## Switch statistics after the calls\n\nRead from each switch's management console (telnet 9400 + the country's number, admin / admin).\n");
+            b.Append("\n## Switch statistics after the calls\n\nRead from each switch's management console (telnet 9400 + the country's number, admin / admin). ")
+                .Append("The test AfterTheCalls_EverySwitchCountsExactlyTheCallsThatPassedIt checks these numbers against the calls above.\n");
+            ReadSwitchConsoles();
             for (int c = 0; c < _net.Countries.Count; c++)
             {
                 Country country = _net.Countries[c];
                 b.Append("\n### ").Append(country.Name).Append(" (").Append(country.Dnic).Append(")\n\n```text\n");
-                b.Append(SwitchConsole(9400 + c, new[] { "show x25 stats", "show x25 port" }));
+                b.Append(_consoles[c]);
                 b.Append("\n```\n");
             }
 
@@ -465,10 +692,19 @@ namespace RetroX25.Tests.Demo
         }
 
         // The number a PAD user dials: the national number inside the caller's country, 0 + the whole number abroad.
+        // A national number that itself begins with 0 (real ones do: Tymnet 3106 003604, Datapak 2405 02032832) cannot
+        // be dialled short, because the switch reads a leading 0 as the international prefix (X.121 7.8.1) and looks
+        // for a network "0036"; it is dialled in full, 0 + DNIC + national number, which reaches it from anywhere.
         private string Dial(int caller, string international)
         {
             string dnic = _net.Countries[caller].Dnic;
-            return international.StartsWith(dnic, StringComparison.Ordinal) ? international.Substring(dnic.Length) : "0" + international;
+            bool home = international.StartsWith(dnic, StringComparison.Ordinal);
+            if (home && international[dnic.Length] != '0')
+            {
+                return international.Substring(dnic.Length);
+            }
+
+            return "0" + international;
         }
 
         private void EnsureStarted()
@@ -786,7 +1022,8 @@ namespace RetroX25.Tests.Demo
                             Country = c,
                             Type = s.Value["type"],
                             Hostname = s.Value["hostname"],
-                            Nua = n.Countries[c].Dnic + "1" + n.Countries[c].Hosts.ToString("000"),
+                            // A real number from the X.25 Network Atlas, given in network.ini.
+                            Nua = s.Value["nua"],
                         });
                     }
                 }

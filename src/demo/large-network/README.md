@@ -9,7 +9,7 @@ three-country network in `../x75-countries` is the hand-written model this follo
 ```powershell
 ./large.ps1 start          # writes generated/, then starts every switch, echo service and the host program
 ./large.ps1 hosts          # every host and its number
-./large.ps1 pad Norway     # a PAD on Norway's PAD line; at the * prompt: CALL 031061001
+./large.ps1 pad Norway     # a PAD on Norway's PAD line; at the * prompt: CALL 03106003604
 ./large.ps1 stop
 ```
 
@@ -21,12 +21,14 @@ The programs come from `src\build.ps1` (`src\publish\win-x64`); `-BinDir` names 
 |---|---|---|
 | PAD line, no NUI asked | callers are `<dnic>7000` + channel | 27000 + 100i + 1 |
 | Echo service | `<dnic>9001` | 27000 + 100i + 2 |
-| Host line | `<dnic>1001`, `<dnic>1002`, ... in the order of `network.ini` | 27000 + 100i + 3 |
+| Host line | each host's real number from the X.25 Network Atlas, the `nua` in `network.ini` (e.g. Tymnet's VM370: `3106003604`) | 27000 + 100i + 3 |
 | Links it listens on | - | 27000 + 100i + 10, + 11, ... |
 | Management console (admin / admin) | `<dnic>0000` | 9400 + i |
 | Monitor | - | 4400 + i |
 
-From another country a number is dialled with the international prefix 0: `CALL 031061001`.
+From another country a number is dialled with the international prefix 0: `CALL 03106003604`. Inside its own
+country a host is dialled without the DNIC, except when what is left starts with 0 (Tymnet's `003604`, Sweden's
+`02032832`): the switch reads a leading 0 as the international prefix, so such a host is always dialled in full.
 
 ## Routes
 
@@ -36,5 +38,5 @@ in which some country cannot reach another.
 
 ## Adding to it
 
-Add a `[country.N]`, a `[link.N]` to join it to the rest, and `[host.N]` lines, then `./large.ps1 stop` and
+Add a `[country.N]`, a `[link.N]` to join it to the rest, and `[host.N]` lines (each with a real `nua` from the Atlas, starting with its country's DNIC), then `./large.ps1 stop` and
 `./large.ps1 start`. Never edit `generated/`: it is written again on every start.

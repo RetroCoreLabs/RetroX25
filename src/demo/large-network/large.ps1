@@ -6,7 +6,7 @@
 .EXAMPLE
   ./large.ps1 generate         # write generated/<country>.ini and generated/machines.ini from network.ini
   ./large.ps1 start            # generate, then start every switch, echo service and the host program
-  ./large.ps1 pad Norway       # a PAD on Norway's PAD line; then e.g. CALL 031061001
+  ./large.ps1 pad Norway       # a PAD on Norway's PAD line; then e.g. CALL 03106003604
   ./large.ps1 hosts            # every host and the number to call it on
   ./large.ps1 status
   ./large.ps1 stop
@@ -100,9 +100,15 @@ function Read-Network {
             $c = $byName[$s['country']]
             if (-not $c) { throw "[$key]: country $($s['country']) is not in this file" }
             if ($s['type'] -ne 'script' -and -not (Test-Path (Join-Path $Here "../hosts/$($s['type'])/host.ini"))) { throw "[$key]: no host folder ../hosts/$($s['type'])" }
+            # nua: the host's whole international number (X.121: the 4-digit DNIC, then the national part; at most
+            # 15 digits, the longest an X.25 call carries). It must be in the host's own country and not the echo's.
+            $nua = $s['nua']
+            if ($nua -notmatch '^\d{5,15}$') { throw "[$key]: nua must be 5 to 15 digits" }
+            if (-not $nua.StartsWith($c.Dnic)) { throw "[$key]: nua $nua does not start with $($c.Name)'s DNIC $($c.Dnic)" }
+            if ($nua -eq "$($c.Dnic)9001") { throw "[$key]: nua $nua is $($c.Name)'s echo service" }
+            foreach ($o in $hosts) { if ($o.Nua -eq $nua) { throw "[$key]: nua $nua is also $($o.Hostname)'s" } }
             $c.Hosts++
-            if ($c.Hosts -gt 999) { throw "[$key]: more than 999 hosts in $($c.Name)" }
-            $hosts.Add([pscustomobject]@{ Country = $c; Type = $s['type']; Script = $s['script']; Hostname = $s['hostname']; Nua = "$($c.Dnic)1$('{0:000}' -f $c.Hosts)" })
+            $hosts.Add([pscustomobject]@{ Country = $c; Type = $s['type']; Script = $s['script']; Hostname = $s['hostname']; Nua = $nua })
         }
     }
     if ($countries.Count -eq 0) { throw 'network.ini has no [country.N]' }
@@ -150,7 +156,7 @@ function Write-Network {
         $null = $o.AppendLine('')
         $null = $o.AppendLine("[port.1]`nname = Echo $($c.Dnic)9001`ntype = access`ntransport = xot`nmode = dce`nhost = 0.0.0.0`nport = $($base + 2)`nlci_count = 64")
         $null = $o.AppendLine('')
-        $null = $o.AppendLine("[port.2]`nname = Hosts $($c.Dnic)1xxx`ntype = access`ntransport = xot`nmode = dce`nhost = 0.0.0.0`nport = $($base + 3)`nlci_count = 64")
+        $null = $o.AppendLine("[port.2]`nname = Hosts`ntype = access`ntransport = xot`nmode = dce`nhost = 0.0.0.0`nport = $($base + 3)`nlci_count = 64")
         $portOf = @{}
         $p = 3
         foreach ($l in $c.Links) {
@@ -165,8 +171,14 @@ function Write-Network {
         $null = $o.AppendLine('')
         $null = $o.AppendLine("[route.0]`nname = Echo`nnumber = $($c.Dnic)9001`nport = 1")
         $null = $o.AppendLine('')
-        $null = $o.AppendLine("[route.1]`nname = Hosts`nprefix = $($c.Dnic)1`nport = 2")
-        $r = 2
+        # One exact route per host: the numbers are real ones from the X.25 Network Atlas and share no common prefix.
+        $r = 1
+        foreach ($h in $net.Hosts) {
+            if ($h.Country -ne $c) { continue }
+            $null = $o.AppendLine('')
+            $null = $o.AppendLine("[route.$r]`nname = $($h.Hostname)`nnumber = $($h.Nua)`nport = 2")
+            $r++
+        }
         foreach ($other in $net.Countries) {
             if ($other -eq $c) { continue }
             $l = $hops[$other.Name]
