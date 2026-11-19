@@ -1,0 +1,4 @@
+From: SYSTEM
+Subject: Welcome
+This is a demonstration Telecom Gold mailbox on the X.25 test network.
+Type OFF to sign off.

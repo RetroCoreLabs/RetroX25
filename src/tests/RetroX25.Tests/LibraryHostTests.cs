@@ -237,6 +237,23 @@ namespace RetroX25.Tests
             Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }), folder + ": the last step ends the call");
         }
 
+        [Test]
+        public void TelecomGold_SignsOnWithId_ReadsMail_AndSignsOff()
+        {
+            (DescribedHost h, Output o) = Load("telecomgold");
+            h.Connect(1, string.Empty, "24227001");
+            Assert.That(o.Take(1), Is.EqualTo("Please Sign On\r\n>"));
+            Type(h, "ID MJB\r");
+            Assert.That(o.Take(1), Is.EqualTo("Password: "));
+            Type(h, "GOLD\r");
+            Assert.That(o.Take(1), Is.EqualTo("\r\nOn At 19-NOV-2026 09:48:40 BST\r\n>"));
+            Type(h, "read WELCOME\r");
+            Assert.That(o.Take(1), Does.Contain("demonstration Telecom Gold mailbox"));
+            Type(h, "OFF\r");
+            Assert.That(o.Take(1), Does.StartWith("Off At 19-NOV-2026 09:48:40 BST\r\nTime used: 00h 01m connect, 00m 01s CPU, 00m 00s I/O."));
+            Assert.That(o.Cleared, Is.EqualTo(new List<int> { 1 }));
+        }
+
         private static (DescribedHost Host, Output Out) Load(string folder)
         {
             HostDescription d = HostDescription.Load(FindHostFolder(folder), null, "24221999");
