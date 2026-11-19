@@ -222,26 +222,29 @@ namespace RetroX25.Tests.Demo
                 string number = Dial(caller, host.Nua);
                 Stopwatch sw = Stopwatch.StartNew();
                 string result = CallHost(padPort, number);
-                Report(failures, from.Name, host.Hostname, number, dist[host.Country], sw.ElapsedMilliseconds, result);
+                Report(failures, from.Name, host.Hostname, host.Nua, number, dist[host.Country], sw.ElapsedMilliseconds, result);
             }
 
             for (int c = 0; c < _net.Countries.Count; c++)
             {
-                string number = Dial(caller, _net.Countries[c].Dnic + "9001");
+                string full = _net.Countries[c].Dnic + "9001";
+                string number = Dial(caller, full);
                 Stopwatch sw = Stopwatch.StartNew();
                 string result = CallEcho(padPort, number);
-                Report(failures, from.Name, "echo " + _net.Countries[c].Name, number, dist[c], sw.ElapsedMilliseconds, result);
+                Report(failures, from.Name, "echo " + _net.Countries[c].Name, full, number, dist[c], sw.ElapsedMilliseconds, result);
             }
 
             TestContext.Progress.WriteLine(from.Name + ": " + (_net.Hosts.Count + _net.Countries.Count) + " calls in " + all.ElapsedMilliseconds + " ms");
             Assert.That(failures, Is.Empty, from.Name + ": calls that failed:\n" + string.Join("\n", failures));
         }
 
-        private void Report(List<string> failures, string from, string what, string number, int links, long ms, string result)
+        // full: the whole international address, DNIC first, which reaches the host from anywhere (also from the
+        // host's own country, for a test that calls itself). number: what the PAD user really dialled.
+        private void Report(List<string> failures, string from, string what, string full, string number, int links, long ms, string result)
         {
-            string line = from + " -> " + what + " (" + number + ", " + links + " link" + (links == 1 ? "" : "s") + ", " + ms + " ms): " + result;
+            string line = from + " -> " + what + " (" + full + ", dialled " + number + ", " + links + " link" + (links == 1 ? "" : "s") + ", " + ms + " ms): " + result;
             TestContext.Progress.WriteLine(line);
-            _rows.Add(new[] { from, what, number, links.ToString(), ms.ToString(), result });
+            _rows.Add(new[] { from, what, full, number, links.ToString(), ms.ToString(), result });
             if (!result.StartsWith("ok", StringComparison.Ordinal))
             {
                 failures.Add(line);
@@ -302,7 +305,7 @@ namespace RetroX25.Tests.Demo
             }
 
             b.Append("\n## Every call\n\nThe result is what the test saw: for a host its first text, for an echo the line that came back.\n\n");
-            b.Append("| From | To | Number dialled | Links | ms | Result |\n|---|---|---|---|---|---|\n");
+            b.Append("| From | To | Full address (with DNIC) | Number dialled | Links | ms | Result |\n|---|---|---|---|---|---|---|\n");
             for (int i = 0; i < _rows.Count; i++)
             {
                 string[] row = _rows[i];
