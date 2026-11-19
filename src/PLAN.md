@@ -443,6 +443,8 @@ limits) later and in C# only.
   machine places calls yet, so nothing would send it; comes with the first machine that calls out). A real machine
   that calls out on its own line (the emulated SINTRAN) needs nothing new: see `docs/billing.md`, "A host on its own
   line".
+- G3. The C x25host is in x25emu (`6416e96`, 2026-11-19). Left: a RetroX25 cross test that runs the C and the C#
+  x25host on one example host folder and compares the screens.
 - G5. The host library (`demo/hosts`). Left: PAD texts that need a source first (`docs/research-os.md` 1.2-1.3) -
   PSS `<address>+COM` (the source shows the network's full address after a short one was typed; whether the PAD
   or the Call Connected packet supplied it is not known), the JANET commands `width=nn`, `transparent`, `break`,
