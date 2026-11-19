@@ -162,7 +162,17 @@ namespace RetroX25.Pad
             }
 
             Console.Error.WriteLine("Transport connected");
-            Console.Write("X.25 PAD ready (XOT mode)\r\n*");
+            if (style == PadStyle.Pss)
+            {
+                // The PSS PAD identification line, docs/research-os.md 1.2: "LON\A001-1920040302" (exchange, port, the
+                // PAD's address). The shape is the source's; the exchange "LON" and port "A001" are ours - this PAD has
+                // neither - and the address is the one this PAD calls from. Then the X.28 prompt.
+                Console.Write("LON\\A001-" + LocalAddress + "\r\n*");
+            }
+            else
+            {
+                Console.Write("X.25 PAD ready (XOT mode)\r\n*");
+            }
 
             // Ctrl+C tears down cleanly.
             Console.CancelKeyPress += (sender, e) =>
