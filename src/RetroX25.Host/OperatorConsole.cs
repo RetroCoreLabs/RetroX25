@@ -8,18 +8,15 @@
 namespace RetroX25.Host
 {
     /// <summary>
-    /// The operator console of docs/x25host-format.md: one command line in, the answer out. Built so far:
-    /// <c>show hosts</c>, <c>show stats</c>, <c>help</c>, <c>quit</c>. The other commands of that table answer that they
-    /// are not built yet, by name, so a missing command is never silent.
+    /// The operator console of docs/x25host-format.md: one command line in, the answer out. Every command of that
+    /// table; anything else is answered "unknown command" with the line, so nothing typed is silently ignored.
     /// </summary>
     internal sealed class OperatorConsole
     {
-        private static readonly string[] NotBuilt =
-        {
-            "reload",
-        };
-
         private readonly HostRunner _runner;
+
+        /// <summary>Reads the machine list again for <c>reload</c>; null when the machines came from the command line.</summary>
+        public Func<List<MachineEntry>>? ReloadList { get; init; }
 
         private bool _confirming;
 
@@ -73,6 +70,9 @@ namespace RetroX25.Host
                 case "show users":
                     List<string> users = _runner.UserLines();
                     return users.Count == 0 ? "nobody logged in\n" : Join(users);
+                case "reload":
+                    return ReloadList == null ? "reload needs a machine list (--machines); this x25host runs one folder from the command line\n"
+                        : Join(_runner.Reload(ReloadList));
                 case "help":
                     return "show hosts   one line per machine: hostname, type, NUA, group, state, calls now\n"
                         + "show host <hostname>   one machine in full\n"
@@ -84,6 +84,7 @@ namespace RetroX25.Host
                         + "stop host <hostname>   end its calls and stop answering\n"
                         + "start host <hostname>  read its folder again and answer again\n"
                         + "restart host <hostname>\n"
+                        + "reload       read the machine list and the host folders again\n"
                         + "log <hostname|*> <level>   trace, debug, info, warning, error, critical or none\n"
                         + "send <hostname> <user|*> <text>   a line to a user (or everybody)\n"
                         + "quit        stop x25host (asks first)\n";
@@ -167,14 +168,6 @@ namespace RetroX25.Host
                 }
 
                 return Count(_runner.ToUsers(words[1], words[2], rest), words[1], "sent to");
-            }
-
-            for (int i = 0; i < NotBuilt.Length; i++)
-            {
-                if (cmd == NotBuilt[i] || cmd.StartsWith(NotBuilt[i] + " ", StringComparison.Ordinal))
-                {
-                    return "'" + NotBuilt[i] + "' is not built yet (see src/PLAN.md, G1)\n";
-                }
             }
 
             return "unknown command: " + line.Trim() + " (help lists the commands)\n";

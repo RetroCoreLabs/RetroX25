@@ -59,6 +59,9 @@ namespace RetroX25.Host
             _listener = new TcpListener(bind, port);
         }
 
+        /// <summary>Reads the machine list again for <c>reload</c>; null when there is no list.</summary>
+        public Func<List<MachineEntry>>? ReloadList { get; init; }
+
         /// <summary>The port listened on, after <see cref="Start"/>.</summary>
         public int Port => ((IPEndPoint)_listener.LocalEndpoint).Port;
 
@@ -146,7 +149,7 @@ namespace RetroX25.Host
                     }
 
                     _log.LogInformation("x25host: operator {User} on the console from {From}", user, from);
-                    OperatorConsole console = new OperatorConsole(_runner, overTelnet: true);
+                    OperatorConsole console = new OperatorConsole(_runner, overTelnet: true) { ReloadList = ReloadList };
                     while (!console.QuitAsked && !_stopped)
                     {
                         Write(s, "x25host> ");

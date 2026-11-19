@@ -125,7 +125,7 @@ namespace RetroX25.Tests
         public void ACommandNotBuilt_SaysSoByName_AndAnUnknownOneIsNamed()
         {
             OperatorConsole c = new OperatorConsole(_runner!);
-            Assert.That(c.Execute("reload"), Is.EqualTo("'reload' is not built yet (see src/PLAN.md, G1)\n"));
+            Assert.That(c.Execute("reload"), Does.StartWith("reload needs a machine list"));
             Assert.That(c.Execute("help"), Does.Contain("log <hostname|*> <level>"));
             Assert.That(c.Execute("frob"), Does.StartWith("unknown command: frob"));
             Assert.That(c.Execute(""), Is.Empty);

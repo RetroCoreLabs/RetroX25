@@ -115,19 +115,10 @@ namespace RetroX25.Host
                 return 1;
             }
 
-            if (group != null)
-            {
-                List<MachineEntry> picked = new List<MachineEntry>();
-                for (int i = 0; i < machines.Count; i++)
-                {
-                    if (machines[i].Group == group)
-                    {
-                        picked.Add(machines[i]);
-                    }
-                }
+            machines = InGroup(machines, group);
 
-                machines = picked;
-            }
+            // reload reads the same file and keeps to the same group.
+            Func<List<MachineEntry>>? reloadList = list != null ? () => InGroup(MachineList.Load(list), group) : null;
 
             if (machines.Count == 0)
             {
@@ -164,7 +155,7 @@ namespace RetroX25.Host
                 TelnetConsole? telnet = null;
                 if (consolePort > 0)
                 {
-                    telnet = new TelnetConsole(runner, operators, consoleBind, consolePort, log);
+                    telnet = new TelnetConsole(runner, operators, consoleBind, consolePort, log) { ReloadList = reloadList };
                     try
                     {
                         telnet.Start();
@@ -179,7 +170,7 @@ namespace RetroX25.Host
 
                 // The operator console on stdin (docs/x25host-format.md). With no terminal (stdin closed or
                 // redirected from nothing) ReadLine returns null at once and the process just runs.
-                OperatorConsole console = new OperatorConsole(runner);
+                OperatorConsole console = new OperatorConsole(runner) { ReloadList = reloadList };
                 Thread reader = new Thread(() =>
                 {
                     string? typed;
@@ -199,6 +190,25 @@ namespace RetroX25.Host
             }
 
             return 0;
+        }
+
+        private static List<MachineEntry> InGroup(List<MachineEntry> machines, string? group)
+        {
+            if (group == null)
+            {
+                return machines;
+            }
+
+            List<MachineEntry> picked = new List<MachineEntry>();
+            for (int i = 0; i < machines.Count; i++)
+            {
+                if (machines[i].Group == group)
+                {
+                    picked.Add(machines[i]);
+                }
+            }
+
+            return picked;
         }
 
         private static int Usage()

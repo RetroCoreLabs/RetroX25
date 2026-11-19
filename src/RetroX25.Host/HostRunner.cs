@@ -65,8 +65,10 @@ namespace RetroX25.Host
         }
 
         private readonly ILogger _log;
-        private readonly List<Machine> _machines = new List<Machine>();
-        private readonly List<HostLine> _lines = new List<HostLine>();
+        // Replaced whole by reload, never changed once published, so a reader that takes the field once sees one
+        // consistent list. Every loop below copies the field into a local first.
+        private volatile List<Machine> _machines = new List<Machine>();
+        private volatile List<HostLine> _lines = new List<HostLine>();
         private readonly BlockingCollection<Action> _work = new BlockingCollection<Action>();
         private readonly ConcurrentQueue<OutItem> _out = new ConcurrentQueue<OutItem>();
         private readonly ConcurrentDictionary<int, CallRef> _calls = new ConcurrentDictionary<int, CallRef>();
@@ -101,7 +103,7 @@ namespace RetroX25.Host
                     _lines.Add(line);
                 }
 
-                line.Machines.Add(e.Nua, m);
+                line.Machines[e.Nua] = m;
                 m.Line = line;
                 _machines.Add(m);
             }
@@ -289,11 +291,12 @@ namespace RetroX25.Host
         public int SetLogLevel(string hostname, LogLevel level)
         {
             int n = 0;
-            for (int i = 0; i < _machines.Count; i++)
+            List<Machine> ms = _machines;
+            for (int i = 0; i < ms.Count; i++)
             {
-                if (hostname == "*" || string.Equals(_machines[i].Entry.Hostname, hostname, StringComparison.OrdinalIgnoreCase))
+                if (hostname == "*" || string.Equals(ms[i].Entry.Hostname, hostname, StringComparison.OrdinalIgnoreCase))
                 {
-                    _machines[i].Log.Minimum = level;
+                    ms[i].Log.Minimum = level;
                     n++;
                 }
             }
@@ -301,13 +304,247 @@ namespace RetroX25.Host
             return n;
         }
 
+        /// <summary>
+        /// <c>reload</c>: the machine list is read again (by <paramref name="load"/>). A machine is known by its NUA.
+        /// A new one starts (on a new line if its switch line is new); a removed one stops (its calls end as for
+        /// stop host) and its line is closed when no machine is left on it; one whose entry changed restarts, and
+        /// only when it has no calls (otherwise it stays as it is, and the answer names it). Every host folder is
+        /// read again for the machines that start or restart; the others keep what they loaded. A list or a folder
+        /// that does not load changes nothing at all, and the answer gives the reason.
+        /// </summary>
+        /// <param name="load">Reads the list (the same file and group as at start).</param>
+        /// <returns>One line per change, or why nothing changed.</returns>
+        public List<string> Reload(Func<List<MachineEntry>> load)
+        {
+            List<MachineEntry> entries;
+            try
+            {
+                entries = load();
+            }
+            catch (FormatException ex)
+            {
+                return new List<string> { "nothing changed: " + ex.Message };
+            }
+
+            List<string> said = new List<string>();
+            List<string> r = OnWorker(unused =>
+            {
+                List<Machine> old = _machines;
+                Dictionary<string, Machine> byNua = new Dictionary<string, Machine>(StringComparer.Ordinal);
+                for (int i = 0; i < old.Count; i++)
+                {
+                    byNua[old[i].Entry.Nua] = old[i];
+                }
+
+                // First build every new or changed engine, so a broken folder changes nothing.
+                List<Machine> next = new List<Machine>();
+                List<Machine> starting = new List<Machine>();
+                HashSet<Machine> kept = new HashSet<Machine>();
+                for (int i = 0; i < entries.Count; i++)
+                {
+                    MachineEntry e = entries[i];
+                    string nua = e.Nua;
+                    if (nua.Length > 0 && byNua.TryGetValue(nua, out Machine? was))
+                    {
+                        if (Same(was.Entry, e) || CallsOf(was) > 0)
+                        {
+                            if (!Same(was.Entry, e))
+                            {
+                                said.Add(was.Entry.Hostname + ": changed, but has calls: not restarted");
+                            }
+
+                            next.Add(was);
+                            kept.Add(was);
+                            continue;
+                        }
+                    }
+
+                    Machine m = new Machine(this, e);
+                    m.MakeLog(_log);
+                    try
+                    {
+                        m.Host = BuildHost(m);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        said.Clear();
+                        said.Add("nothing changed: " + ex.Message);
+                        return;
+                    }
+
+                    next.Add(m);
+                    starting.Add(m);
+                }
+
+                // Then swap: the removed and replaced machines end their calls and leave their lines.
+                for (int i = 0; i < old.Count; i++)
+                {
+                    Machine m = old[i];
+                    if (kept.Contains(m))
+                    {
+                        continue;
+                    }
+
+                    m.Stopped = true;
+                    EndCalls(m);
+                    m.Line!.Machines.TryRemove(m.Entry.Nua, out _);
+                    bool replaced = false;
+                    for (int j = 0; j < starting.Count; j++)
+                    {
+                        replaced |= starting[j].Entry.Nua == m.Entry.Nua;
+                    }
+
+                    said.Add(m.Entry.Hostname + (replaced ? ": restarted" : ": removed"));
+                }
+
+                List<HostLine> lines = new List<HostLine>(_lines);
+                DateTime now = DateTime.Now;
+                for (int i = 0; i < starting.Count; i++)
+                {
+                    Machine m = starting[i];
+                    HostLine? line = null;
+                    for (int j = 0; j < lines.Count; j++)
+                    {
+                        if (lines[j].Key == m.Entry.Line)
+                        {
+                            line = lines[j];
+                        }
+                    }
+
+                    bool newLine = line == null;
+                    if (line == null)
+                    {
+                        line = new HostLine(this, m.Entry.SwitchHost, m.Entry.SwitchPort, m.Entry.Nua);
+                        lines.Add(line);
+                    }
+
+                    m.Line = line;
+                    m.Host!.Start(now);
+                    m.StartedAt = now;
+                    line.Machines[m.Entry.Nua] = m;
+                    if (newLine)
+                    {
+                        // Dialled only once the machine is in its table: a call cannot arrive for nobody.
+                        line.Start();
+                    }
+                    bool wasThere = byNua.ContainsKey(m.Entry.Nua);
+                    if (!wasThere)
+                    {
+                        said.Add(m.Entry.Hostname + ": new, started");
+                    }
+
+                    m.Log.LogInformation("{Host}: started by reload, nua {Nua}, line {Line}", m.Entry.Hostname, m.Entry.Nua, m.Entry.Line);
+                }
+
+                // Lines with no machine left are closed.
+                List<HostLine> live = new List<HostLine>(lines.Count);
+                for (int j = 0; j < lines.Count; j++)
+                {
+                    if (lines[j].Machines.IsEmpty)
+                    {
+                        HostLine gone = lines[j];
+                        said.Add("line " + gone.Key + " closed: no machine left on it");
+                        _ = Task.Run(gone.Dispose);
+                    }
+                    else
+                    {
+                        live.Add(lines[j]);
+                    }
+                }
+
+                _machines = next;
+                _lines = live;
+            });
+
+            if (r.Count > 0)
+            {
+                return r;
+            }
+
+            if (said.Count == 0)
+            {
+                said.Add("nothing changed");
+            }
+
+            for (int i = 0; i < said.Count; i++)
+            {
+                _log.LogInformation("x25host: reload: {Change}", said[i]);
+            }
+
+            return said;
+        }
+
+        // Ends every call of a machine as stop host does: a logged-in user first gets the logout text.
+        // On the worker thread.
+        private int EndCalls(Machine m)
+        {
+            int ended = 0;
+            foreach (KeyValuePair<int, CallRef> kv in _calls)
+            {
+                if (kv.Value.Machine != m)
+                {
+                    continue;
+                }
+
+                if (m.Host is IHostOperator op && op.TryDescribe(kv.Key, out HostSessionInfo info) && info.User.Length > 0)
+                {
+                    op.OperatorLogout(kv.Key);
+                }
+                else
+                {
+                    ClearCall(kv.Key);
+                    m.Host!.Disconnect(kv.Key);
+                }
+
+                ended++;
+            }
+
+            return ended;
+        }
+
+        private int CallsOf(Machine m)
+        {
+            int n = 0;
+            foreach (KeyValuePair<int, CallRef> kv in _calls)
+            {
+                if (kv.Value.Machine == m)
+                {
+                    n++;
+                }
+            }
+
+            return n;
+        }
+
+        // The same entry: what the list says about the machine is unchanged.
+        private static bool Same(MachineEntry a, MachineEntry b)
+        {
+            if (a.Type != b.Type || a.Line != b.Line || a.Group != b.Group || a.ScriptPath != b.ScriptPath
+                || a.HostFolder != b.HostFolder || a.Settings.Count != b.Settings.Count
+                || (b.Hostname.Length > 0 && a.Hostname != b.Hostname))
+            {
+                return false;
+            }
+
+            foreach (KeyValuePair<string, string> kv in b.Settings)
+            {
+                if (!a.Settings.TryGetValue(kv.Key, out string? v) || v != kv.Value)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private Machine? Find(string hostname)
         {
-            for (int i = 0; i < _machines.Count; i++)
+            List<Machine> ms = _machines;
+            for (int i = 0; i < ms.Count; i++)
             {
-                if (string.Equals(_machines[i].Entry.Hostname, hostname, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(ms[i].Entry.Hostname, hostname, StringComparison.OrdinalIgnoreCase))
                 {
-                    return _machines[i];
+                    return ms[i];
                 }
             }
 
@@ -330,11 +567,12 @@ namespace RetroX25.Host
         /// <returns>The lines.</returns>
         public List<string> StatsLines()
         {
-            List<string> lines = new List<string>(_machines.Count + 1);
+            List<Machine> ms = _machines;
+            List<string> lines = new List<string>(ms.Count + 1);
             long[] total = new long[8];
-            for (int i = 0; i < _machines.Count; i++)
+            for (int i = 0; i < ms.Count; i++)
             {
-                Machine m = _machines[i];
+                Machine m = ms[i];
                 long[] v =
                 {
                     Interlocked.Read(ref m.CallsIn), Interlocked.Read(ref m.RefusedBusy), Interlocked.Read(ref m.RefusedNotPad),
@@ -363,9 +601,10 @@ namespace RetroX25.Host
         {
             return OnWorker(lines =>
             {
-                for (int i = 0; i < _machines.Count; i++)
+                List<Machine> ms = _machines;
+                for (int i = 0; i < ms.Count; i++)
                 {
-                    Machine m = _machines[i];
+                    Machine m = ms[i];
                     string state = m.Stopped ? "stopped" : m.Line != null && m.Line.Client != null ? "up" : "redialling";
                     lines.Add(string.Create(CultureInfo.InvariantCulture,
                         $"{m.Entry.Hostname,-12} {m.Entry.Type,-10} {m.Entry.Nua,-15} {m.Entry.Group,-10} {state,-10} calls {m.Host!.SessionCount}"));
@@ -518,9 +757,10 @@ namespace RetroX25.Host
         {
             get
             {
-                for (int i = 0; i < _lines.Count; i++)
+                List<HostLine> ls = _lines;
+                for (int i = 0; i < ls.Count; i++)
                 {
-                    if (_lines[i].Client == null)
+                    if (ls[i].Client == null)
                     {
                         return false;
                     }
@@ -534,20 +774,22 @@ namespace RetroX25.Host
         public void Start()
         {
             DateTime now = DateTime.Now;
-            for (int i = 0; i < _machines.Count; i++)
+            List<Machine> ms = _machines;
+            for (int i = 0; i < ms.Count; i++)
             {
-                _machines[i].Host!.Start(now);
-                _machines[i].StartedAt = now;
-                _machines[i].Log.LogInformation("{Host}: started, nua {Nua}, line {Line}", _machines[i].Entry.Hostname, _machines[i].Entry.Nua, _machines[i].Entry.Line);
+                ms[i].Host!.Start(now);
+                ms[i].StartedAt = now;
+                ms[i].Log.LogInformation("{Host}: started, nua {Nua}, line {Line}", ms[i].Entry.Hostname, ms[i].Entry.Nua, ms[i].Entry.Line);
             }
 
             _worker = new Thread(WorkLoop) { IsBackground = true, Name = "x25host-machines" };
             _worker.Start();
             _sender = new Thread(SendLoop) { IsBackground = true, Name = "x25host-sender" };
             _sender.Start();
-            for (int i = 0; i < _lines.Count; i++)
+            List<HostLine> ls = _lines;
+            for (int i = 0; i < ls.Count; i++)
             {
-                _lines[i].Start();
+                ls[i].Start();
             }
         }
 
@@ -562,9 +804,10 @@ namespace RetroX25.Host
         {
             _stopped = true;
             _stop.Set();
-            for (int i = 0; i < _lines.Count; i++)
+            List<HostLine> ls = _lines;
+            for (int i = 0; i < ls.Count; i++)
             {
-                _lines[i].Stop();
+                ls[i].Stop();
             }
 
             _work.CompleteAdding();
@@ -576,9 +819,12 @@ namespace RetroX25.Host
             Stop();
             _worker?.Join(2000);
             _sender?.Join(2000);
-            for (int i = 0; i < _lines.Count; i++)
+
+            // Lines a reload dropped were disposed by the reload; the ones left are here.
+            List<HostLine> ls = _lines;
+            for (int i = 0; i < ls.Count; i++)
             {
-                _lines[i].Dispose();
+                ls[i].Dispose();
             }
 
             _stop.Dispose();
@@ -614,9 +860,10 @@ namespace RetroX25.Host
                     {
                         tick.Restart();
                         DateTime now = DateTime.Now;
-                        for (int i = 0; i < _machines.Count; i++)
+                        List<Machine> ms = _machines;
+                        for (int i = 0; i < ms.Count; i++)
                         {
-                            _machines[i].Host!.Tick(now);
+                            ms[i].Host!.Tick(now);
                         }
 
                         if (StatsLogMs > 0 && stats.ElapsedMilliseconds >= StatsLogMs)
@@ -1016,7 +1263,8 @@ namespace RetroX25.Host
 
             public string Key { get; }
 
-            public Dictionary<string, Machine> Machines { get; } = new Dictionary<string, Machine>(StringComparer.Ordinal);
+            // Read on the client threads (OnIncoming), changed by reload on the worker: so concurrent.
+            public ConcurrentDictionary<string, Machine> Machines { get; } = new ConcurrentDictionary<string, Machine>(StringComparer.Ordinal);
 
             public volatile X25Client? Client;
 

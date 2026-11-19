@@ -474,6 +474,56 @@ namespace RetroX25.Tests
             Assert.That(c2.WaitFor("Username: "), Is.True, c2.Text);
         }
 
+        /// <summary>
+        /// <c>reload</c>: a machine added to the list starts and answers; a changed machine with a call is not
+        /// restarted; a removed one logs its user out; a list with a mistake changes nothing.
+        /// </summary>
+        [Test]
+        public void Console_Reload_StartsNew_KeepsBusyChanged_RemovesGone_AndABadListChangesNothing()
+        {
+            WriteTinyHost();
+            (XotSwitchPort line, XotSwitchPort callers) = BuildSwitch();
+            string sw = "switch = 127.0.0.1:" + line.BoundPort;
+            string[] one = { "[defaults]", "library = library", "[machine.0]", "type = tiny", "nua = " + Folder, sw };
+            string[] two = { "[defaults]", "library = library", "[machine.0]", "type = tiny", "nua = " + Folder, sw,
+                "[machine.1]", "type = tiny", "hostname = SECOND", "nua = 23410004", sw };
+            string[] current = one;
+            HostRunner runner = new HostRunner(Parse(one), NullLogger.Instance);
+            _disposables.Add(runner);
+            runner.Start();
+            Assert.That(SpinWait.SpinUntil(() => runner.AllLinesUp, 10000), Is.True);
+            OperatorConsole console = new OperatorConsole(runner) { ReloadList = () => Parse(current) };
+            Assert.That(console.Execute("reload"), Is.EqualTo("nothing changed\n"));
+
+            // Added.
+            current = two;
+            Assert.That(console.Execute("reload"), Is.EqualTo("SECOND: new, started\n"));
+            X25Client client = OpenCaller(callers, out Caller c);
+            c.Vc = client.CallWait("23410004", 5000);
+            Assert.That(c.Vc, Is.Not.Null, "the new machine answers");
+            Assert.That(c.WaitFor("SECOND at 23410004"), Is.True, c.Text);
+            c.Send("guest\rSECRET\r");
+            Assert.That(c.WaitFor("$ "), Is.True, c.Text);
+
+            // Changed while it has a call: left as it is.
+            current = new[] { "[defaults]", "library = library", "[machine.0]", "type = tiny", "nua = " + Folder, sw,
+                "[machine.1]", "type = tiny", "hostname = RENAMED", "nua = 23410004", sw };
+            Assert.That(console.Execute("reload"), Is.EqualTo("SECOND: changed, but has calls: not restarted\n"));
+
+            // A mistake: nothing changes, the reason is given.
+            current = new[] { "[machine.0]", "type = tiny", "nua = x", sw };
+            Assert.That(console.Execute("reload"), Does.StartWith("nothing changed: "));
+            Assert.That(console.Execute("show hosts"), Does.Contain("SECOND"));
+
+            // Removed: the logged-in user gets the logout text and the call ends.
+            current = one;
+            Assert.That(console.Execute("reload"), Is.EqualTo("SECOND: removed\n"));
+            Assert.That(c.WaitFor("Bye guest."), Is.True, c.Text);
+            Assert.That(c.Cleared.Wait(5000), Is.True);
+            Assert.That(console.Execute("show hosts"), Does.Not.Contain("SECOND"));
+            Assert.That(client.CallWait("23410004", 5000), Is.Null, "nobody has that number now");
+        }
+
         [Test]
         public void AFullFolderMachine_RefusesTheNextCall_WithCauseDteOriginated()
         {
