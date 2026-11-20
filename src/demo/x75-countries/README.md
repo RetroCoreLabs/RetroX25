@@ -87,7 +87,7 @@ without the DNIC (the national number).
 | 234219210050 | `0234219210050` | THAMESWWIV, a WWIV bulletin board (GUEST, any password) | England port 3, `x25host`, folder `demo/hosts/wwiv` |
 | 26245890040262 | `026245890040262` | ucbvax, a VAX with 4.3BSD Unix (guest / guest) | Germany port 3, `x25host`, folder `demo/hosts/bsd` |
 | 26245400091110 | `026245400091110` | ISARBOX, a Maximus FidoNet board (GUEST, any password) | Germany port 3, `x25host`, folder `demo/hosts/maximus` |
-| 26245890040005 | `026245890040005` | The same Altos CHAT 3.1, run as a script (`builtin:altos-chat`), one number above the C# one | Germany port 3, `x25host` (route "Altos scripted") |
+| 26245400050233 | `026245400050233` | The same Altos CHAT 3.1, run as a script (`builtin:altos-chat`), on the real number of Altos Hamburg (the C# one has Munich's) | Germany port 3, `x25host` (route "Altos scripted") |
 
 The host numbers are real ones of the time, from the X.25 Network Atlas (`src/docs/atlas`); the machine behind
 each is this library's, not the original. Each switch routes each host's number exactly to its host line. The

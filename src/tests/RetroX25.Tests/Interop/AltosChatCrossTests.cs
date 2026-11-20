@@ -27,7 +27,7 @@ namespace RetroX25.Tests
     /// Every test starts its own network: a switch in WSL with three XOT access ports on TCP ports chosen at run time
     /// (bound to port 0 in WSL, then let go, as x25emu's own tests/integration/test_altoschat_switch.c does), the C#
     /// chat in this process as the XOT client of port 0 answering 26245890040004, x25chat on port 1 answering
-    /// 26245890040005, and every caller on port 2. Every program is started with its process number recorded and is
+    /// 26245400050233 (the real Altos Hamburg number; the C# one has Munich's), and every caller on port 2. Every program is started with its process number recorded and is
     /// stopped by that number.
     /// </para>
     /// <para>
@@ -42,7 +42,7 @@ namespace RetroX25.Tests
     public class AltosChatCrossTests
     {
         private const string CSharpChat = "26245890040004";
-        private const string CChat = "26245890040005";
+        private const string CChat = "26245400050233";
 
         // X.29 (12/97) 4.2.1: the PAD protocol identifier.
         private static readonly byte[] PadCud = { 0x01, 0x00, 0x00, 0x00 };

@@ -122,14 +122,14 @@ namespace RetroX25.Tests
         }
 
         /// <summary>
-        /// The scripted Altos chat (x25host, builtin:altos-chat) answers one number above the C# one: Germany routes
-        /// that exact number to its host line. It is the same conference program, so two callers meet the same way.
+        /// The scripted Altos chat (x25host, builtin:altos-chat) answers on the real Hamburg Altos number, 26245400050233,
+        /// while the C# one has Munich's; Germany routes that exact number to its host line. It is the same conference program, so two callers meet the same way.
         /// </summary>
         [Test]
-        public void TwoUsersInNorway_MeetInTheScriptedAltosChat_OneNumberUp()
+        public void TwoUsersInNorway_MeetInTheScriptedAltosChat_OnTheHamburgNumber()
         {
-            Caller anna = Call("026245890040005", "242226500000103");
-            Caller bjorn = Call("026245890040005", "242226500000104");
+            Caller anna = Call("026245400050233", "242226500000103");
+            Caller bjorn = Call("026245400050233", "242226500000104");
             Assert.That(anna.Cleared, Is.False, anna.Screen.ToString());
             Assert.That(bjorn.Cleared, Is.False, bjorn.Screen.ToString());
             WaitForText(anna, "Conference-utility \"CHAT\"  ver. 3.1");
