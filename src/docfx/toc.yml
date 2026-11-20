@@ -27,6 +27,10 @@
     href: ../RetroX25.Xot/README.md
   - name: "X.25 C# demo network"
     href: ../demo/README.md
+  - name: "A large demo network, made from one file"
+    href: ../demo/large-network/README.md
+  - name: "Three countries over X.75: Norway, England, Germany"
+    href: ../demo/x75-countries/README.md
 - name: Guides
   items:
   - name: "The guides"

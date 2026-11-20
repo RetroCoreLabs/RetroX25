@@ -334,6 +334,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     // preserve ordering (React before ReactDOM before Babel before text/babel).
     const doc = new DOMParser().parseFromString(template, 'text/html');
     document.documentElement.replaceWith(doc.documentElement);
+    // RetroX25 docs site: a link back to the documentation. It hangs off <html>, not <body>, so
+    // whatever the atlas draws into its body cannot remove it. Added by hand; see README.md.
+    (function () {
+      var back = document.createElement('a');
+      back.href = '../index.html';
+      back.textContent = '← RetroX25 docs';
+      back.title = 'Back to the RetroX25 documentation';
+      back.style.cssText = 'position:fixed;right:12px;bottom:8px;z-index:2147483647;' +
+        'font:12px/1.4 ui-monospace,monospace;color:#cfe3ff;background:rgba(6,11,22,0.9);' +
+        'border:1px solid #2b4a7a;border-radius:6px;padding:4px 10px;text-decoration:none;';
+      document.documentElement.appendChild(back);
+    })();
 
     // Resolve page-frame markers: mint this document's own blob for each
     // framed page — from local text when this is the root, otherwise by

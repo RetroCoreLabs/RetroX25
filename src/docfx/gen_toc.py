@@ -35,7 +35,7 @@ def first_heading(path):
 def tracked_readmes():
     """Lists the tracked README.md files that become articles, in a stable order."""
     out = subprocess.run(
-        ["git", "ls-files", "--", "RetroX25.*/README.md", "demo/README.md"],
+        ["git", "ls-files", "--", "RetroX25.*/README.md", "demo/README.md", "demo/*/README.md"],
         cwd=SRC, check=True, capture_output=True, text=True).stdout
     return sorted(line for line in out.splitlines() if line)
 

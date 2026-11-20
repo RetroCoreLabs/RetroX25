@@ -25,13 +25,13 @@
       { "files": [ "api/**.yml", "api/index.md" ] },
       { "files": [ "*.md", "toc.yml" ] },
       {
-        "files": [ "RetroX25.*/README.md", "demo/README.md" ],
+        "files": [ "RetroX25.*/README.md", "demo/README.md", "demo/*/README.md" ],
         "exclude": [ "**/obj/**", "**/bin/**" ],
         "src": "..",
         "dest": "apps"
       },
       {
-        "files": [ "docs/*.md" ],
+        "files": [ "docs/*.md", "docs/atlas/README.md" ],
         "exclude": [ "docs/altos-chat-port-plan.md" ],
         "src": "..",
         "dest": "guides"
