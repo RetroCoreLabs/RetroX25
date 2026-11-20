@@ -339,14 +339,6 @@ yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO 
   `x75.ps1 stop` returning non-zero, or on `Directory.Delete` of the run's state folder (it would throw if a
   program just stopped still had a log file open there). Which one is not known. Next: loop the fixture with the
   teardown's message kept until it fails again.
-- `PadWindow_ReceivingABurst_FollowsTheOutput` (RetroX25.Desktop.Tests, BurstTests.cs:766) fails on GitHub CI
-  (runs 44650119446 and 44651476348, 2026-11-20, windows-latest): "gave up waiting for: no call left - active 1,
-  in total 0, clear requests seen: 4". Passes here. The fault is in RetroIO's ProtocolRuntime: the statistics timer
-  commented "every 5 seconds" is a one-shot TimerManager timer, so the active-call count was refreshed only on a
-  link or transport change; when the echo's XOT drop comes before the call is removed (the slower CI machine; the
-  order is inferred, not measured) the count stays 1. Also `TotalVirtualCircuits` is never set (the Desktop row
-  "X.25 virtual circuits in total" is always 0). Another session has an uncommitted fix in RetroIO (counts read
-  live in GetStatistics); when it lands, re-run CI and delete this item.
 
 ### H1. A DTE must survive the switch (x25emu)
 - PVC over XOT is not set up again after its TCP connection closes, unless the program calls `x25c_pvc` again
