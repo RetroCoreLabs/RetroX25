@@ -334,6 +334,11 @@ yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO 
   while x25emu may dial a spare connection at any time (its comment: 0 to 2 spares measured); a spare arriving
   between two reads would make them disagree. That is a guess, not a measurement. Next: run it in a loop with its
   `facts` text kept until it fails, read which check and which counts, then fix the test or the program.
+- `X75CountriesScriptTests` (RetroX25.Tests): its OneTimeTearDown failed once on 2026-11-20 (all 31 tests passed;
+  "TearDown failed for test fixture"), then not in nine more runs. The message was not kept. The teardown fails on
+  `x75.ps1 stop` returning non-zero, or on `Directory.Delete` of the run's state folder (it would throw if a
+  program just stopped still had a log file open there). Which one is not known. Next: loop the fixture with the
+  teardown's message kept until it fails again.
 
 ### H1. A DTE must survive the switch (x25emu)
 - PVC over XOT is not set up again after its TCP connection closes, unless the program calls `x25c_pvc` again

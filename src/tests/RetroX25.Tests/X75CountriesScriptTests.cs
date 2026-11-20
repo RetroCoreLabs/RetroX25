@@ -132,6 +132,8 @@ namespace RetroX25.Tests
             Caller bjorn = Call("026245400050233", "242226500000104");
             Assert.That(anna.Cleared, Is.False, anna.Screen.ToString());
             Assert.That(bjorn.Cleared, Is.False, bjorn.Screen.ToString());
+            // machines.ini's SiteLine: says which chat answered, before the original 1987 welcome.
+            WaitForText(anna, "Altos Chat System, Hamburg");
             WaitForText(anna, "Conference-utility \"CHAT\"  ver. 3.1");
             WaitForText(anna, "+++guest+++");
             WaitForText(bjorn, "+++guest+++"); // both past the welcome pause, as in the C# chat test above
