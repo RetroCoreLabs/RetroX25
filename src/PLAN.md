@@ -340,10 +340,6 @@ yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO 
   teardown's message kept until it fails again.
 
 ### H1. A DTE must survive the switch (x25emu)
-- PVC over XOT is not set up again after its TCP connection closes, unless the program calls `x25c_pvc` again
-  (BUGS 16; `x25_client.c` 283-307). RFC 1613 6.5: an XOT "MAY retry a failed PVC setup ... (5 minutes is
-  suggested)" - optional. The "Out of order" reset (X.25 4.6.3) already works. Test: close the switch's connection;
-  after it is back, one setup (status 0x00), not a second before the wait.
 - A silent switch (connection never closed): x25emu does set TCP keepalive (`tcp.c` 1071-1096: 60 s idle, 3 x 10 s)
   and polls an idle LAPB line (`lapb.c` 1262-1270, T3 30 s, then N2 x T1). BUGS 18 is out of date; its X.25 2.4.9.3 is
   a DCE timer for the physical line and does not apply. RFC 1613 defines no keepalive. Open: a test that pauses the
