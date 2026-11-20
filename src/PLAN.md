@@ -352,8 +352,8 @@ yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO 
   (BUGS 21, which leaves out x25chat). Standard: none.
 - A dial to a host that does not answer blocks every other call for 5 s per address tried (`tcp.c` 1007-1040), on
   redial and when a call is placed (BUGS 17). Standard: none.
-- The DCE's Restart Indication has cause 00 (x25emu BUGS, found 2026-11-20); Table 5-9 allows a DCE 01, 03, 07.
-  The same fault as H4's first item in RetroIO: fix both together, then a cross test.
+- DCE restart cause 07: fixed in x25emu (`b3b7ab1`) and in RetroIO (altoschat, local); left: their cross test
+  (RetroIO `CrossEnvRestartCauseTests`) run in both directions, then delete this line.
 
 ### H2. PAD and host side of X.29 (RetroIO)
 - Host side of X.29 (BUGS 45; `X29.cs` 92-105, 341-355, 373-391, 627-629; used by `TadServer`, `LocalTadProtocol`):
@@ -395,10 +395,8 @@ yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO 
   prefix 0, a call to `23421234567` arriving there gets `2624` in front. Test that.
 - An incoming call routed to another runtime line is never forwarded (RetroIO BUGS 32; `X25Router.cs` 537-538,
   571-592). Standard: none (X.25 covers only the DTE/DCE interface).
-- A failed XOT dial is cleared as "Number busy" #71 (RetroIO BUGS 33; `XotSwitchPort.cs` 804-813,
-  `SwitchCore.cs` 597-607). That row is Table C.3 a) item 31 (not "C.1"), for "No logical channel available"; item
-  30 "Called DTE out of order - Out of order - #0" fits a dial that fails (our reading; the text does not name XOT).
-  Test: a refused dial gives cause 0x09.
+- A refused XOT dial now clears the caller Out of order #0 (Table C.3 a item 30; our reading), no channel free stays
+  Number busy #71 (item 31): RetroIO (altoschat, local) and x25emu (`8d3afdf`). Left: a cross test, then delete.
 - On a link-manager link the runtime is always the DTE (`ProtocolRuntime.X25Endpoints.cs` 196), so a clear it sends
   has cause 0x00 (RetroIO BUGS 40). That is the DTE rule (X.25 5.2.4.1.1: "00000000 or 1XXXXXXX"; Table 5-7 note a
   is about clear indications, not this). Which end is the DTE is set up, not given by the standard (as H7).
