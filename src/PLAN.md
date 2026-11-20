@@ -352,11 +352,8 @@ yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO 
   (BUGS 21, which leaves out x25chat). Standard: none.
 - A dial to a host that does not answer blocks every other call for 5 s per address tried (`tcp.c` 1007-1040), on
   redial and when a call is placed (BUGS 17). Standard: none.
-- The DCE's T10 is not run (BUGS 19; `x25.c` 1117-1123). Table D.1: 60 s, the first expiry sends the Restart
-  Indication again (#52), the second goes to r1. Test: no answer, expect `10 00 FB 01 34` at 60 s.
-- A DTE restart confirmation in r1 (or r2) is taken as a finished restart (BUGS 20; `x25.c` 1981-1992). Table C.2:
-  ERROR #17 in r1, #18 in r2: discard, send a Restart Indication with "Local procedure error", go to r3. Test: a DCE
-  in r1 gets `10 00 FF`, expects `10 00 FB 01 11`.
+- The DCE's Restart Indication has cause 00 (x25emu BUGS, found 2026-11-20); Table 5-9 allows a DCE 01, 03, 07.
+  The same fault as H4's first item in RetroIO: fix both together, then a cross test.
 
 ### H2. PAD and host side of X.29 (RetroIO)
 - Host side of X.29 (BUGS 45; `X29.cs` 92-105, 341-355, 373-391, 627-629; used by `TadServer`, `LocalTadProtocol`):
