@@ -339,6 +339,12 @@ yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO 
   `x75.ps1 stop` returning non-zero, or on `Directory.Delete` of the run's state folder (it would throw if a
   program just stopped still had a log file open there). Which one is not known. Next: loop the fixture with the
   teardown's message kept until it fails again.
+- `PadWindow_ReceivingABurst_FollowsTheOutput` (RetroX25.Desktop.Tests, BurstTests.cs:766) failed once on GitHub CI
+  (run 44650119446, 2026-11-20, windows-latest): "gave up waiting for: no call left - active 1, in total 0, clear
+  requests seen: 4". It passed in the run before (same RetroIO, no change to the PAD window or this test between
+  them) and passes here. Four clear requests were seen and one call stayed active, so a clear was sent but the call
+  was not removed; why is not known. Next: read the test's waits from line 700, loop it, and on a failure log every
+  clear and its answer.
 
 ### H1. A DTE must survive the switch (x25emu)
 - PVC over XOT is not set up again after its TCP connection closes, unless the program calls `x25c_pvc` again

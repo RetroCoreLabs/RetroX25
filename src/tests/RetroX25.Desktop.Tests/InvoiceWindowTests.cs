@@ -144,11 +144,16 @@ namespace RetroX25.Desktop.Tests
             }
 
             Assert.That(d, Is.Not.Null, "docs/billing.md was not found above the test folder");
-            string guide = File.ReadAllText(Path.Combine(d!.FullName, "docs", "billing.md"));
+            // A Windows checkout with core.autocrlf (the CI runner) has CRLF line ends, this working tree may have LF:
+            // read both the same. Until 2026-11-20 the test looked for "```ini\n" only, found nothing on CI, and parsed
+            // the wrong part of the guide ("[tariff] currency is missing").
+            string guide = File.ReadAllText(Path.Combine(d!.FullName, "docs", "billing.md")).Replace("\r\n", "\n");
             int heading = guide.IndexOf("### The price list", StringComparison.Ordinal);
-            int start = guide.IndexOf("```ini\n", heading, StringComparison.Ordinal) + 7;
+            Assert.That(heading, Is.GreaterThan(0), "no '### The price list' heading in docs/billing.md");
+            int fence = guide.IndexOf("```ini\n", heading, StringComparison.Ordinal);
+            Assert.That(fence, Is.GreaterThan(heading), "no ```ini block under '### The price list'");
+            int start = fence + 7;
             int end = guide.IndexOf("```", start, StringComparison.Ordinal);
-            Assert.That(heading, Is.GreaterThan(0));
             string[] lines = guide.Substring(start, end - start).Split('\n');
 
             RetroIO.Protocols.X25.Switch.Billing.Tariff t =
