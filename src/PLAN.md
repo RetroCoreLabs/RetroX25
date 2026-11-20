@@ -1,6 +1,6 @@
 # RetroX25 plan - outstanding work only
 
-**Next:** x25host (G), then the rest of B3. Open X.25 faults: H1 first (a DTE must survive the switch). Push (A6) only after Ronny has looked at the commits.
+**Next:** the open X.25 faults (H), H1 first (a DTE must survive the switch); then the rest of X.75 (B3, B4).
 
 Rules for this file: finished items are deleted, not ticked. Each item says what to build, how it is proved,
 and what it waits for. What was measured is in `docs/xot-peers.md`, `docs/trunk-links.md`,
@@ -45,8 +45,7 @@ Measured 2026-11-16 on GNS3 (idle sleep 1 ms, idle-PC off, serial windows 7):
 again, keep the full test output (the assertion names the step), then find what that step waits on.
 
 ### A6. Housekeeping
-- The work is committed by topic in both repositories and not pushed. RetroX25 pushes from WSL (Windows has no
-  GitHub SSH key).
+- RetroX25 and RetroIO both push from WSL (both remotes are SSH; Windows has no GitHub SSH key).
 - Files that were already uncommitted when this work started and are not ours: `.gitattributes`, `.github/SECURITY.md`,
   `src/demo/` (README, demo.ps1, demo.sh, switch-a/b/c.ini), `DemoConfigTests.cs`. Ronny decides what happens to them.
 
@@ -456,8 +455,6 @@ limits) later and in C# only.
   machine places calls yet, so nothing would send it; comes with the first machine that calls out). A real machine
   that calls out on its own line (the emulated SINTRAN) needs nothing new: see `docs/billing.md`, "A host on its own
   line".
-- G3. The C x25host is in x25emu (`6416e96`, 2026-11-19). Left: a RetroX25 cross test that runs the C and the C#
-  x25host on one example host folder and compares the screens.
 - G5. The host library (`demo/hosts`). Left: PAD texts that need a source first (`docs/research-os.md` 1.2-1.3) -
   PSS `<address>+COM` (the source shows the network's full address after a short one was typed; whether the PAD
   or the Call Connected packet supplied it is not known), the JANET commands `width=nn`, `transparent`, `break`,
