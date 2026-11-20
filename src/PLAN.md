@@ -340,10 +340,9 @@ yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO 
   teardown's message kept until it fails again.
 
 ### H1. A DTE must survive the switch (x25emu)
-- A silent switch (connection never closed): x25emu does set TCP keepalive (`tcp.c` 1071-1096: 60 s idle, 3 x 10 s)
-  and polls an idle LAPB line (`lapb.c` 1262-1270, T3 30 s, then N2 x T1). BUGS 18 is out of date; its X.25 2.4.9.3 is
-  a DCE timer for the physical line and does not apply. RFC 1613 defines no keepalive. Open: a test that pauses the
-  switch and expects every call cleared 0x09 (X.25 4.6.3) within about 90 s; then correct BUGS 18.
+- A switch process that hangs on a live host is not seen (x25emu BUGS 18, corrected `33a499e`): its kernel answers
+  TCP keepalive (measured with a SIGSTOPped peer), and X.25 and RFC 1613 have no timer for an idle call. A host that
+  is off is seen in about 90 s (keepalive, now tested). Waits for: Ronny, whether to add a rule of our own.
 - x25pad, x25nmc and x25traffic stop when the switch goes; only x25echo, x25tadsrv and x25chat set `redial`
   (BUGS 21, which leaves out x25chat). Standard: none.
 - A dial to a host that does not answer blocks every other call for 5 s per address tried (`tcp.c` 1007-1040), on
