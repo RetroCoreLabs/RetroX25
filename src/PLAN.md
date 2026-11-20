@@ -381,7 +381,8 @@ yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO 
   starting 8, 9 or 0 that is not the prefix gets the own DNIC in front. X.121 7.9: an escape code "indicates that the
   following digits represent a number from a different numbering plan" and "has to be carried forward through the
   originating network"; Table 2: 8 F.69 (Note 4: "for further study"), 9 and 0 E.164; Note 3: networks "should also
-  support both 9 and 0". Which escape codes our networks use is still a decision. Test: own DNIC 2422, a prefix that
+  support both 9 and 0". Decided by Ronny 2026-11-20: everything as the standard says, so 8, 9 and 0 are
+  all escape codes and are carried forward. Test: own DNIC 2422, a prefix that
   is not 0 or 9, a call to `9...` is not given 2422 in front.
 - A call with the A bit set (TOA/NPI, X.25 5.2.1.2) is misread as an ordinary address (x25emu BUGS 13;
   `x25_packet.c` 201-240; `X25_GFI_A_BIT` used nowhere). Note 1 after Table C.3 lists it as invalid, row 7: #67.
