@@ -1,7 +1,7 @@
 # RetroX25
 
-An X.25 network you can run. Nine applications - a packet switch, two desktop front ends and
-six console tools - built on the `RetroIO.Protocols.X25.*` packages from
+An X.25 network you can run. Eleven applications - a packet switch, two desktop front ends and
+eight console tools - built on the `RetroIO.Protocols.X25.*` packages from
 [RetroIO](https://retrocorelabs.github.io/RetroIO/).
 
 The source, the build instructions and the releases are on
@@ -17,7 +17,7 @@ nothing from the internet, and it opens full-screen.
 
 ```powershell
 # from the repository root
-.\src\build.ps1                  # builds, tests and publishes all nine to src\publish\win-x64
+.\src\build.ps1                  # builds, tests and publishes all eleven to src\publish\win-x64
 .\src\demo\demo.ps1 start        # three chained switches and an echo service
 .\src\demo\demo.ps1 pad          # at the * prompt:  CALL 23520001
 ```

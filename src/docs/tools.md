@@ -1,6 +1,6 @@
 # The programs in this repository and what each one is for
 
-RetroX25 builds nine programs. Together they let you build a small X.25 network on one computer (or
+RetroX25 builds eleven programs. Together they let you build a small X.25 network on one computer (or
 several), put traffic through it, watch it and take it apart again. This page says what each program is.
 How they fit together as a network is in [A country X.25 network and how these programs simulate it](x25-network.md).
 
@@ -13,6 +13,8 @@ program is for, so it stays true when a setting changes.
 |---|---|---|---|
 | `x25switch` | [RetroX25.Switch](../RetroX25.Switch/README.md) | A packet switch. It takes calls in on its ports, looks at the called address, picks the port the address routes to and joins the two calls. It also has a telnet management console and a monitor port. | The **switch** (PSE). One program for each switch in the network. Its ports play the DCE role towards subscribers and the trunk role towards other switches. |
 | `x25echo` | [RetroX25.Echo](../RetroX25.Echo/README.md) | A tiny service. It accepts every call routed to its address and sends every byte it receives straight back. | A **DTE**: a host with something to talk to. The simplest subscriber. |
+| `x25host` | [RetroX25.Host](../RetroX25.Host/README.md) | Fake machines of the time. Each answers calls on its own address as a described machine: a banner, a login, a command line or a menu, from a host folder of ini and text files (or a script). Many machines run in one process, with an operator console. The library is in [demo/hosts](../demo/hosts); the format is [x25host-format.md](x25host-format.md). | **DTEs**: the hosts a caller of the 1980s reached (VMS, TOPS-20, SINTRAN III, TSO, BBSes, ...). |
+| `x25service` | [RetroX25.Service](../RetroX25.Service/README.md) | The X.25 runtime of the desktop application as a console program with no window. It runs a service, today the Altos chat, from a JSON configuration. | A **DTE** that offers a service, such as the Altos chat. |
 | `x25traffic` | [RetroX25.Traffic](../RetroX25.Traffic/README.md) | A load generator. It places calls and sends numbered data, then reports what came back. It can send one long stream or open and clear calls as fast as you ask. | A **DTE** that sends a lot of data. It is a data generator and nothing else; it is not a PAD. |
 | `x25pad` | [RetroX25.Pad](../RetroX25.Pad/README.md) | A PAD (Packet Assembler/Disassembler) on the console. You type `CALL <address>`, then what you type goes to the remote host and its answer is printed. It follows X.3 (the PAD settings), X.28 (the commands you type) and X.29 (the host changing those settings). It can also open a telnet port so an ordinary terminal program reaches the PAD. | The **PAD** with the **terminal** in front of it. |
 | `RetroX25` (the desktop application) | [RetroX25.Desktop](../RetroX25.Desktop/README.md) | A window application that puts the stack behind a screen: a PAD window, a live packet view that decodes every packet, the routing table, the configuration, link health for the trunks and an XOT peer list. It has its own built-in server (TAD) to call and can run a built-in switch. | A **PAD** (the PAD window and the telnet PAD) and a **DTE** (the built-in TAD server); optionally a **switch**. |
@@ -22,13 +24,15 @@ program is for, so it stays true when a setting changes.
 | `x25xot` | [RetroX25.Xot](../RetroX25.Xot/README.md) | A debug tool for XOT (X.25 over TCP, RFC 1613). It opens one XOT connection as client or server; you send single packets by hand (function keys or typed hex) and it shows each packet that comes back, decoded. Not a PAD; nothing depends on it. | A **protocol tester** clipped onto an XOT link, for hunting a fault. |
 
 The demo network that starts three switches and an echo service is described in
-[demo/README.md](../demo/README.md).
+[demo/README.md](../demo/README.md); the three countries over X.75 in
+[demo/x75-countries](../demo/x75-countries/README.md); the large network generated from one file, with the host
+library on real numbers, in [demo/large-network](../demo/large-network/README.md).
 
 ## Programs from outside this repository that it works with
 
 | Program | What it is | Where it is described |
 |---|---|---|
-| `x25emu` tools (`x25switch`, `x25pad`, `x25echo`, `x25traffic`, `x25trace`, `x25nmc`) | A second, independent X.25 emulator written in C that runs in WSL. It is the other implementation that RetroX25 is tested against. | [crossenv-testing.md](crossenv-testing.md) |
+| `x25emu` tools (`x25switch`, `x25pad`, `x25echo`, `x25traffic`, `x25trace`, `x25nmc`, `x25host`) | A second, independent X.25 emulator written in C that runs in WSL. It is the other implementation that RetroX25 is tested against. | [crossenv-testing.md](crossenv-testing.md) |
 | A Cisco router (IOS) | A real X.25 implementation. It acts as a DTE or a DCE, runs a PAD service and speaks XOT. | [cisco-gns3-xot-test.md](cisco-gns3-xot-test.md), [xot-peers.md](xot-peers.md); what was learned, on one page: [cisco-learnings.md](cisco-learnings.md) |
 
 ## How the programs find each other

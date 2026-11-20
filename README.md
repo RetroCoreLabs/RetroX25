@@ -317,11 +317,28 @@ cd src\demo\x75-countries
 commands, the call records, the ports, and a list of checks to do by hand. `X75CountriesScriptTests` start the
 same files with the same script.
 
-**Coming next: fake machines.** `x25host` (planned) answers calls as a described machine: a banner, a login, a
-command line or a menu, from ini and text files and never from code. The format is
-[x25host-format.md](src/docs/x25host-format.md); the texts of real systems of the time (VMS, TOPS-20, Unix, TSO,
-VM/370, SINTRAN III, PRIMOS, ARPANET hosts, PADs, BBSes, the Altos chat) are collected with their sources in
-[research-os.md](src/docs/research-os.md).
+**Machines to call.** `x25host` answers calls as a described machine: a banner, a login, a command line or a
+menu, from ini and text files (or a script). The library in `src\demo\hosts` has 17 of them (VMS, TOPS-20, BSD,
+SINTRAN III, PRIMOS, TSO, VM/370, Multics, RSTS/E, OS/400, BBSes, Telecom Gold, ...). The format is
+[x25host-format.md](src/docs/x25host-format.md); the texts of real systems of the time are collected with their
+sources in [research-os.md](src/docs/research-os.md).
+
+## The large network
+
+`src\demo\large-network\large.ps1` builds a network of any size from one file, `network.ini`: as shipped, seven
+networks (Norway, Sweden, England, Germany, France, and Telenet and Tymnet in the USA) joined by seven X.75
+links, with thirteen library hosts on real host numbers taken from the X.25 Network Atlas.
+
+```powershell
+cd src\demo\large-network
+./large.ps1 start          # generate the switch files, start everything
+./large.ps1 pad Norway     # then: CALL 03106003604 (VM/370 on Tymnet, three links away)
+./large.ps1 stop
+```
+
+`LargeNetworkTests` calls every host and echo from every country (140 calls) and checks every switch's own
+counters against them, and writes a report of every call and every switch. [The folder's
+README](src/demo/large-network/README.md) has the hosts and their numbers, the dialling rules and the ports.
 
 ---
 

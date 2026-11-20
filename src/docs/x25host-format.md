@@ -386,4 +386,5 @@ per typed line.
 ## Examples
 
 `demo/hosts/vax` is a VMS-style login with DCL commands; `demo/hosts/bbs` is a menu BBS with a guest account.
-Once `x25host` exists they will be added to the three-country network (`demo/x75-countries`).
+Both run in the three-country network (`demo/x75-countries`, as TOMVAX and NORDBBS) and in the large network
+(`demo/large-network`); `demo/hosts` holds the whole library.

@@ -7,8 +7,16 @@ main `README.md` at the top of the repository); these guides cover things that a
 
 | Guide | What it says |
 |---|---|
-| [tools.md](tools.md) | What each of the nine programs is for. |
+| [tools.md](tools.md) | What each of the eleven programs is for. |
 | [x25-network.md](x25-network.md) | How a country X.25 network works and which program plays each part of it. |
+
+## Machines to call
+
+| Guide | What it says |
+|---|---|
+| [x25host-format.md](x25host-format.md) | The host folder format of `x25host`: banner, logins, commands, menus, scripts, users on one machine, the operator console. |
+| [research-os.md](research-os.md) | What the machines, networks and BBSes of the 1970s-1990s showed a caller, with sources; the host library is built from it. |
+| [atlas/README.md](atlas/README.md) | The X.25 Network Atlas: the old public X.25 networks and their hosts with real numbers and sources; the large demo network takes its host numbers from it. |
 
 ## Links between switches and routers
 

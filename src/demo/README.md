@@ -31,6 +31,10 @@ frames, retransmissions and calls.
 international links, with NUI accounting and the Altos chat. Its own README says how to start it, every
 address and NUI, and how to join it with `x25pad` or the desktop app.
 
+**A third demo: a large network from one file.** `large-network/` turns `network.ini` (seven networks, seven
+X.75 links, thirteen library hosts on real host numbers from the X.25 Network Atlas) into switch files and starts
+it. `LargeNetworkTests` call every host from every country and check every switch's counters; see its README.
+
 ## Run it
 
 From the repo root:

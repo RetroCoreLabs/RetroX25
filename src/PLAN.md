@@ -460,6 +460,4 @@ limits) later and in C# only.
   shows the JNT PAD's banner `PAD n line n speed nnnn`, the prompt `PAD>`, `call <name>`, BREAK back to the PAD,
   `clear` answered `*** Cleared`; and a BT PSS session `N<NUI>-A22351919169` answered `23422351919169+COM` (the
   short `A2...` shown as the full address) - it does not say whether the PAD or the Call Connected packet gave the
-  full address. The JNT PAD guide itself is only on paper (Computing History museum, Box 053 and Box 504). The large network
-  (`demo/large-network`) has no unit test of its own: the generator is PowerShell, checked by hand on 2026-11-19
-  (seven networks, calls up to three links away connected).
+  full address. The JNT PAD guide itself is only on paper (Computing History museum, Box 053 and Box 504).
