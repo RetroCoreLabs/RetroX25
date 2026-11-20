@@ -352,8 +352,6 @@ yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO 
   (BUGS 21, which leaves out x25chat). Standard: none.
 - A dial to a host that does not answer blocks every other call for 5 s per address tried (`tcp.c` 1007-1040), on
   redial and when a call is placed (BUGS 17). Standard: none.
-- DCE restart cause 07: fixed in x25emu (`b3b7ab1`) and in RetroIO (altoschat, local); left: their cross test
-  (RetroIO `CrossEnvRestartCauseTests`) run in both directions, then delete this line.
 
 ### H2. PAD and host side of X.29 (RetroIO)
 - Host side of X.29 (BUGS 45; `X29.cs` 92-105, 341-355, 373-391, 627-629; used by `TadServer`, `LocalTadProtocol`):
