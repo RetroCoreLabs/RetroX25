@@ -148,7 +148,7 @@ namespace RetroX25.Tests
         [Test]
         public void TheOtherMachinesOfMachinesIni_LogInAndAnswer()
         {
-            Caller nd = Call("1003", "242226500000101");
+            Caller nd = Call("2110000020","242226500000101");
             WaitForText(nd, "SINTRAN III - VSX/500 K REVISION 0B");
             WaitForText(nd, "ENTER ");
             Type(nd, "guest\r");
@@ -160,7 +160,7 @@ namespace RetroX25.Tests
             Type(nd, "logout\r");
             WaitForText(nd, "-- EXIT --");
 
-            Caller prime = Call("023421003", "242226500000101");
+            Caller prime = Call("0234223440144", "242226500000101");
             WaitForText(prime, "PRIMENET 19.2.7F PPOA1");
             Type(prime, "guest\r");
             WaitForText(prime, "Password? ");
@@ -175,7 +175,7 @@ namespace RetroX25.Tests
             Type(prime, "lo\r");
             WaitForText(prime, "(user 39) logged out");
 
-            Caller wwiv = Call("023421004", "242226500000101");
+            Caller wwiv = Call("0234219210050", "242226500000101");
             WaitForText(wwiv, "Enter your name or number: ");
             Type(wwiv, "guest\r");
             WaitForText(wwiv, "Password: ");
@@ -187,7 +187,7 @@ namespace RetroX25.Tests
             Type(wwiv, "o\r");
             WaitForText(wwiv, "Thanks for calling THAMESWWIV.");
 
-            Caller bsd = Call("026241002", "242226500000101");
+            Caller bsd = Call("026245890040262", "242226500000101");
             WaitForText(bsd, "4.3 BSD UNIX (ucbvax) (ttyp0)");
             Type(bsd, "guest\r");
             WaitForText(bsd, "Password:");
@@ -202,7 +202,7 @@ namespace RetroX25.Tests
             WaitForText(bsd, "logout");
             WaitForInvitationToClear(bsd);
 
-            Caller max = Call("026241003", "242226500000101");
+            Caller max = Call("026245400091110", "242226500000101");
             WaitForText(max, "What is your name: ");
             Type(max, "guest\r");
             WaitForText(max, "Password: ");
@@ -237,19 +237,19 @@ namespace RetroX25.Tests
         [Test]
         public void TheTestServersOfMachinesIni_AnswerInEachCountry()
         {
-            Caller clock = Call("1001", "242226500000103");
+            Caller clock = Call("211000074","242226500000103");
             Assert.That(clock.Cleared, Is.False, "the clock was not reached: " + clock.Screen);
             WaitForText(clock, "OSLOCLOCK speaking clock");
             WaitForText(clock, "Goodbye.");
 
-            Caller game = Call("023421001", "242226500000103");
+            Caller game = Call("0234223519191", "242226500000103");
             Assert.That(game.Cleared, Is.False, "the game was not reached: " + game.Screen);
             WaitForText(game, "Welcome to LONDONGAMES");
             WaitForText(game, "Your guess?");
             Type(game, "q\r");
             WaitForText(game, "Goodbye.");
 
-            Caller board = Call("026241001", "242226500000103");
+            Caller board = Call("026244422190371", "242226500000103");
             Assert.That(board.Cleared, Is.False, "the board was not reached: " + board.Screen);
             WaitForText(board, "MUNICHBOARD notice board");
             Type(board, "hello from Norway\r");
@@ -264,7 +264,7 @@ namespace RetroX25.Tests
         [Test]
         public void TheHostFoldersOfMachinesIni_LogInAndAnswer()
         {
-            Caller vax = Call("023421002", "242226500000102");
+            Caller vax = Call("0234284400108", "242226500000102");
             Assert.That(vax.Cleared, Is.False, "the VAX was not reached: " + vax.Screen);
             WaitForText(vax, "TOMVAX - VAX 8650");
             WaitForText(vax, "Username: ");
@@ -277,7 +277,7 @@ namespace RetroX25.Tests
             Type(vax, "logout\r");
             WaitForText(vax, "logged out at");
 
-            Caller bbs = Call("1002", "242226500000102");
+            Caller bbs = Call("4501340","242226500000102");
             Assert.That(bbs.Cleared, Is.False, "the BBS was not reached: " + bbs.Screen);
             WaitForText(bbs, "Name (GUEST for a guest visit): ");
             Type(bbs, "guest\r");

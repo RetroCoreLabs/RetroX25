@@ -42,7 +42,7 @@ $Nuis = @{ '1' = '242226500000101'; '2' = '242226500000102'; '3' = '242226500000
 $Mgmt = @{ 'norway' = 9201; 'england' = 9202; 'germany' = 9203 }
 $Monitor = @{ 'norway' = 4201; 'england' = 4202; 'germany' = 4203 }
 # Every TCP port this network listens on (README.md, "Ports").
-# 25003, 25013 and 25024 are the host lines (24221xxx, 23421xxx, 26241xxx): x25host and the machines of machines.ini.
+# 25003, 25013 and 25024 are the host lines (one exact route per host number): x25host and the machines of machines.ini.
 $AllPorts = 25001, 25002, 25003, 25011, 25012, 25013, 25021, 25022, 25023, 25024, 9201, 9202, 9203, 4201, 4202, 4203
 
 $script:BinDirGiven = [bool]$BinDir
@@ -204,7 +204,7 @@ function Start-All {
     Wait-Connected $chat 25022 'altos-chat.log'
 
     # The test servers of machines.ini, all in one x25host, on each country's host line.
-    Write-Host 'Test servers (machines.ini): 24221001 clock, 23421001 guess the number, 26241001 notice board'
+    Write-Host 'Test servers (machines.ini): 2422211000074 clock, 234223519191 guess the number, 26244422190371 notice board'
     $p = Start-One 'hosts.log' $hs @('--machines', (Join-Path $Here 'machines.ini'))
     Wait-Connected $p 25003 'hosts.log'; Wait-Connected $p 25013 'hosts.log'; Wait-Connected $p 25024 'hosts.log'
 

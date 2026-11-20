@@ -69,7 +69,7 @@ namespace RetroX25.Host
     /// type = script
     /// script = hosts/guess.js     # relative to the list file
     /// hostname = GUESS
-    /// nua = 24221001
+    /// nua = 2422211000074
     /// switch = 127.0.0.1:25003
     /// group = norway              # optional
     /// setting.greeting = Hello    # optional, any number: machine.settings.greeting in the script

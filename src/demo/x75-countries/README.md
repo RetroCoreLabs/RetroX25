@@ -77,20 +77,21 @@ without the DNIC (the national number).
 | 24220000 | `0000` | Norway's in-band management (`x25nmc`) | Norway switch |
 | 23420000 | `023420000` | England's in-band management | England switch |
 | 26240000 | `026240000` | Germany's in-band management | Germany switch |
-| 24221001 | `1001` | Speaking clock (OSLOCLOCK): tells the time, then clears | Norway port 3, `x25host` |
-| 23421001 | `023421001` | Guess the number (LONDONGAMES), best score shared by all callers | England port 3, `x25host` |
-| 26241001 | `026241001` | Notice board (MUNICHBOARD): pin a line, others on line see it at once | Germany port 3, `x25host` |
-| 23421002 | `023421002` | TOMVAX, a VAX with a DCL command line (log in `GUEST` / `GUEST`) | England port 3, `x25host`, folder `demo/hosts/vax` |
-| 24221002 | `1002` | NORDBBS, a menu bulletin board (log in `GUEST`, any password) | Norway port 3, `x25host`, folder `demo/hosts/bbs` |
-| 24221003 | `1003` | NDOSLO, a Norsk Data ND-100 with SINTRAN III (`ENTER` GUEST, `PASSWORD:` GUEST) | Norway port 3, `x25host`, folder `demo/hosts/sintran` |
-| 23421003 | `023421003` | PPOA1, a Prime with PRIMOS 19.4 (GUEST / PRIME) | England port 3, `x25host`, folder `demo/hosts/primos` |
-| 23421004 | `023421004` | THAMESWWIV, a WWIV bulletin board (GUEST, any password) | England port 3, `x25host`, folder `demo/hosts/wwiv` |
-| 26241002 | `026241002` | ucbvax, a VAX with 4.3BSD Unix (guest / guest) | Germany port 3, `x25host`, folder `demo/hosts/bsd` |
-| 26241003 | `026241003` | ISARBOX, a Maximus FidoNet board (GUEST, any password) | Germany port 3, `x25host`, folder `demo/hosts/maximus` |
+| 2422211000074 | `211000074` | Speaking clock (OSLOCLOCK): tells the time, then clears | Norway port 3, `x25host` |
+| 234223519191 | `0234223519191` | Guess the number (LONDONGAMES), best score shared by all callers | England port 3, `x25host` |
+| 26244422190371 | `026244422190371` | Notice board (MUNICHBOARD): pin a line, others on line see it at once | Germany port 3, `x25host` |
+| 234284400108 | `0234284400108` | TOMVAX, a VAX with a DCL command line (log in `GUEST` / `GUEST`) | England port 3, `x25host`, folder `demo/hosts/vax` |
+| 24224501340 | `4501340` | NORDBBS, a menu bulletin board (log in `GUEST`, any password) | Norway port 3, `x25host`, folder `demo/hosts/bbs` |
+| 24222110000020 | `2110000020` | NDOSLO, a Norsk Data ND-100 with SINTRAN III (`ENTER` GUEST, `PASSWORD:` GUEST) | Norway port 3, `x25host`, folder `demo/hosts/sintran` |
+| 234223440144 | `0234223440144` | PPOA1, a Prime with PRIMOS 19.4 (GUEST / PRIME) | England port 3, `x25host`, folder `demo/hosts/primos` |
+| 234219210050 | `0234219210050` | THAMESWWIV, a WWIV bulletin board (GUEST, any password) | England port 3, `x25host`, folder `demo/hosts/wwiv` |
+| 26245890040262 | `026245890040262` | ucbvax, a VAX with 4.3BSD Unix (guest / guest) | Germany port 3, `x25host`, folder `demo/hosts/bsd` |
+| 26245400091110 | `026245400091110` | ISARBOX, a Maximus FidoNet board (GUEST, any password) | Germany port 3, `x25host`, folder `demo/hosts/maximus` |
 | 26245890040005 | `026245890040005` | The same Altos CHAT 3.1, run as a script (`builtin:altos-chat`), one number above the C# one | Germany port 3, `x25host` (route "Altos scripted") |
-| 24221xxx (other) | `1xxx` | Free for more test servers on Norway's host line; no machine yet: cleared, diagnostic 67 | Norway port 3, TCP 25003 |
-| 23421xxx (other) | `023421xxx` | Free, England's host line | England port 3, TCP 25013 |
-| 26241xxx (other) | `026241xxx` | Free, Germany's host line | Germany port 3, TCP 25024 |
+
+The host numbers are real ones of the time, from the X.25 Network Atlas (`src/docs/atlas`); the machine behind
+each is this library's, not the original. Each switch routes each host's number exactly to its host line. The
+echo and management numbers are made up.
 
 Any other number in 2624… goes to Germany and is cleared there (no route); 2342… to England; any other DNIC
 is cleared in Norway (no route).
@@ -105,8 +106,8 @@ The address and the NUI are two different things. The address says where a call 
 called machine. The NUI only tells Norway who pays and never leaves it: X.25 (10/96) 6.21, "Network user
 identifier is never transmitted to the remote DTE".
 
-The called machine always gets its number in the full form (`24221001`), whether the caller dialled `1001`,
-`024221001` or called from abroad. X.25 leaves the form to the network (5.2.2.2, Appendix IV.3) and X.121 7.8
+The called machine always gets its number in the full form (`2422211000074`), whether the caller dialled `211000074`,
+`02422211000074` or called from abroad. X.25 leaves the form to the network (5.2.2.2, Appendix IV.3) and X.121 7.8
 says the prefix is not part of the number, so every switch port gives the full number unless its
 `called_address` setting says `as_received` or `national`.
 
@@ -123,7 +124,7 @@ Every country has one host line, and `x25host` runs all the test servers in one 
   [machine.5]
   type = myhost               # the folder demo/hosts/myhost
   hostname = BERGEN
-  nua = 24221003
+  nua = 2422110000002     # a real Norwegian number from the X.25 Network Atlas (Oslo SCANNET)
   switch = 127.0.0.1:25003
   ```
 
@@ -137,12 +138,12 @@ Every country has one host line, and `x25host` runs all the test servers in one 
 type = script
 script = hosts/myserver.js
 hostname = TRONDHEIM
-nua = 24221004              # the next free number on the country's line (24221..., 23421..., 26241...)
+nua = 242225300000103       # a real number in the country (Atlas: RUNIT VAX-780, Trondheim), DNIC first
 switch = 127.0.0.1:25003    # Norway's host line (England 25013, Germany 25024)
 setting.greeting = Hei      # optional: machine.settings.greeting in the script
 ```
 
-Either kind: then `./x75.ps1 stop` and `./x75.ps1 start`, and call it (`1004` from Norway). The smallest
+Either kind: then `./x75.ps1 stop` and `./x75.ps1 start`, and call it (`25300000103` from Norway). Add an exact route for the number to the country's host line in `norway.ini` first (see the hosts there). The smallest
 script server:
 
 ```javascript
