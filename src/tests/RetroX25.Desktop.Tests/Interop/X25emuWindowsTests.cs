@@ -245,21 +245,49 @@ namespace RetroX25.Desktop.Tests
         }
 
         /// <summary>
-        /// The built-in switch with one more trunk: it dials x25emu's access port 2007 (calls to 2343 come back down it) and
-        /// sends calls for 2340..2342 up it. Callers connect to the callers port, the app's TAD sits behind the TAD port.
+        /// The built-in switch with one more link to x25emu. Callers connect to the callers port, the app's TAD sits behind
+        /// the TAD port.
         /// </summary>
-        private static string WriteSwitchIni(int callersPort, int tadPort, int x25emuPort, string x25emuHost)
+        /// <remarks>
+        /// When <paramref name="sendCallsUp"/> is true the link is x25emu's trunk listener and calls for 2340..2342 go up
+        /// it. When it is false the link is x25emu's ACCESS port 2007 for DNIC 2343: calls to 2343 come down it and none
+        /// are sent up it. Until 2026-11-21 both cases routed 2340..2342 up the link, so on the access port a call would
+        /// have gone out with a 2350 calling address and been cleared with diagnostic 68 (RetroIO BUGS.md, the "switch
+        /// trunk to 2007" entry). No test sent such a call, so it was never seen.
+        /// </remarks>
+        /// <param name="callersPort">
+        /// The port callers connect to.
+        /// </param>
+        /// <param name="tadPort">
+        /// The port of the app's TAD.
+        /// </param>
+        /// <param name="x25emuPort">
+        /// The x25emu port the link dials.
+        /// </param>
+        /// <param name="x25emuHost">
+        /// The x25emu host.
+        /// </param>
+        /// <param name="sendCallsUp">
+        /// True to route calls for 2340..2342 up the link.
+        /// </param>
+        /// <returns>
+        /// The path of the written file.
+        /// </returns>
+        private static string WriteSwitchIni(int callersPort, int tadPort, int x25emuPort, string x25emuHost, bool sendCallsUp)
         {
             string path = Path.Combine(Path.GetTempPath(), "x25test-x25emu-" + Guid.NewGuid().ToString("N") + ".ini");
+            string upRoutes = sendCallsUp
+                ? "[route.1]\ntype = prefix\naddress = 2342\nprefix_len = 4\nport = 1\n" +
+                  "[route.2]\ntype = prefix\naddress = 2341\nprefix_len = 4\nport = 1\n" +
+                  "[route.3]\ntype = prefix\naddress = 2340\nprefix_len = 4\nport = 1\n"
+                : string.Empty;
             string ini =
                 "[switch]\nname = TestSwitch\ndnic = 2350\nmgmt_addr = 23500000\n" +
                 "[port.0]\ntype = access\ntransport = xot\nmode = dce\nhost = 127.0.0.1\nport = " + callersPort + "\nlci_count = 64\n" +
                 "[port.1]\ntype = trunk\ntransport = xot\nmode = dte\nhost = " + x25emuHost + "\nport = " + x25emuPort + "\npeer_name = X25emu\n" +
                 "[port.2]\ntype = trunk\ntransport = xot\nmode = dte\nhost = 127.0.0.1\nport = " + tadPort + "\npeer_name = TAD\n" +
                 "[route.0]\ntype = prefix\naddress = 2343\nprefix_len = 4\nport = 2\n" +
-                "[route.1]\ntype = prefix\naddress = 2342\nprefix_len = 4\nport = 1\n" +
-                "[route.2]\ntype = prefix\naddress = 2341\nprefix_len = 4\nport = 1\n" +
-                "[route.3]\ntype = prefix\naddress = 2340\nprefix_len = 4\nport = 1\n" +
+                upRoutes +
                 "[route.4]\ntype = dnic\ndnic = 2350\nport = 0\n" +
                 "[user.0]\nname = admin\npassword = admin\nlevel = 1\n";
             File.WriteAllText(path, ini);
@@ -293,7 +321,7 @@ namespace RetroX25.Desktop.Tests
             X25emuEnvironment.RequireReady(needInbound: true);
             int callers = XotLinkHealthTests.FreePort();
             int tad = XotLinkHealthTests.FreePort();
-            string ini = WriteSwitchIni(callers, tad, X25emuEnvironment.CSharpAccessA, X25emuEnvironment.WslHost!);
+            string ini = WriteSwitchIni(callers, tad, X25emuEnvironment.CSharpAccessA, X25emuEnvironment.WslHost!, false);
             try
             {
                 using ServiceProvider provider = BuiltInSwitchApp(ini, callers, tad, false, out _);
@@ -328,7 +356,7 @@ namespace RetroX25.Desktop.Tests
             int callers = XotLinkHealthTests.FreePort();
             int tad = XotLinkHealthTests.FreePort();
             using XotWireTap tap = new XotWireTap(X25emuEnvironment.WslHost!, X25emuEnvironment.XotTrunkListen);
-            string ini = WriteSwitchIni(callers, tad, tap.Port, "127.0.0.1");
+            string ini = WriteSwitchIni(callers, tad, tap.Port, "127.0.0.1", true);
             try
             {
                 using X25emuEnvironment.LinuxProcess echo = X25emuEnvironment.StartEcho();
