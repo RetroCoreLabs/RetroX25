@@ -361,13 +361,6 @@ yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO 
   signal ends CR LF plus padding; 9 = 3, host "A\r" arrives with 3 padding characters.
 
 ### H3. Addresses and routing
-- Escape codes are not recognised (RetroIO BUGS 37; `X121RoutingTable.Lookup.cs` 47-66): with a prefix set, a number
-  starting 8, 9 or 0 that is not the prefix gets the own DNIC in front. X.121 7.9: an escape code "indicates that the
-  following digits represent a number from a different numbering plan" and "has to be carried forward through the
-  originating network"; Table 2: 8 F.69 (Note 4: "for further study"), 9 and 0 E.164; Note 3: networks "should also
-  support both 9 and 0". Decided by Ronny 2026-11-20: everything as the standard says, so 8, 9 and 0 are
-  all escape codes and are carried forward. Test: own DNIC 2422, a prefix that
-  is not 0 or 9, a call to `9...` is not given 2422 in front.
 - A call with the A bit set (TOA/NPI, X.25 5.2.1.2) is misread as an ordinary address (x25emu BUGS 13;
   `x25_packet.c` 201-240; `X25_GFI_A_BIT` used nowhere). Note 1 after Table C.3 lists it as invalid, row 7: #67.
   Support it, or clear `10 01 13 13 43` (Local procedure error, #67).
@@ -383,20 +376,11 @@ yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO 
   prefix 0, a call to `23421234567` arriving there gets `2624` in front. Test that.
 - An incoming call routed to another runtime line is never forwarded (RetroIO BUGS 32; `X25Router.cs` 537-538,
   571-592). Standard: none (X.25 covers only the DTE/DCE interface).
-- A refused XOT dial now clears the caller Out of order #0 (Table C.3 a item 30; our reading), no channel free stays
-  Number busy #71 (item 31): RetroIO (altoschat, local) and x25emu (`8d3afdf`). Left: a cross test, then delete.
 - On a link-manager link the runtime is always the DTE (`ProtocolRuntime.X25Endpoints.cs` 196), so a clear it sends
   has cause 0x00 (RetroIO BUGS 40). That is the DTE rule (X.25 5.2.4.1.1: "00000000 or 1XXXXXXX"; Table 5-7 note a
   is about clear indications, not this). Which end is the DTE is set up, not given by the standard (as H7).
-- The C# switch blocks a port's reader up to 5 s waiting for a fresh XOT connection (RetroIO BUGS 41;
-  `XotSwitchPort.cs` 826, 1747-1782). Standard: none (RFC 1613 5 only says one connection per circuit). Test: data on
-  the calling port is forwarded within 100 ms while a dial waits.
 
 ### H4. Answered by the standard or the SINTRAN source, not yet built (RetroIO)
-- The restart after a LAPB reset on a link that stays up has cause 0 (BUGS 31; `HdlcSwitchPortBase.cs` 1076,
-  `X25Layer.cs` 870). Table 5-9 allows only 01, 03, 07 from a DCE; 4.6.2 names "reset of the data link layer" as an
-  out of order condition and 4.6.5 says recovery sends "Network operational". So: 0x07. Test: a SABM in data
-  transfer gives `10 00 FB 07 00`.
 - SINTRAN's Call Request sent before it confirms the switch's restart: already fixed, the switch discards it
   (`X25Layer.cs` 1125-1127; X.25 3.3.2, Table C.2 r3 DISCARD). Left: correct BUGS 73.
 - TAD break strategies (BUGS 63): SINTRAN `BDBREA` (NDInsight `SINTRAN/NPL-SOURCE-2/NPL-CLEAN/20-COS-TAD-POF-CODE.NPL`
