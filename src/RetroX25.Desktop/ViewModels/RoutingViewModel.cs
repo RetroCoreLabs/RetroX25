@@ -1287,10 +1287,9 @@ public partial class RoutingViewModel : ViewModelWithLogger
     }
 
     /// <summary>
-    /// Replaces the routing keys of a configuration file and leaves everything else in it as it was (other
-    /// sections, such as the built-in switch, are not part of <see cref="RuntimeConfig"/>, so the file cannot
-    /// simply be written again from it). Comments in the file are lost, because the JSON reader does not keep
-    /// them.
+    /// Replaces the routing keys of a configuration file and leaves everything else in it as it was, comments included
+    /// (other sections, such as the built-in switch, are not part of <see cref="RuntimeConfig"/>, so the file cannot
+    /// simply be written again from it).
     /// </summary>
     /// <param name="path">
     /// The file.
@@ -1298,26 +1297,39 @@ public partial class RoutingViewModel : ViewModelWithLogger
     /// <param name="routing">
     /// The routing section to write.
     /// </param>
+    /// <remarks>
+    /// Changed 2026-11-21 (RetroIO BUGS.md, "Save drops comments"): the values are changed in the file's text by
+    /// <see cref="JsonTextEditor"/>. Before, the whole file went through <c>System.Text.Json.Nodes</c> and was written
+    /// out again, which lost every comment. A comment inside a value that is replaced (the route list, say) still goes
+    /// with that value.
+    /// </remarks>
     public static void WriteRoutingToFile(string path, X25RoutingConfig routing)
     {
-        JsonNode? root = JsonNode.Parse(File.ReadAllText(path), null,
+        string text = File.ReadAllText(path);
+        JsonNode? root = JsonNode.Parse(text, null,
             new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
         if (root is not JsonObject top)
         {
             throw new InvalidDataException(path + " is not a configuration file");
         }
 
-        JsonObject section = FindOrAdd(top, "Routing");
-        SetKey(section, "OwnDnics", JsonSerializer.SerializeToNode(routing.OwnDnics));
-        SetKey(section, "InternationalPrefix", JsonValue.Create(routing.InternationalPrefix));
-        SetKey(section, "Routes", JsonSerializer.SerializeToNode(routing.Routes));
-        SetKey(section, "RoutingTable", new JsonArray());
-        SetKey(section, "DefaultGateway", null);
+        JsonSerializerOptions indented = new JsonSerializerOptions { WriteIndented = true };
+        if (!JsonTextEditor.Has(text, "Routing"))
+        {
+            text = JsonTextEditor.Set(text, "{}", "Routing");
+        }
+
+        text = JsonTextEditor.Set(text, JsonSerializer.Serialize(routing.OwnDnics, indented), "Routing", "OwnDnics");
+        text = JsonTextEditor.Set(text, JsonSerializer.Serialize(routing.InternationalPrefix), "Routing", "InternationalPrefix");
+        text = JsonTextEditor.Set(text, JsonSerializer.Serialize(routing.Routes, indented), "Routing", "Routes");
+        text = JsonTextEditor.Set(text, "[]", "Routing", "RoutingTable");
+        text = JsonTextEditor.Set(text, "null", "Routing", "DefaultGateway");
 
         // The channel count of each XOT line, matched by name; a count that is not set is taken out of the file so
         // the line keeps the default (every channel up to 4095). Nothing else of a line is touched.
-        string? xotKey = FindKey(section, "XotInterfaces");
-        if (xotKey != null && section[xotKey] is JsonArray xotLines)
+        JsonObject? section = FindKey(top, "Routing") is string rk ? top[rk] as JsonObject : null;
+        string? xotKey = section != null ? FindKey(section, "XotInterfaces") : null;
+        if (section != null && xotKey != null && section[xotKey] is JsonArray xotLines)
         {
             for (int i = 0; i < xotLines.Count; i++)
             {
@@ -1336,42 +1348,15 @@ public partial class RoutingViewModel : ViewModelWithLogger
                     }
 
                     ushort? count = routing.XotInterfaces[j].LciCountSetting;
-                    string? countKey = FindKey(line, "LciCount");
-                    if (count.HasValue)
-                    {
-                        line[countKey ?? "LciCount"] = count.Value;
-                    }
-                    else if (countKey != null)
-                    {
-                        line.Remove(countKey);
-                    }
-
+                    text = count.HasValue
+                        ? JsonTextEditor.Set(text, count.Value.ToString(System.Globalization.CultureInfo.InvariantCulture), "Routing", "XotInterfaces", i, "LciCount")
+                        : JsonTextEditor.Remove(text, "Routing", "XotInterfaces", i, "LciCount");
                     break;
                 }
             }
         }
 
-        string text = top.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(path, text);
-    }
-
-    // The file is read without regard to case, so a key may be written in any case; the one there is reused.
-    private static JsonObject FindOrAdd(JsonObject parent, string key)
-    {
-        string? existing = FindKey(parent, key);
-        if (existing != null && parent[existing] is JsonObject o)
-        {
-            return o;
-        }
-
-        JsonObject added = new JsonObject();
-        parent[existing ?? key] = added;
-        return added;
-    }
-
-    private static void SetKey(JsonObject obj, string key, JsonNode? value)
-    {
-        obj[FindKey(obj, key) ?? key] = value;
     }
 
     private static string? FindKey(JsonObject obj, string key)
