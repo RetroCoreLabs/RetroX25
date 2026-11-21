@@ -409,6 +409,231 @@ public partial class RoutingViewModel : ViewModelWithLogger
         StatusText = "Deleted switch route " + (row.Index + 1) + " (not saved yet)";
     }
 
+    // The switch's port names for the dialog's port list: a named port by its name, an unnamed one by its number.
+    private List<string> SwitchPortWords()
+    {
+        List<string> words = new List<string>();
+        for (int i = 0; i < Lines.Count; i++)
+        {
+            if (Lines[i].Source == LineSource.SwitchPort)
+            {
+                string w = _switchTable != null && _switchTable.PortNames.TryGetValue(Lines[i].Index, out string? n) ? n : Lines[i].Index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                words.Add(w);
+            }
+        }
+
+        return words;
+    }
+
+    private int SwitchPortCount()
+    {
+        int count = 0;
+        for (int i = 0; i < Lines.Count; i++)
+        {
+            if (Lines[i].Source == LineSource.SwitchPort)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// A switch route in the form the route dialog edits, or null with the reason when the dialog cannot show it
+    /// exactly.
+    /// </summary>
+    /// <remarks>
+    /// Two kinds are refused, and stay editable in the file by hand: a hunt route, because the dialog makes a new
+    /// group of its member lines while the switch file names a [hunt.N] section by number; and a prefix whose
+    /// prefix_len is not the number of its digits, because the dialog always matches all the digits it is given.
+    /// </remarks>
+    private X121RouteConfig? ToDialogRoute(X121Route r, out string refused)
+    {
+        refused = string.Empty;
+        if (_switchTable == null)
+        {
+            refused = "no switch file is read";
+            return null;
+        }
+
+        if (r.Type == X121RouteType.Hunt)
+        {
+            refused = "a hunt route names a [hunt.N] section of the file; edit it in the file";
+            return null;
+        }
+
+        if (r.Type == X121RouteType.Prefix && r.PrefixLen != r.Address.Length)
+        {
+            refused = "this prefix matches only its first " + r.PrefixLen + " digits; edit it in the file";
+            return null;
+        }
+
+        X121RouteConfig rc = new X121RouteConfig
+        {
+            Name = r.Name,
+            Note = r.Note,
+            Kind = X121TableBuilder.KindWord(r.Type),
+            Enabled = r.Enabled,
+            Port = SwitchPortWord(r.DestPort),
+            Direction = r.Direction == X121RouteDirection.Incoming ? "incoming" : r.Direction == X121RouteDirection.Outgoing ? "outgoing" : "both",
+        };
+        switch (r.Type)
+        {
+            case X121RouteType.Exact:
+            case X121RouteType.Prefix:
+                rc.Match = r.Address;
+                break;
+            case X121RouteType.Dnic:
+                rc.Match = r.Dnic;
+                break;
+            case X121RouteType.Dcc:
+                rc.Match = r.Dcc;
+                break;
+            case X121RouteType.Regex:
+                rc.Match = r.Pattern;
+                break;
+        }
+
+        for (int b = 0; b < r.BackupPorts.Count; b++)
+        {
+            rc.BackupPorts.Add(SwitchPortWord(r.BackupPorts[b]));
+        }
+
+        return rc;
+    }
+
+    private string SwitchPortWord(int port)
+    {
+        return _switchTable != null && _switchTable.PortNames.TryGetValue(port, out string? n)
+            ? n : port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// Turns the dialog's route back into a switch route, or null with the reason.
+    /// </summary>
+    /// <remarks>
+    /// The switch file has no key for a call user data pattern or a priority (SwitchConfigLoader reads neither), so a
+    /// route that sets one is refused rather than saved without it. A port must be one of the switch's own ports.
+    /// </remarks>
+    private X121Route? FromDialogRoute(X121RouteConfig rc, out string refused)
+    {
+        refused = string.Empty;
+        if (rc.Kind == "hunt")
+        {
+            refused = "a hunt route of the switch is written in its file by hand ([hunt.N] and hunt_group)";
+            return null;
+        }
+
+        if (!string.IsNullOrEmpty(rc.CallUserDataPattern) || rc.Priority != 0)
+        {
+            refused = "the switch file cannot hold a call user data pattern or a priority";
+            return null;
+        }
+
+        X121RoutingTable temp = new X121RoutingTable();
+        if (_switchTable != null)
+        {
+            foreach (KeyValuePair<int, string> kv in _switchTable.PortNames)
+            {
+                temp.SetPortName(kv.Key, kv.Value);
+            }
+        }
+
+        X121NetworkConfig net = new X121NetworkConfig();
+        net.Routes.Add(rc);
+        try
+        {
+            X121TableBuilder.Fill(temp, net);
+        }
+        catch (InvalidDataException ex)
+        {
+            refused = ex.Message;
+            return null;
+        }
+
+        X121Route r = temp.Routes[0];
+        int count = SwitchPortCount();
+        bool bad = r.DestPort < 0 || r.DestPort >= count;
+        for (int b = 0; b < r.BackupPorts.Count; b++)
+        {
+            bad |= r.BackupPorts[b] < 0 || r.BackupPorts[b] >= count;
+        }
+
+        if (bad)
+        {
+            refused = "every port must be one of the built-in switch's ports";
+            return null;
+        }
+
+        return r;
+    }
+
+    [RelayCommand]
+    private async Task AddSwitchRoute()
+    {
+        if (_switchTable == null)
+        {
+            StatusText = "No switch file is read.";
+            return;
+        }
+
+        RouteEditDialogViewModel vm = new RouteEditDialogViewModel(Logger, null, true, null, SwitchPortWords(), null);
+        if (ShowEditor == null || !await ShowEditor(vm) || vm.Result == null)
+        {
+            return;
+        }
+
+        X121Route? r = FromDialogRoute(vm.Result, out string refused);
+        if (r == null)
+        {
+            StatusText = "Switch route not added: " + refused;
+            return;
+        }
+
+        _switchRoutes.Add(r);
+        HasUnsavedChanges = true;
+        RebuildSwitchRouteRows();
+        StatusText = "Added switch route " + _switchRoutes.Count + " (not saved yet)";
+    }
+
+    [RelayCommand]
+    private async Task EditSwitchRoute()
+    {
+        SwitchRouteRow? row = SelectedSwitchRoute;
+        if (row == null || row.Index < 0 || row.Index >= _switchRoutes.Count)
+        {
+            StatusText = "Pick a switch route to edit.";
+            return;
+        }
+
+        int index = row.Index;
+        X121RouteConfig? rc = ToDialogRoute(_switchRoutes[index], out string cannot);
+        if (rc == null)
+        {
+            StatusText = "Switch route " + (index + 1) + " cannot be edited here: " + cannot;
+            return;
+        }
+
+        RouteEditDialogViewModel vm = new RouteEditDialogViewModel(Logger, rc, false, null, SwitchPortWords(), null);
+        if (ShowEditor == null || !await ShowEditor(vm) || vm.Result == null)
+        {
+            return;
+        }
+
+        X121Route? r = FromDialogRoute(vm.Result, out string refused);
+        if (r == null)
+        {
+            StatusText = "Switch route " + (index + 1) + " not changed: " + refused;
+            return;
+        }
+
+        _switchRoutes[index] = r;
+        HasUnsavedChanges = true;
+        RebuildSwitchRouteRows();
+        StatusText = "Changed switch route " + (index + 1) + " (not saved yet)";
+    }
+
     /// <summary>
     /// Writes the switch routes shown on the screen into the switch's .ini file: only the [route.N] sections change.
     /// </summary>

@@ -175,6 +175,69 @@ namespace RetroX25.Desktop.Tests
             Assert.That(again.SwitchRoutes[0].Enabled, Is.False);
         }
 
+        /// <summary>
+        /// A switch route is edited and one is added in the route dialog, and both are saved into the switch file; a
+        /// port that is not one of the switch's is refused (added 2026-11-21).
+        /// </summary>
+        [Test]
+        public void SwitchRoutes_EditAndAdd_AreSaved_AndAForeignPortIsRefused()
+        {
+            File.WriteAllText(_iniPath, SwitchFile + Routes);
+            RoutingViewModel vm = Screen(_iniPath);
+
+            vm.SelectedSwitchRoute = vm.SwitchRoutes[0];
+            vm.ShowEditor = d =>
+            {
+                Assert.That(d.Match, Is.EqualTo("2341"), "the editor did not show the route");
+                d.Match = "2342";
+                d.Port = "callers";
+                d.OkCommand.Execute(null);
+                return Task.FromResult(true);
+            };
+            vm.EditSwitchRouteCommand.Execute(null);
+            Assert.That(vm.SwitchRoutes[0].Target, Does.Contain("callers"), vm.StatusText);
+
+            vm.ShowEditor = d =>
+            {
+                d.SelectedKind = RouteEditDialogViewModel.Kinds[4];
+                d.Name = "rest";
+                d.Port = "app-xot";
+                d.OkCommand.Execute(null);
+                return Task.FromResult(true);
+            };
+            vm.AddSwitchRouteCommand.Execute(null);
+            Assert.That(vm.StatusText, Does.StartWith("Switch route not added"), "app-xot is this app's line, not a switch port");
+            Assert.That(vm.SwitchRoutes.Count, Is.EqualTo(2));
+
+            vm.ShowEditor = d =>
+            {
+                d.SelectedKind = RouteEditDialogViewModel.Kinds[4];
+                d.Name = "rest";
+                d.Port = "7";
+                d.OkCommand.Execute(null);
+                return Task.FromResult(true);
+            };
+            vm.AddSwitchRouteCommand.Execute(null);
+            Assert.That(vm.StatusText, Does.StartWith("Switch route not added"), "the switch has ports 0 and 1 only");
+            Assert.That(vm.SwitchRoutes.Count, Is.EqualTo(2));
+
+            vm.ShowEditor = d =>
+            {
+                d.SelectedKind = RouteEditDialogViewModel.Kinds[4];
+                d.Name = "rest";
+                d.Port = "1";
+                d.OkCommand.Execute(null);
+                return Task.FromResult(true);
+            };
+            vm.AddSwitchRouteCommand.Execute(null);
+            Assert.That(vm.SwitchRoutes.Count, Is.EqualTo(3), vm.StatusText);
+            vm.SaveCommand.Execute(null);
+
+            string text = File.ReadAllText(_iniPath).Replace("\r\n", "\n");
+            Assert.That(text, Does.Contain("[route.0]\nname = far\nprefix = 2342\nport = callers"));
+            Assert.That(text, Does.Contain("[route.2]\nname = rest\ndefault = yes\nport = 1"));
+        }
+
         [Test]
         public void Load_WithoutMaxCalls_ShowsZero()
         {

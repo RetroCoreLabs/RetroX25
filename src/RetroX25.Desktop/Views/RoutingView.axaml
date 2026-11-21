@@ -91,7 +91,12 @@
             <StackPanel Spacing="6">
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Grid.Column="0" Text="Built-in switch routes" FontSize="15" FontWeight="SemiBold"/>
-                    <Button Grid.Column="1" Content="Delete" Command="{Binding DeleteSwitchRouteCommand}"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                        <Button Content="Add route..." Command="{Binding AddSwitchRouteCommand}"/>
+                        <Button Content="Edit..." Command="{Binding EditSwitchRouteCommand}"
+                                ToolTip.Tip="A hunt route, and a prefix that matches fewer digits than it has, are edited in the switch file by hand."/>
+                        <Button Content="Delete" Command="{Binding DeleteSwitchRouteCommand}"/>
+                    </StackPanel>
                 </Grid>
                 <TextBlock FontSize="11" TextWrapping="Wrap"
                            Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
