@@ -265,6 +265,8 @@ public partial class RoutingViewModel : ViewModelWithLogger
         try
         {
             Lines.Clear();
+            _switchRoutes.Clear();
+            _switchTable = null;
             MaxCallsText = "0";
             MaxCallsError = string.Empty;
             HasSwitchFile = false;
@@ -274,6 +276,15 @@ public partial class RoutingViewModel : ViewModelWithLogger
                 {
                     SwitchConfig sw = SwitchConfigLoader.LoadFile(SwitchFilePath);
                     HasSwitchFile = true;
+
+                    // The switch's own [route.N] routes (added 2026-11-21; before, the screen showed only this app's
+                    // routes and the switch's had to be edited by hand). Kept as the switch's table so Save can write
+                    // them back with the same port names (SwitchRouteWriter).
+                    _switchTable = sw.Routing;
+                    for (int i = 0; i < sw.Routing.Routes.Count; i++)
+                    {
+                        _switchRoutes.Add(sw.Routing.Routes[i]);
+                    }
                     MaxCallsText = sw.MaxCalls.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     for (int i = 0; i < sw.Ports.Count; i++)
                     {
@@ -320,7 +331,101 @@ public partial class RoutingViewModel : ViewModelWithLogger
             _loading = false;
         }
 
+        RebuildSwitchRouteRows();
         return problem;
+    }
+
+    // The built-in switch's routes as the file has them, edited in place until Save; null when no switch file was read.
+    private readonly List<X121Route> _switchRoutes = new List<X121Route>();
+    private X121RoutingTable? _switchTable;
+
+    /// <summary>
+    /// The built-in switch's own routes (its .ini file's [route.N] sections), in the order the file has them.
+    /// </summary>
+    public ObservableCollection<SwitchRouteRow> SwitchRoutes { get; } = new ObservableCollection<SwitchRouteRow>();
+
+    /// <summary>
+    /// The selected switch route.
+    /// </summary>
+    [ObservableProperty]
+    private SwitchRouteRow? _selectedSwitchRoute;
+
+    private void RebuildSwitchRouteRows()
+    {
+        SwitchRoutes.Clear();
+        if (_switchTable == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < _switchRoutes.Count; i++)
+        {
+            X121Route r = _switchRoutes[i];
+            SwitchRoutes.Add(new SwitchRouteRow(this, i, r.Name, X121RouteText.Describe(r), X121RouteText.Target(r, _switchTable), r.Enabled));
+        }
+    }
+
+    /// <summary>
+    /// Turns a switch route on or off until Save; the list's switch calls this.
+    /// </summary>
+    /// <param name="index">
+    /// The route's place in the switch file.
+    /// </param>
+    /// <param name="enabled">
+    /// The new state.
+    /// </param>
+    internal void SetSwitchRouteEnabled(int index, bool enabled)
+    {
+        if (index < 0 || index >= _switchRoutes.Count || _switchRoutes[index].Enabled == enabled)
+        {
+            return;
+        }
+
+        _switchRoutes[index].Enabled = enabled;
+        HasUnsavedChanges = true;
+        StatusText = "Switch route " + (index + 1) + (enabled ? " turned on" : " turned off") + " (not saved yet)";
+    }
+
+    [RelayCommand]
+    private async Task DeleteSwitchRoute()
+    {
+        SwitchRouteRow? row = SelectedSwitchRoute;
+        if (row == null || row.Index < 0 || row.Index >= _switchRoutes.Count)
+        {
+            StatusText = "Pick a switch route to delete.";
+            return;
+        }
+
+        bool sure = await _dialogService.ShowConfirmation("Delete switch route",
+            "Delete the built-in switch's route " + (row.Index + 1) + "?\n\n" + row.Match + "\n" + row.Target);
+        if (!sure)
+        {
+            return;
+        }
+
+        _switchRoutes.RemoveAt(row.Index);
+        HasUnsavedChanges = true;
+        RebuildSwitchRouteRows();
+        StatusText = "Deleted switch route " + (row.Index + 1) + " (not saved yet)";
+    }
+
+    /// <summary>
+    /// Writes the switch routes shown on the screen into the switch's .ini file: only the [route.N] sections change.
+    /// </summary>
+    /// <param name="path">
+    /// The switch file.
+    /// </param>
+    /// <param name="routes">
+    /// The routes, in their order.
+    /// </param>
+    /// <param name="table">
+    /// The switch's table, for its port names.
+    /// </param>
+    public static void WriteSwitchRoutesToFile(string path, IReadOnlyList<X121Route> routes, X121RoutingTable table)
+    {
+        List<string> text = new List<string>(File.ReadAllLines(path));
+        SwitchRouteWriter.ReplaceRoutes(text, routes, table);
+        File.WriteAllLines(path, text);
     }
 
     private static string TransportWord(PortTransport transport)
@@ -936,6 +1041,10 @@ public partial class RoutingViewModel : ViewModelWithLogger
             try
             {
                 WriteSwitchSettingsToFile(SwitchFilePath, maxCalls, Lines);
+                if (_switchTable != null)
+                {
+                    WriteSwitchRoutesToFile(SwitchFilePath, _switchRoutes, _switchTable);
+                }
                 where += " and " + Path.GetFileName(SwitchFilePath) + " (the built-in switch uses it from its next start)";
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
@@ -1376,4 +1485,73 @@ public sealed partial class RouteRow : ObservableObject
             default: return "#757575";
         }
     }
+}
+
+/// <summary>
+/// One line of the built-in switch's route list (added 2026-11-21).
+/// </summary>
+public sealed partial class SwitchRouteRow : ObservableObject
+{
+    private readonly RoutingViewModel _owner;
+
+    [ObservableProperty]
+    private bool _enabled;
+
+    /// <summary>
+    /// Creates a line.
+    /// </summary>
+    /// <param name="owner">
+    /// The screen; turning the switch changes the routes it will save.
+    /// </param>
+    /// <param name="index">
+    /// The route's place in the switch file.
+    /// </param>
+    /// <param name="name">
+    /// The route name; may be empty.
+    /// </param>
+    /// <param name="match">
+    /// What it matches, in words.
+    /// </param>
+    /// <param name="target">
+    /// Where it sends calls, backups in order.
+    /// </param>
+    /// <param name="enabled">
+    /// Whether it is on.
+    /// </param>
+    public SwitchRouteRow(RoutingViewModel owner, int index, string name, string match, string target, bool enabled)
+    {
+        _owner = owner;
+        Index = index;
+        Name = name;
+        Match = match;
+        Target = target;
+        _enabled = enabled;
+    }
+
+    /// <summary>
+    /// The route's place in the switch file.
+    /// </summary>
+    public int Index { get; }
+
+    /// <summary>
+    /// Its number on the screen, from 1.
+    /// </summary>
+    public int Order => Index + 1;
+
+    /// <summary>
+    /// The route name; may be empty.
+    /// </summary>
+    public string Name { get; }
+
+    /// <summary>
+    /// What it matches, in words.
+    /// </summary>
+    public string Match { get; }
+
+    /// <summary>
+    /// Where it sends calls.
+    /// </summary>
+    public string Target { get; }
+
+    partial void OnEnabledChanged(bool value) => _owner.SetSwitchRouteEnabled(Index, value);
 }

@@ -133,6 +133,48 @@ namespace RetroX25.Desktop.Tests
             Assert.That(vm.HasUnsavedChanges, Is.False);
         }
 
+        private const string Routes =
+            "\n# the switch's routes\n" +
+            "[route.0]\n" +
+            "name = far\n" +
+            "prefix = 2341\n" +
+            "port = 1\n" +
+            "\n" +
+            "[route.1]\n" +
+            "number = 23400001\n" +
+            "port = callers\n";
+
+        /// <summary>
+        /// The switch's own routes are listed; turning one off and deleting another is saved into the switch file, and
+        /// the rest of the file is kept (added 2026-11-21).
+        /// </summary>
+        [Test]
+        public void SwitchRoutes_AreListed_AndAnOffAndADeleteAreSavedIntoTheSwitchFile()
+        {
+            File.WriteAllText(_iniPath, SwitchFile + Routes);
+            RoutingViewModel vm = Screen(_iniPath);
+
+            Assert.That(vm.SwitchRoutes.Count, Is.EqualTo(2));
+            Assert.That(vm.SwitchRoutes[0].Name, Is.EqualTo("far"));
+            Assert.That(vm.SwitchRoutes[1].Target, Does.Contain("callers"));
+
+            vm.SwitchRoutes[0].Enabled = false;
+            vm.SelectedSwitchRoute = vm.SwitchRoutes[1];
+            vm.DeleteSwitchRouteCommand.Execute(null);
+            Assert.That(vm.SwitchRoutes.Count, Is.EqualTo(1));
+            vm.SaveCommand.Execute(null);
+
+            string text = File.ReadAllText(_iniPath).Replace("\r\n", "\n");
+            Assert.That(text, Does.StartWith("# the built-in switch\n[switch]\n"));
+            Assert.That(text, Does.Contain("# the switch's routes\n[route.0]\nname = far\nprefix = 2341\nport = 1\nenabled = no"));
+            Assert.That(text, Does.Not.Contain("[route.1]"));
+            Assert.That(text, Does.Not.Contain("23400001"));
+
+            RoutingViewModel again = Screen(_iniPath);
+            Assert.That(again.SwitchRoutes.Count, Is.EqualTo(1));
+            Assert.That(again.SwitchRoutes[0].Enabled, Is.False);
+        }
+
         [Test]
         public void Load_WithoutMaxCalls_ShowsZero()
         {

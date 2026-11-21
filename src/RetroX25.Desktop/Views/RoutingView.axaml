@@ -83,6 +83,47 @@
             </StackPanel>
         </Border>
 
+        <!-- The built-in switch's own routes (its .ini [route.N] sections), added 2026-11-21 -->
+        <Border DockPanel.Dock="Top" IsVisible="{Binding HasSwitchFile}"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+            <StackPanel Spacing="6">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0" Text="Built-in switch routes" FontSize="15" FontWeight="SemiBold"/>
+                    <Button Grid.Column="1" Content="Delete" Command="{Binding DeleteSwitchRouteCommand}"/>
+                </Grid>
+                <TextBlock FontSize="11" TextWrapping="Wrap"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                           Text="The switch's own routes, from its file. Save writes them back into that file and leaves every other line of it as it was; the switch uses them from its next start."/>
+                <DataGrid Name="SwitchRouteGrid"
+                          ItemsSource="{Binding SwitchRoutes}"
+                          SelectedItem="{Binding SelectedSwitchRoute}"
+                          AutoGenerateColumns="False"
+                          CanUserSortColumns="False"
+                          CanUserReorderColumns="False"
+                          GridLinesVisibility="Horizontal"
+                          HeadersVisibility="Column"
+                          IsReadOnly="True"
+                          MaxHeight="180">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding Order}" Width="40"/>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="130"/>
+                        <DataGridTextColumn Header="Calls to" Binding="{Binding Match}" Width="2*"/>
+                        <DataGridTextColumn Header="Go to (backups in order)" Binding="{Binding Target}" Width="2*"/>
+                        <DataGridTemplateColumn Header="On" Width="70">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="vm:SwitchRouteRow">
+                                    <ToggleSwitch IsChecked="{Binding Enabled}" OnContent="" OffContent=""
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </Border>
+
         <!-- Save bar -->
         <Border DockPanel.Dock="Bottom"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
