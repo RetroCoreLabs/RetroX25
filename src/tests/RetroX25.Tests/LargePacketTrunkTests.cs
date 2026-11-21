@@ -89,7 +89,10 @@ namespace RetroX25.Tests
 
         private static bool Up(IMonitoredSwitchPort port)
         {
-            return port is HdlcTcpSwitchPort h ? h.PeerConnected : true;
+            // The far end is connected, for either transport. Until 2026-11-21 an XOT trunk counted as up at once, so
+            // the first call could go before A's trunk had dialled B, and the switch rightly refused it as out of
+            // order (X.25 Table C.3 a) item 30): CI run 44759186884, case (Xot,128), the first in the fixture.
+            return port.PeerConnected;
         }
 
         /// <summary>
