@@ -343,19 +343,7 @@ yet: each starts with the test named, written to fail first. X.75 gaps (RetroIO 
 - A dial to a host that does not answer blocks every other call for 5 s per address tried (`tcp.c` 1007-1040), on
   redial and when a call is placed (BUGS 17). Standard: none.
 
-### H2. PAD and host side of X.29 (RetroIO)
-- Host side of X.29 (BUGS 45; `X29.cs` 92-105, 341-355, 373-391, 627-629; used by `TadServer`, `LocalTadProtocol`):
-  a read is sent as bare references, but 4.4.5.3 says "Value fields in read PAD messages are coded as all binary
-  0s"; invalid pairs are dropped and a bad set gets an error message, but the Note to Table 1 says the error bit is
-  set in the parameter indication; the error codes are 01-05, Table 4 has 00, 02, 04, 06, 08, 0A, 0C. Test: a read
-  of 2,3 is `04 02 00 03 00`; `00 82 01` parses as parameter 2 in error, reason 1.
-- Reselection is dropped silently (BUGS 46; `X29.cs` 759-761). A PAD without reselection treats it as invalid
-  (X.29 3.6 Note 2) and answers error `05 02 07` (3.5.2 a). Table 4 g is only for a PAD that has reselection (and 3.6
-  gives its code as 00000110 where Table 4 has 00001100: the 12/97 text contradicts itself). Test: Q=1 `07`, expect
-  `05 02 07`.
-- A recall character other than DLE never recalls (BUGS 47; `X28.cs` 1431-1432), though X.3 3.1 allows a "graphic
-  character defined by the user - represented by decimal 32 to 126" and `X3.cs` 589 accepts it. Test: 1:43, then '+'
-  goes to command mode.
+### H2. PAD padding (RetroIO)
 - No padding anywhere (BUGS 44; `X3.cs` 850-871): X.28 3.5.2; X.3 3.9 (service signals are padded by data rate even
   when parameter 9 is 0), 3.14 (after LF), 3.11 (speed, read-only; 0 = 110 bit/s). Test: 11 = 0, 9 = 0, a service
   signal ends CR LF plus padding; 9 = 3, host "A\r" arrives with 3 padding characters.
