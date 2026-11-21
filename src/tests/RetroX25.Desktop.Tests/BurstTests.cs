@@ -178,6 +178,16 @@ namespace RetroX25.Desktop.Tests
             {
                 get
                 {
+                    // HasExited turns true when the process ends, but the last lines it printed can still be on
+                    // their way through the asynchronous readers. Only WaitForExit() with no time limit waits for
+                    // both redirected streams to reach their end (.NET Process.WaitForExit documentation). Without
+                    // it, CI run 44853983970 read tool 2 of SeveralTools_AtOnce_AreAddedUpExactly with exit code 0
+                    // and only its first lines: "figure not found ... Data sent".
+                    if (_process.HasExited)
+                    {
+                        _process.WaitForExit();
+                    }
+
                     lock (_output)
                     {
                         return _output.ToString();
